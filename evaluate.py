@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import torch
+from tqdm.auto import tqdm
 
 from data import make_loaders
 from metrics import grouped_classification
@@ -17,7 +18,7 @@ def evaluate(model, loaders, year_column, device, splits=("id_val", "id_test", "
     report, records = {}, []
     for split in splits:
         rows = []
-        for images, labels, metadata in loaders[split]:
+        for images, labels, metadata in tqdm(loaders[split], desc=f"evaluate {split}", unit="batch", leave=False):
             probabilities = model(images.to(device))[0].softmax(1)
             confidence, prediction = probabilities.max(1)
             for year, actual, predicted, score in zip(metadata[:, year_column].tolist(),
