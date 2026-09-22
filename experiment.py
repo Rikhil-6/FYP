@@ -1,6 +1,7 @@
 """Logged server experiment: GPU preflight, temporal folds, and final models."""
 import argparse
 import json
+import os
 import statistics
 import subprocess
 from datetime import datetime, timezone
@@ -15,10 +16,12 @@ def run_command(uv, script, args, log):
     with log.open("a", encoding="utf-8") as handle:
         handle.write("$ " + " ".join(command) + "\n")
         with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              text=True, bufsize=1) as process:
-            for line in process.stdout:
-                print(line, end="", flush=True)
-                handle.write(line)
+                              bufsize=0, env=os.environ | {"PYTHONUNBUFFERED": "1"}) as process:
+            while chunk := os.read(process.stdout.fileno(), 4096):
+                output = chunk.decode("utf-8", errors="replace")
+                print(output, end="", flush=True)
+                handle.write(output)
+                handle.flush()
             code = process.wait()
         handle.flush()
     if code:
@@ -36,11 +39,14 @@ def main():
     parser.add_argument("--limit-train", type=int)
     parser.add_argument("--limit-eval", type=int)
     parser.add_argument("--skip-smoke", action="store_true")
+    parser.add_argument("--smoke-only", action="store_true", help="Check CUDA and the model without dataset ingestion")
     args = parser.parse_args()
     if args.cv_folds < 0 or args.epochs < 1 or args.batch_size < 1:
         parser.error("cv-folds must be nonnegative; epochs and batch-size must be positive")
     if args.cv_only and args.cv_folds == 0:
         parser.error("--cv-only needs --cv-folds")
+    if args.smoke_only and (args.cv_only or args.cv_folds or args.skip_smoke):
+        parser.error("--smoke-only cannot be combined with CV or --skip-smoke")
     uv = Path("tools/uv").resolve()
     if not uv.is_file():
         parser.error("Run bash deploy/server.sh setup first")
@@ -52,6 +58,11 @@ def main():
     results = []
     try:
         run_command(uv, "hardware.py", ["--require-gpu"], log)
+        if args.smoke_only:
+            run_command(uv, "smoke.py", [], log)
+            (experiment / "summary.json").write_text(json.dumps({"status": "completed", "smoke_only": True}, indent=2), encoding="utf-8")
+            print(f"Completed. Summary: {experiment / 'summary.json'}")
+            return
         try:
             dataset = open_dataset("data")
         except FileNotFoundError as error:
