@@ -49,7 +49,7 @@ echo "Pipeline logs: $run_dir"
 echo "Data directory: ${project_dir}/data -> $data_dir"
 
 if [[ "$mode" == "all" || "$mode" == "ingest" ]]; then
-  echo "Starting FMoW ingestion"
+  echo "Starting CLEAR-100 ingestion"
   bash deploy/server.sh ingest 2>&1 | tee "${run_dir}/ingest.log"
 fi
 if [[ "$mode" == "all" || "$mode" == "train" ]]; then
