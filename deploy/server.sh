@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-project_dir="${HOME}/FYP"
-storage_dir="/mnt/sdd/FYP"
+project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+storage_dir="$(dirname -- "$(readlink -f -- "${project_dir}/runs")")"
+cache_dir="$(readlink -f -- "${project_dir}/cache")"
 action="${1:-status}"
 if [[ "$#" -gt 0 ]]; then shift; fi
 
@@ -20,9 +21,9 @@ if [[ ! -x "${project_dir}/tools/uv" || ! -d "${storage_dir}/venv" ]]; then
 fi
 
 cd "$project_dir"
-export UV_CACHE_DIR="${storage_dir}/cache/uv"
+export UV_CACHE_DIR="${cache_dir}/uv"
 export UV_PROJECT_ENVIRONMENT="${storage_dir}/venv"
-export HF_HOME="${storage_dir}/cache/huggingface"
+export HF_HOME="${cache_dir}/huggingface"
 mkdir -p "$HF_HOME"
 uv="${project_dir}/tools/uv"
 

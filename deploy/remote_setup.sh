@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-project_dir="${HOME}/FYP"
-storage_dir="/mnt/sdd/FYP"
+project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+storage_dir="${FYP_STORAGE_DIR:-/mnt/sdd/FYP}"
+data_dir="${FYP_DATA_DIR:-${storage_dir}/data}"
+cache_dir="${FYP_CACHE_DIR:-${storage_dir}/cache}"
+tools_dir="${FYP_TOOLS_DIR:-${storage_dir}/tools}"
 
 if [[ ! -f "${project_dir}/pyproject.toml" || ! -f "${project_dir}/uv.lock" ]]; then
   echo "Expected the FYP checkout at ${project_dir}" >&2
@@ -13,7 +16,7 @@ if [[ ! -w /mnt/sdd ]]; then
   exit 1
 fi
 
-mkdir -p "${storage_dir}/data" "${storage_dir}/runs" "${storage_dir}/cache/uv" "${storage_dir}/tools"
+mkdir -p "${data_dir}" "${storage_dir}/runs" "${cache_dir}/uv" "${tools_dir}"
 
 link_dir() {
   local name="$1"
@@ -32,20 +35,20 @@ link_dir() {
   fi
 }
 
-link_dir data "${storage_dir}/data"
+link_dir data "${data_dir}"
 link_dir runs "${storage_dir}/runs"
-link_dir tools "${storage_dir}/tools"
-link_dir cache "${storage_dir}/cache"
+link_dir tools "${tools_dir}"
+link_dir cache "${cache_dir}"
 
-if [[ ! -x "${storage_dir}/tools/uv" ]]; then
-  curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL="${storage_dir}/tools" sh
+if [[ ! -x "${tools_dir}/uv" ]]; then
+  curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL="${tools_dir}" sh
 fi
 
-export UV_CACHE_DIR="${storage_dir}/cache/uv"
+export UV_CACHE_DIR="${cache_dir}/uv"
 export UV_PROJECT_ENVIRONMENT="${storage_dir}/venv"
-"${storage_dir}/tools/uv" sync --locked --project "$project_dir"
+"${tools_dir}/uv" sync --locked --project "$project_dir"
 link_dir .venv "${storage_dir}/venv"
 
 echo "FYP ready: ${project_dir}"
-echo "Persistent data: ${storage_dir}/data"
+echo "Persistent data: ${data_dir}"
 echo "Persistent runs: ${storage_dir}/runs"
