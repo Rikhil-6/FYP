@@ -1,4 +1,4 @@
-"""Classification metrics by official split, acquisition year, and class."""
+"""Classification metrics by temporal split, upload year, and class."""
 import argparse
 import csv
 import json
@@ -42,8 +42,9 @@ def main():
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = TemporalViT(args.method).to(device)
-    model.load_state_dict(torch.load(args.checkpoint, map_location=device, weights_only=True))
+    checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=True)
+    model = TemporalViT(args.method, num_classes=checkpoint["classifier.weight"].shape[0]).to(device)
+    model.load_state_dict(checkpoint)
     loaders, year_column = make_loaders(args.data_root, args.batch_size, limit_eval=args.limit_eval)
     report, records = evaluate(model, loaders, year_column, device)
     if args.output:

@@ -35,13 +35,15 @@ def main():
     thresholds = json.loads((args.run_dir / "metrics" / "thresholds.json").read_text())
     thresholds = {int(key) if key != "global" else key: value for key, value in thresholds.items()}
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    old = TemporalViT("xai").to(device)
-    new = TemporalViT("xai").to(device)
-    old.load_state_dict(torch.load(args.base_checkpoint, map_location=device, weights_only=True))
+    base = torch.load(args.base_checkpoint, map_location=device, weights_only=True)
+    num_classes = base["classifier.weight"].shape[0]
+    old = TemporalViT("xai", num_classes=num_classes).to(device)
+    new = TemporalViT("xai", num_classes=num_classes).to(device)
+    old.load_state_dict(base)
     new.load_state_dict(torch.load(args.run_dir / "models" / "best.pt", map_location=device, weights_only=True))
     router = ViTTwinRouter(old, new).eval()
     dataset = open_dataset(args.data_root)
-    loader, _ = year_loader(dataset, "test", (2016, 2017), batch_size=1, limit=args.index + 1)
+    loader, _ = year_loader(dataset, "test", (2014,), batch_size=1, limit=args.index + 1)
     if len(loader.dataset) <= args.index:
         raise IndexError("--index exceeds the future test set")
     for image, label, _ in loader:

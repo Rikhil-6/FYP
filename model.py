@@ -7,7 +7,7 @@ BACKBONE = "facebook/dinov2-small"
 
 
 class TemporalViT(nn.Module):
-    def __init__(self, method="baseline"):
+    def __init__(self, method="baseline", num_classes=100):
         super().__init__()
         if method not in ("baseline", "xai"):
             raise ValueError(method)
@@ -15,7 +15,7 @@ class TemporalViT(nn.Module):
         self.backbone = Dinov2Model.from_pretrained(BACKBONE)
         width = self.backbone.config.hidden_size
         self.saliency_head = nn.Sequential(nn.LayerNorm(width), nn.Linear(width, 1))
-        self.classifier = nn.Linear(width * 2, 62)
+        self.classifier = nn.Linear(width * 2, num_classes)
 
     def forward(self, image, return_counterfactual=False):
         tokens = self.backbone(pixel_values=image).last_hidden_state

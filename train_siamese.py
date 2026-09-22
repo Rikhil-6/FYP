@@ -119,16 +119,17 @@ def main():
     torch.manual_seed(args.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dataset = open_dataset(args.data_root)
-    adapt, _ = year_loader(dataset, "val", (2013, 2014), args.batch_size,
+    adapt, _ = year_loader(dataset, "val", (2012,), args.batch_size,
                            shuffle=True, limit=args.limit_adapt, seed=args.seed)
-    calibrate, _ = year_loader(dataset, "val", (2015,), args.batch_size,
+    calibrate, _ = year_loader(dataset, "val", (2013,), args.batch_size,
                                limit=args.limit_calibrate)
-    future, year_column = year_loader(dataset, "test", (2016, 2017), args.batch_size,
+    future, year_column = year_loader(dataset, "test", (2014,), args.batch_size,
                                       limit=args.limit_test)
     if not len(adapt.dataset) or not len(calibrate.dataset) or not len(future.dataset):
         raise ValueError("One year split is empty; check FMoW metadata")
     checkpoint = torch.load(args.base_checkpoint, map_location="cpu", weights_only=True)
-    old, new = TemporalViT("xai").to(device), TemporalViT("xai").to(device)
+    classes = checkpoint["classifier.weight"].shape[0]
+    old, new = TemporalViT("xai", classes).to(device), TemporalViT("xai", classes).to(device)
     old.load_state_dict(checkpoint)
     new.load_state_dict(checkpoint)
     old.eval()
@@ -141,7 +142,8 @@ def main():
     router = ViTTwinRouter(old, new)
     optimizer = torch.optim.AdamW((p for p in new.parameters() if p.requires_grad), lr=1e-5)
     store = RunStore(args.output, "siamese", args.run_id)
-    store.write_json("config.json", vars(args) | {"device": device, "torch_version": torch.__version__,
+    store.write_json("config.json", vars(args) | {"dataset": "CLEAR-100", "num_classes": classes,
+                                                  "device": device, "torch_version": torch.__version__,
                                                   "cuda_build": torch.version.cuda})
     best_score = -1.0
     for epoch in range(1, args.epochs + 1):
@@ -168,13 +170,13 @@ def main():
         validation = model_metrics(new, calibrate, device)
         score = validation["macro_f1"]
         row = {"epoch": epoch, "adapt_loss": round(total / len(adapt.dataset), 4),
-               "calibration_2015_macro_f1": score,
-               "calibration_2015_macro_iou": validation["macro_iou"]}
+               "calibration_2013_macro_f1": score,
+               "calibration_2013_macro_iou": validation["macro_iou"]}
         store.log(row)
-        store.save_model(new, "last", epoch, "calibration_2015_macro_f1", score)
+        store.save_model(new, "last", epoch, "calibration_2013_macro_f1", score)
         if score > best_score:
             best_score = score
-            store.save_model(new, "best", epoch, "calibration_2015_macro_f1", score)
+            store.save_model(new, "best", epoch, "calibration_2013_macro_f1", score)
         print(json.dumps(row), flush=True)
     new.load_state_dict(torch.load(store.path / "models" / "best.pt", map_location=device, weights_only=True))
     thresholds = calibrate_thresholds(router, calibrate, device)
@@ -186,7 +188,7 @@ def main():
         writer.writeheader()
         writer.writerows(decisions)
     store.log({"event": "final", "selected_checkpoint": "models/best.pt",
-               "selection_metric": "calibration_2015_macro_f1", "best_score": best_score,
+               "selection_metric": "calibration_2013_macro_f1", "best_score": best_score,
                "future_routed_macro_f1": result["all"]["routed"]["macro_f1"]})
     print(json.dumps({"run": str(store.path), "future": {
         key: result["all"][key]["macro_f1"] for key in ("old", "new", "routed")}}, indent=2))

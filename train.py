@@ -10,7 +10,7 @@ import torch
 from torch.nn import functional as F
 from tqdm.auto import tqdm
 
-from data import make_loaders, open_dataset, year_loader
+from data import NUM_CLASSES, make_loaders, open_dataset, year_loader
 from evaluate import evaluate
 from model import TemporalViT
 from run_store import RunStore
@@ -56,14 +56,15 @@ def main():
     if not len(loaders["train"].dataset) or not len(loaders["id_val"].dataset):
         parser.error("Training or validation split is empty")
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = TemporalViT(args.method).to(device)
+    model = TemporalViT(args.method, num_classes=NUM_CLASSES).to(device)
     for p in model.backbone.parameters():
         p.requires_grad = False
     for p in model.backbone.encoder.layer[-1].parameters():
         p.requires_grad = True
     optimizer = torch.optim.AdamW((p for p in model.parameters() if p.requires_grad), lr=2e-5)
     store = RunStore(args.output, args.method, args.run_id)
-    store.write_json("config.json", vars(args) | {"device": device, "torch_version": torch.__version__,
+    store.write_json("config.json", vars(args) | {"dataset": "CLEAR-100", "num_classes": NUM_CLASSES,
+                                                  "device": device, "torch_version": torch.__version__,
                                                   "cuda_build": torch.version.cuda})
     best_score = -1.0
     for epoch in range(1, args.epochs + 1):
