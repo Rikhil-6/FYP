@@ -1,0 +1,8 @@
+[project]
+name = "fyp-temporal-vit"
+version = "0.3.0"
+requires-python = ">=3.11,<3.13"
+dependencies = ["torch>=2.3", "torchvision>=0.18", "transformers>=4.45,<5", "wilds>=2.0", "numpy>=1.26", "pillow>=10"]
+
+[tool.uv]
+package = false
