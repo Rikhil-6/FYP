@@ -102,5 +102,6 @@ bash deploy/launch.sh --detach all --cv-folds 3 --epochs 3 --batch-size 8
 ```
 
 The command prints a `tmux` session name. `bash deploy/launch.sh ingest` runs ingestion alone, and `bash deploy/launch.sh train --cv-folds 3 --epochs 3 --batch-size 8` runs training on existing data. Stage logs go to `runs/pipelines/<timestamp>/ingest.log` and `train.log`; model metrics and checkpoints retain their own run folders.
+Ingestion checks that the official FMoW download host accepts a connection before starting WILDS' large transfer. If the host is unreachable, the pipeline exits with a clear error and does not start training.
 
 The setup and runner derive their project path from their own file location. A separate Git worktree can therefore use `FYP_STORAGE_DIR=/mnt/sdd/FYP-fork FYP_DATA_DIR=/mnt/sdd/FYP/data FYP_CACHE_DIR=/mnt/sdd/FYP/cache FYP_TOOLS_DIR=/mnt/sdd/FYP/tools bash deploy/server.sh setup` to share the downloaded dataset, uv package cache, and uv executable while keeping its own runs and virtual environment on the mounted volume.
