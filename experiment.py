@@ -31,7 +31,7 @@ def run_command(uv, script, args, log):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--cv-folds", type=int, default=0,
-                        help="Number of latest chronological years in the official train split to validate")
+                        help="Number of latest CLEAR-100 training years to validate chronologically")
     parser.add_argument("--cv-only", action="store_true")
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch-size", type=int, default=8)
@@ -66,7 +66,7 @@ def main():
         try:
             dataset = open_dataset("data")
         except FileNotFoundError as error:
-            raise RuntimeError("FMoW data is missing. Run 'bash deploy/server.sh ingest' before the experiment.") from error
+            raise RuntimeError("CLEAR-100 data is missing. Run 'bash deploy/server.sh ingest' before the experiment.") from error
         if not args.skip_smoke:
             run_command(uv, "smoke.py", [], log)
         year_column = dataset.metadata_fields.index("year")

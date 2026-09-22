@@ -4,7 +4,7 @@ from collections import defaultdict
 import numpy as np
 
 
-def classification_metrics(truth, prediction, classes=62):
+def classification_metrics(truth, prediction, classes=100):
     truth = np.asarray(truth, dtype=np.int64)
     prediction = np.asarray(prediction, dtype=np.int64)
     if not len(truth):

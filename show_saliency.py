@@ -19,8 +19,9 @@ def main():
     if args.output is None:
         args.output = args.checkpoint.parent.parent / "metrics" / "saliency.png"
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = TemporalViT("xai").to(device)
-    model.load_state_dict(torch.load(args.checkpoint, map_location=device, weights_only=True))
+    checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=True)
+    model = TemporalViT("xai", num_classes=checkpoint["classifier.weight"].shape[0]).to(device)
+    model.load_state_dict(checkpoint)
     model.eval()
     loaders, _ = make_loaders(args.data_root, batch_size=1, limit_eval=1)
     image, label, metadata = next(iter(loaders["test"]))

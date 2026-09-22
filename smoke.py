@@ -40,7 +40,7 @@ def one_step(model, device):
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-    assert logits.shape == (1, 62)
+    assert logits.shape == (1, 100)
     assert saliency.shape == (1, 256)
     assert torch.isfinite(loss)
     return round(loss.detach().item(), 4)
@@ -50,7 +50,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.manual_seed(42)
     loaders = {name: DataLoader(TinyImages(year), batch_size=1)
-               for name, year in (("id_val", 2012), ("test", 2017))}
+               for name, year in (("id_val", 2011), ("test", 2014))}
     losses = {}
     xai = None
     for method in ("baseline", "xai"):
@@ -68,7 +68,7 @@ def main():
     with torch.no_grad():
         newer.saliency_head[-1].bias.add_(0.1)
     router = ViTTwinRouter(xai.eval(), newer.eval())
-    image, _, _ = TinyImages(2017)[0]
+    image, _, _ = TinyImages(2014)[0]
     comparison = router.compare(image[None].to(device))
     prediction, flag, route = router.route(comparison, {"global": 0.0})
     forced = {"old_logits": torch.tensor([[4.0, 0.0]], device=device),

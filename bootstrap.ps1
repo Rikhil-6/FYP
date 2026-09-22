@@ -42,7 +42,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 function Invoke-DataIngest {
-    Write-Host 'Downloading FMoW-WILDS (about 54 GB compressed; allow substantial disk space).'
+    Write-Host 'Downloading CLEAR-100 image archives (about 4.6 GB total; resumable).'
     & $uv run ingest.py
     if ($LASTEXITCODE -ne 0) { throw "Dataset ingestion failed: $LASTEXITCODE" }
 }
