@@ -12,6 +12,7 @@ function Get-UvPath {
     $found = Get-Command uv -ErrorAction SilentlyContinue
     if ($found) { return $found.Source }
     foreach ($candidate in @(
+        (Join-Path $PSScriptRoot 'tools\uv.exe'),
         (Join-Path $env:USERPROFILE '.local\bin\uv.exe'),
         (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\uv.exe'),
         (Join-Path $env:USERPROFILE '.cargo\bin\uv.exe')
@@ -21,20 +22,24 @@ function Get-UvPath {
 
 $uv = Get-UvPath
 if (-not $uv) {
-    $winget = Get-Command winget -ErrorAction SilentlyContinue
-    if ($winget) {
-        & $winget.Source install --id astral-sh.uv --exact --source winget --accept-source-agreements --accept-package-agreements
-        if ($LASTEXITCODE -ne 0) { throw "winget install failed: $LASTEXITCODE" }
-    } else {
-        Invoke-Expression (Invoke-RestMethod -Uri 'https://astral.sh/uv/install.ps1')
-    }
-    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+    $env:UV_UNMANAGED_INSTALL = Join-Path $PSScriptRoot 'tools'
+    $env:UV_NO_MODIFY_PATH = '1'
+    Invoke-Expression (Invoke-RestMethod -Uri 'https://astral.sh/uv/install.ps1')
     $uv = Get-UvPath
-    if (-not $uv) { throw 'uv installed but is not on PATH. Open a new PowerShell window and rerun.' }
+    if (-not $uv) { throw 'The project-local uv installation did not produce tools\uv.exe.' }
 }
 
 & $uv sync
-if ($LASTEXITCODE -ne 0) { throw "uv sync failed: $LASTEXITCODE" }
+if ($LASTEXITCODE -ne 0) {
+    # Some Windows uv versions create Python 3.11 but fail to follow its minor-version junction once.
+    $pythonRoot = Join-Path $env:APPDATA 'uv\python'
+    $installed = Get-ChildItem -LiteralPath $pythonRoot -Directory -Filter 'cpython-3.11.*-windows-x86_64-none' -ErrorAction SilentlyContinue |
+        Sort-Object Name -Descending | Select-Object -First 1
+    $pythonExe = if ($installed) { Join-Path $installed.FullName 'python.exe' } else { $null }
+    if (-not $pythonExe -or -not (Test-Path -LiteralPath $pythonExe)) { throw "uv sync failed: $LASTEXITCODE" }
+    & $uv sync --python $pythonExe
+    if ($LASTEXITCODE -ne 0) { throw "uv sync failed: $LASTEXITCODE" }
+}
 
 function Invoke-DataIngest {
     Write-Host 'Downloading FMoW-WILDS (about 54 GB compressed; allow substantial disk space).'
