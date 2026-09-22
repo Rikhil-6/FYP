@@ -193,6 +193,7 @@ dependencies = [
     { name = "pillow" },
     { name = "torch" },
     { name = "torchvision" },
+    { name = "tqdm" },
     { name = "transformers" },
     { name = "wilds" },
 ]
@@ -203,6 +204,7 @@ requires-dist = [
     { name = "pillow", specifier = ">=10" },
     { name = "torch", specifier = ">=2.3" },
     { name = "torchvision", specifier = ">=0.18" },
+    { name = "tqdm", specifier = ">=4.66" },
     { name = "transformers", specifier = ">=4.45,<5" },
     { name = "wilds", specifier = ">=2.0" },
 ]

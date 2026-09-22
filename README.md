@@ -82,4 +82,15 @@ On the Ubuntu server, a checkout at `/home/ubuntu/FYP` can be configured with `b
 
 Use `bash deploy/server.sh status` to check the Git revision, PyTorch GPU visibility, and resolved symlinks. `bash deploy/server.sh smoke` runs the tiny synthetic check. `bash deploy/server.sh ingest` starts the large FMoW download. `baseline`, `xai`, `siamese`, `evaluate`, and `all` dispatch their corresponding experiments. Full training requires a GPU by default; set `FYP_ALLOW_CPU_TRAIN=1` explicitly to proceed on a CPU-only machine. The runner keeps uv and Hugging Face caches on `/mnt/sdd/FYP/cache`.
 
+The server experiment launcher checks the CUDA enabled PyTorch version and performs a real GPU tensor operation before training. It also runs a synthetic DINOv2 forward/backward smoke test, then trains the requested chronological folds and final baseline/XAI/twin models. Each batch has a `tqdm` progress bar; batch and epoch records go into each model's `logs/events.jsonl`. The combined terminal output is saved in `runs/experiments/<timestamp>/console.log`, and its `summary.json` lists the model run paths and fold scores. Keep an SSH session open or run it under `tmux` for long jobs:
+
+```bash
+cd /home/ubuntu/FYP
+bash deploy/server.sh ingest
+tmux new -s fyp
+bash deploy/server.sh experiment --cv-folds 3 --epochs 3 --batch-size 8
+```
+
+The cross validation folds use only the official training split: for each selected year, the model trains on all earlier acquisition years and validates on that year. The final models use the original official split and evaluate future years separately. For a short execution check after ingestion, add `--cv-only --cv-folds 1 --epochs 1 --limit-train 32 --limit-eval 32`; those small sample scores are for debugging only. Detach from `tmux` with Ctrl+B then D, and reconnect with `tmux attach -t fyp`.
+
 The setup and runner derive their project path from their own file location. A separate Git worktree can therefore use `FYP_STORAGE_DIR=/mnt/sdd/FYP-fork FYP_DATA_DIR=/mnt/sdd/FYP/data FYP_CACHE_DIR=/mnt/sdd/FYP/cache FYP_TOOLS_DIR=/mnt/sdd/FYP/tools bash deploy/server.sh setup` to share the downloaded dataset, uv package cache, and uv executable while keeping its own runs and virtual environment on the mounted volume.

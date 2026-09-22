@@ -8,7 +8,7 @@ action="${1:-status}"
 if [[ "$#" -gt 0 ]]; then shift; fi
 
 usage() {
-  echo "Usage: bash deploy/server.sh {setup|status|smoke|ingest|baseline|xai|siamese|evaluate|all} [model options]"
+  echo "Usage: bash deploy/server.sh {setup|status|smoke|ingest|experiment|baseline|xai|siamese|evaluate|all} [model options]"
   echo "Set FYP_ALLOW_CPU_TRAIN=1 to permit full training without a GPU."
 }
 
@@ -69,6 +69,7 @@ case "$action" in
     ;;
   smoke) "$uv" run --no-sync smoke.py "$@" ;;
   ingest) "$uv" run --no-sync ingest.py "$@" ;;
+  experiment) check_training_device; "$uv" run --no-sync experiment.py "$@" ;;
   baseline) check_training_device; train_method baseline "$@" ;;
   xai) check_training_device; train_method xai "$@" ;;
   siamese) check_training_device; train_twin "$@" ;;

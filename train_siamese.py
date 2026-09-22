@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.nn import functional as F
+from tqdm.auto import tqdm
 
 from data import open_dataset, year_loader
 from metrics import binary_metrics, classification_metrics, topk_map_agreement
@@ -21,7 +22,7 @@ from siamese import ViTTwinRouter, fit_thresholds
 def model_metrics(model, loader, device):
     model.eval()
     truth, prediction = [], []
-    for images, labels, _ in loader:
+    for images, labels, _ in tqdm(loader, desc="select newer ViT", unit="batch", leave=False):
         logits = model(images.to(device))[0]
         truth.extend(labels.tolist())
         prediction.extend(logits.argmax(1).cpu().tolist())
@@ -32,7 +33,7 @@ def model_metrics(model, loader, device):
 def calibrate_thresholds(router, loader, device):
     router.eval()
     class_scores = defaultdict(list)
-    for images, labels, _ in loader:
+    for images, labels, _ in tqdm(loader, desc="calibrate routing", unit="batch", leave=False):
         comparison = router.compare(images.to(device))
         old_prediction = comparison["old_logits"].argmax(1).cpu()
         for index, class_id in enumerate(old_prediction.tolist()):
@@ -45,7 +46,7 @@ def calibrate_thresholds(router, loader, device):
 def evaluate_stream(router, loader, thresholds, device, year_column):
     router.eval()
     decisions = []
-    for images, labels, metadata in loader:
+    for images, labels, metadata in tqdm(loader, desc="future routing", unit="batch"):
         comparison = router.compare(images.to(device))
         routed, needs_update, use_new = router.route(comparison, thresholds)
         old = comparison["old_logits"].argmax(1)
@@ -107,9 +108,12 @@ def main():
     parser.add_argument("--limit-calibrate", type=int)
     parser.add_argument("--limit-test", type=int)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--log-every", type=int, default=25)
     args = parser.parse_args()
     if args.epochs < 1:
         parser.error("--epochs must be at least 1")
+    if args.log_every < 1:
+        parser.error("--log-every must be at least 1")
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -137,12 +141,14 @@ def main():
     router = ViTTwinRouter(old, new)
     optimizer = torch.optim.AdamW((p for p in new.parameters() if p.requires_grad), lr=1e-5)
     store = RunStore(args.output, "siamese", args.run_id)
-    store.write_json("config.json", vars(args) | {"device": device})
+    store.write_json("config.json", vars(args) | {"device": device, "torch_version": torch.__version__,
+                                                  "cuda_build": torch.version.cuda})
     best_score = -1.0
     for epoch in range(1, args.epochs + 1):
         new.train()
         total = 0.0
-        for images, labels, _ in adapt:
+        progress = tqdm(adapt, desc=f"siamese epoch {epoch}/{args.epochs}", unit="batch")
+        for step, (images, labels, _) in enumerate(progress, 1):
             labels = labels.to(device)
             comparison = router.compare(images.to(device))
             logits = comparison["new_logits"]
@@ -155,6 +161,10 @@ def main():
             loss.backward()
             optimizer.step()
             total += loss.item() * len(labels)
+            progress.set_postfix(loss=f"{loss.item():.4f}")
+            if step % args.log_every == 0 or step == len(adapt):
+                store.log({"event": "adapt_batch", "epoch": epoch, "batch": step,
+                           "batches": len(adapt), "loss": round(loss.item(), 6)})
         validation = model_metrics(new, calibrate, device)
         score = validation["macro_f1"]
         row = {"epoch": epoch, "adapt_loss": round(total / len(adapt.dataset), 4),

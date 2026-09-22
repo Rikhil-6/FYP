@@ -41,6 +41,19 @@ def main():
     if args.require_gpu and not result["gpu_available"]:
         print("No GPU is accessible to PyTorch.", file=sys.stderr)
         raise SystemExit(2)
+    if args.require_gpu:
+        major, minor = (int(part) for part in torch.__version__.split("+")[0].split(".")[:2])
+        if (major, minor) < (2, 3) or not torch.version.cuda:
+            print("Expected a CUDA-enabled PyTorch >= 2.3.", file=sys.stderr)
+            raise SystemExit(2)
+        try:
+            sample = torch.randn(32, 32, device="cuda")
+            torch.cuda.synchronize()
+            if not torch.isfinite(sample @ sample).all():
+                raise RuntimeError("non-finite CUDA result")
+        except Exception as error:
+            print(f"CUDA computation failed: {error}", file=sys.stderr)
+            raise SystemExit(2) from error
 
 
 if __name__ == "__main__":
