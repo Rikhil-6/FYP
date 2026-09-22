@@ -75,3 +75,7 @@ uv run show_siamese.py --base-checkpoint runs/xai/<run-id>/models/best.pt --run-
 ```
 
 The modules stay separate: `ingest.py` downloads, `data.py` loads chronological splits, `model.py` builds ViTs, `train.py` trains baseline/XAI, `siamese.py` defines routing, `train_siamese.py` adapts and tests the twin, `metrics.py` scores, `evaluate.py` evaluates, and `run_store.py` handles run folders and checkpoints.
+
+## Ubuntu server layout
+
+On the Ubuntu server, a checkout at `/home/ubuntu/FYP` can be configured with `bash deploy/remote_setup.sh`. The script installs a project-local Linux `uv`, syncs `uv.lock`, and makes `data`, `runs`, `tools`, and `.venv` symlinks into `/mnt/sdd/FYP` so large files stay on the mounted volume. It refuses to replace existing non-symlink paths. The SSH private key stays on the Windows machine and is never required on the server. The server currently receives this private repository via an SSH-transferred Git bundle, so future updates can use a fresh bundle without adding GitHub credentials there.
