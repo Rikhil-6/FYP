@@ -35,6 +35,7 @@ link_dir() {
 link_dir data "${storage_dir}/data"
 link_dir runs "${storage_dir}/runs"
 link_dir tools "${storage_dir}/tools"
+link_dir cache "${storage_dir}/cache"
 
 if [[ ! -x "${storage_dir}/tools/uv" ]]; then
   curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL="${storage_dir}/tools" sh
