@@ -15,6 +15,8 @@ cd C:\Users\JSW_User\FYP
 
 `Setup` installs uv if needed and creates `.venv`. `Ingest` explicitly downloads FMoW-WILDS, which is **about 54 GB compressed** and considerably larger after extraction. A CUDA GPU is strongly recommended. `All` trains the baseline, XAI, and twin-ViT runs after the data is present. Individual actions are `Baseline`, `Xai`, `Siamese`, and `Evaluate`. DINOv2 weights download on first model use.
 
+For a **runtime smoke test without the FMoW download**, run ` .\tools\uv.exe run smoke.py` after setup. It exercises ViT forward/backward passes, metric calculation, saliency routing, and checkpoint/manual snapshot storage using two synthetic images. Its scores are only software checks.
+
 After ingestion, a small code-path run is:
 
 ```powershell
