@@ -92,5 +92,6 @@ bash deploy/server.sh experiment --cv-folds 3 --epochs 3 --batch-size 8
 ```
 
 The cross validation folds use only the official training split: for each selected year, the model trains on all earlier acquisition years and validates on that year. The final models use the original official split and evaluate future years separately. For a short execution check after ingestion, add `--cv-only --cv-folds 1 --epochs 1 --limit-train 32 --limit-eval 32`; those small sample scores are for debugging only. Detach from `tmux` with Ctrl+B then D, and reconnect with `tmux attach -t fyp`.
+Before downloading FMoW, `bash deploy/server.sh experiment --smoke-only` verifies the installed PyTorch CUDA build and runs the ViT smoke path through the same logged launcher.
 
 The setup and runner derive their project path from their own file location. A separate Git worktree can therefore use `FYP_STORAGE_DIR=/mnt/sdd/FYP-fork FYP_DATA_DIR=/mnt/sdd/FYP/data FYP_CACHE_DIR=/mnt/sdd/FYP/cache FYP_TOOLS_DIR=/mnt/sdd/FYP/tools bash deploy/server.sh setup` to share the downloaded dataset, uv package cache, and uv executable while keeping its own runs and virtual environment on the mounted volume.
