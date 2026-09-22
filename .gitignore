@@ -5,3 +5,7 @@ runs/
 data/
 tools/
 *.pem
+/.venv
+/data
+/runs
+/tools
