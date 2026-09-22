@@ -33,6 +33,11 @@ fi
 
 run_dir="${project_dir}/runs/pipelines/$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$run_dir"
+data_dir="$(readlink -f -- "${project_dir}/data")"
+if [[ ! -d "$data_dir" || ! -w "$data_dir" ]]; then
+  echo "Data directory is missing or not writable: $data_dir" >&2
+  exit 2
+fi
 record_exit() {
   local status="$?"
   printf 'exit_code=%s\nended_utc=%s\n' "$status" "$(date -u +%FT%TZ)" >> "${run_dir}/run.txt"
@@ -41,6 +46,7 @@ trap record_exit EXIT
 printf 'mode=%s\ncommit=%s\nstarted_utc=%s\n' \
   "$mode" "$(git rev-parse HEAD)" "$(date -u +%FT%TZ)" > "${run_dir}/run.txt"
 echo "Pipeline logs: $run_dir"
+echo "Data directory: ${project_dir}/data -> $data_dir"
 
 if [[ "$mode" == "all" || "$mode" == "ingest" ]]; then
   echo "Starting FMoW ingestion"

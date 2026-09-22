@@ -12,7 +12,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", default="data")
     args = parser.parse_args()
-    data_dir = Path(args.data_root) / "fmow_v1.1"
+    data_dir = Path(args.data_root).resolve() / "fmow_v1.1"
+    print(f"FMoW destination: {data_dir}", flush=True)
     release = data_dir / "RELEASE_v1.1.txt"
     if release.is_file():
         required = (data_dir / "rgb_metadata.csv", data_dir / "country_code_mapping.csv", data_dir / "images")
