@@ -13,6 +13,7 @@ from tqdm.auto import tqdm
 
 SOURCE = "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/"
 ARCHIVES = {"train": "clear100-train-image-only.zip", "test": "clear100-test.zip"}
+ARCHIVE_ROOTS = {"train": "train_image_only", "test": "test"}
 
 
 def split_for(source, bucket):
@@ -39,7 +40,8 @@ def download(root, source):
 
 def extract(root, source, archive):
     marker = root / f"{source}.ready"
-    if marker.is_file() and (root / source / "labeled_images").is_dir():
+    archive_root = ARCHIVE_ROOTS[source]
+    if marker.is_file() and (root / archive_root / "labeled_images").is_dir():
         print(f"{source} images already extracted; skipping.", flush=True)
         return
     with zipfile.ZipFile(archive) as handle:
@@ -47,7 +49,7 @@ def extract(root, source, archive):
         new_images = 0
         for item in tqdm(entries, desc=f"extract {source}", unit="file"):
             path = Path(item.filename)
-            if path.is_absolute() or ".." in path.parts or not path.parts or path.parts[0] != source:
+            if path.is_absolute() or ".." in path.parts or not path.parts or path.parts[0] != archive_root:
                 raise ValueError(f"Unexpected archive path: {item.filename}")
             destination = root / path
             if item.is_dir():
@@ -57,7 +59,7 @@ def extract(root, source, archive):
             handle.extract(item, root)
             if destination.suffix.lower() in (".jpg", ".jpeg", ".png"):
                 new_images += 1
-    if not (root / source / "labeled_images").is_dir():
+    if not (root / archive_root / "labeled_images").is_dir():
         raise RuntimeError(f"{source} archive contains no labeled_images folder")
     marker.write_text(f"extracted_utc={datetime.now(timezone.utc).isoformat()}\n", encoding="utf-8")
     print(f"{source} extraction ready; {new_images} new images", flush=True)
@@ -66,7 +68,7 @@ def extract(root, source, archive):
 def build_manifest(root):
     candidates = []
     for source in ("train", "test"):
-        image_root = root / source / "labeled_images"
+        image_root = root / ARCHIVE_ROOTS[source] / "labeled_images"
         for bucket_dir in sorted(image_root.iterdir()):
             if not bucket_dir.is_dir() or not bucket_dir.name.isdigit():
                 continue
