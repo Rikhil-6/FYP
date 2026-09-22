@@ -1,6 +1,7 @@
 """Logged server experiment: GPU preflight, temporal folds, and final models."""
 import argparse
 import json
+import statistics
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -51,9 +52,12 @@ def main():
     results = []
     try:
         run_command(uv, "hardware.py", ["--require-gpu"], log)
+        try:
+            dataset = open_dataset("data")
+        except FileNotFoundError as error:
+            raise RuntimeError("FMoW data is missing. Run 'bash deploy/server.sh ingest' before the experiment.") from error
         if not args.skip_smoke:
             run_command(uv, "smoke.py", [], log)
-        dataset = open_dataset("data")
         year_column = dataset.metadata_fields.index("year")
         years = sorted({2002 + int(year) for year in
                         dataset.get_subset("train").metadata_array[:, year_column].tolist() if year >= 0})
@@ -89,12 +93,22 @@ def main():
                 twin_args += ["--limit-calibrate", args.limit_eval, "--limit-test", args.limit_eval]
             run_command(uv, "train_siamese.py", twin_args, log)
             results.append({"method": "siamese", "run": str(Path("runs/siamese") / f"{stamp}-final")})
-        (experiment / "summary.json").write_text(json.dumps({"status": "completed", "runs": results}, indent=2), encoding="utf-8")
+        cv_summary = {}
+        for method in ("baseline", "xai"):
+            folds = [item for item in results if item["method"] == method and "validation_year" in item]
+            if folds:
+                cv_summary[method] = {"folds": len(folds),
+                                      "macro_f1_mean": statistics.mean(item["macro_f1"] for item in folds),
+                                      "macro_f1_std": statistics.pstdev(item["macro_f1"] for item in folds),
+                                      "macro_iou_mean": statistics.mean(item["macro_iou"] for item in folds)}
+        (experiment / "summary.json").write_text(json.dumps({"status": "completed", "runs": results,
+                                                                 "cv_summary": cv_summary}, indent=2), encoding="utf-8")
         print(f"Completed. Summary: {experiment / 'summary.json'}")
     except Exception as error:
         (experiment / "summary.json").write_text(json.dumps({"status": "failed", "error": str(error),
                                                                  "completed_runs": results}, indent=2), encoding="utf-8")
-        raise
+        print(f"Experiment stopped: {error}", flush=True)
+        raise SystemExit(1) from error
 
 
 if __name__ == "__main__":
