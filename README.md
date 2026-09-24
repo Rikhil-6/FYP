@@ -88,20 +88,20 @@ The server experiment launcher checks that the installed CUDA enabled PyTorch ma
 cd /home/ubuntu/FYP
 bash deploy/server.sh ingest
 tmux new -s fyp
-bash deploy/server.sh experiment --cv-folds 3 --epochs 3 --batch-size 8
+bash deploy/server.sh experiment --temporal-repeats 3 --epochs 3 --batch-size 8
 ```
 
-The cross validation folds use only the official training split: for each selected year, the model trains on all earlier acquisition years and validates on that year. The final models use the original official split and evaluate future years separately. For a short execution check after ingestion, add `--cv-only --cv-folds 1 --epochs 1 --limit-train 32 --limit-eval 32`; those small sample scores are for debugging only. Detach from `tmux` with Ctrl+B then D, and reconnect with `tmux attach -t fyp`.
+Temporal backtesting keeps the fit period fixed: every repeat trains on 2004–2010, selects its checkpoint on 2011, and scores the unchanged checkpoint separately on 2012 and 2013. No later year is folded back into baseline training. `--temporal-repeats 3` repeats that protocol with three seeds; `--cv-folds` remains a compatibility alias. The final untouched test is 2014. For a short code-path check, add `--cv-only --temporal-repeats 1 --epochs 1 --limit-train 32 --limit-eval 32`; those sample scores are only for debugging. Detach from `tmux` with Ctrl+B then D, and reconnect with `tmux attach -t fyp`.
 Before downloading CLEAR-100, `bash deploy/server.sh experiment --smoke-only` verifies the installed PyTorch CUDA build and runs the ViT smoke path through the same logged launcher.
 
 To start ingestion followed by training in one detached server job, while keeping each stage separate and logged, run:
 
 ```bash
 cd /home/ubuntu/FYP
-bash deploy/launch.sh --detach all --cv-folds 3 --epochs 3 --batch-size 8
+bash deploy/launch.sh --detach all --temporal-repeats 3 --epochs 3 --batch-size 8
 ```
 
-The command prints a `tmux` session name. `bash deploy/launch.sh ingest` runs ingestion alone, and `bash deploy/launch.sh train --cv-folds 3 --epochs 3 --batch-size 8` runs training on existing data. Stage logs go to `runs/pipelines/<timestamp>/ingest.log` and `train.log`; model metrics and checkpoints retain their own run folders.
+The command prints a `tmux` session name. `bash deploy/launch.sh ingest` runs ingestion alone, and `bash deploy/launch.sh train --temporal-repeats 3 --epochs 3 --batch-size 8` runs training on existing data. Stage logs go to `runs/pipelines/<timestamp>/ingest.log` and `train.log`; model metrics and checkpoints retain their own run folders.
 Ingestion resumes a partial archive download, skips valid archives and already extracted images, and skips all work after `manifest.csv` and extraction markers are present. The manifest records each file's class, source archive, bucket, year, and split. The chronological protocol is:
 
 | Split | CLEAR-100 source | Year |
