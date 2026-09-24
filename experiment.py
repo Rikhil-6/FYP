@@ -30,8 +30,8 @@ def run_command(uv, script, args, log):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cv-folds", type=int, default=0,
-                        help="Number of latest CLEAR-100 training years to validate chronologically")
+    parser.add_argument("--temporal-repeats", "--cv-folds", dest="temporal_repeats", type=int, default=0,
+                        help="Repeated fixed-window temporal backtests (the old --cv-folds name is retained as an alias)")
     parser.add_argument("--cv-only", action="store_true")
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch-size", type=int, default=8)
@@ -41,11 +41,11 @@ def main():
     parser.add_argument("--skip-smoke", action="store_true")
     parser.add_argument("--smoke-only", action="store_true", help="Check CUDA and the model without dataset ingestion")
     args = parser.parse_args()
-    if args.cv_folds < 0 or args.epochs < 1 or args.batch_size < 1:
-        parser.error("cv-folds must be nonnegative; epochs and batch-size must be positive")
-    if args.cv_only and args.cv_folds == 0:
-        parser.error("--cv-only needs --cv-folds")
-    if args.smoke_only and (args.cv_only or args.cv_folds or args.skip_smoke):
+    if args.temporal_repeats < 0 or args.epochs < 1 or args.batch_size < 1:
+        parser.error("temporal-repeats must be nonnegative; epochs and batch-size must be positive")
+    if args.cv_only and args.temporal_repeats == 0:
+        parser.error("--cv-only needs --temporal-repeats")
+    if args.smoke_only and (args.cv_only or args.temporal_repeats or args.skip_smoke):
         parser.error("--smoke-only cannot be combined with CV or --skip-smoke")
     uv = Path("tools/uv").resolve()
     if not uv.is_file():
@@ -69,27 +69,29 @@ def main():
             raise RuntimeError("CLEAR-100 data is missing. Run 'bash deploy/server.sh ingest' before the experiment.") from error
         if not args.skip_smoke:
             run_command(uv, "smoke.py", [], log)
-        year_column = dataset.metadata_fields.index("year")
-        years = sorted({2002 + int(year) for year in
-                        dataset.get_subset("train").metadata_array[:, year_column].tolist() if year >= 0})
-        eligible = years[2:]
-        if args.cv_folds > len(eligible):
-            parser.error(f"Only {len(eligible)} chronological folds available: {eligible}")
         common = ["--epochs", args.epochs, "--batch-size", args.batch_size, "--seed", args.seed]
         if args.limit_train:
             common += ["--limit-train", args.limit_train]
         if args.limit_eval:
             common += ["--limit-eval", args.limit_eval]
-        for year in eligible[-args.cv_folds:] if args.cv_folds else []:
+        # Every backtest uses the same historical fit window. Later years are
+        # evaluation windows only, so future samples never migrate into training.
+        for repeat in range(1, args.temporal_repeats + 1):
             for method in ("baseline", "xai"):
-                run_id = f"{stamp}-cv-{year}"
+                run_id = f"{stamp}-backtest-r{repeat}"
+                repeat_common = [value for value in common]
+                repeat_common[repeat_common.index("--seed") + 1] = args.seed + repeat - 1
                 run_command(uv, "train.py", ["--method", method, "--run-id", run_id,
-                                             "--cv-val-year", year, *common], log)
+                                             *repeat_common], log)
                 run_dir = Path("runs") / method / run_id
                 metrics = json.loads((run_dir / "metrics/final.json").read_text())
-                results.append({"method": method, "validation_year": year, "run": str(run_dir),
-                                "macro_f1": metrics["id_val"]["all"]["macro_f1"],
-                                "macro_iou": metrics["id_val"]["all"]["macro_iou"]})
+                for year in (2012, 2013):
+                    yearly = metrics["val"][str(year)]
+                    results.append({"method": method, "repeat": repeat,
+                                    "training_years": "2004-2010", "selection_year": 2011,
+                                    "validation_year": year, "run": str(run_dir),
+                                    "macro_f1": yearly["macro_f1"],
+                                    "macro_iou": yearly["macro_iou"]})
         if not args.cv_only:
             for method in ("baseline", "xai"):
                 run_id = f"{stamp}-final"
@@ -108,7 +110,9 @@ def main():
         for method in ("baseline", "xai"):
             folds = [item for item in results if item["method"] == method and "validation_year" in item]
             if folds:
-                cv_summary[method] = {"folds": len(folds),
+                cv_summary[method] = {"protocol": "fixed 2004-2010 fit; 2011 selection; 2012-2013 temporal backtest",
+                                      "repeats": args.temporal_repeats,
+                                      "yearly_scores": len(folds),
                                       "macro_f1_mean": statistics.mean(item["macro_f1"] for item in folds),
                                       "macro_f1_std": statistics.pstdev(item["macro_f1"] for item in folds),
                                       "macro_iou_mean": statistics.mean(item["macro_iou"] for item in folds)}
