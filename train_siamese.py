@@ -3,6 +3,7 @@ import argparse
 import csv
 import json
 import random
+import time
 from collections import defaultdict
 from pathlib import Path
 
@@ -149,6 +150,11 @@ def main():
     for epoch in range(1, args.epochs + 1):
         new.train()
         total = 0.0
+        if device == "cuda":
+            torch.cuda.synchronize()
+            gpu_start, gpu_end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+            gpu_start.record()
+        wall_start = time.perf_counter()
         progress = tqdm(adapt, desc=f"siamese epoch {epoch}/{args.epochs}", unit="batch")
         for step, (images, labels, _) in enumerate(progress, 1):
             labels = labels.to(device)
@@ -167,11 +173,21 @@ def main():
             if step % args.log_every == 0 or step == len(adapt):
                 store.log({"event": "adapt_batch", "epoch": epoch, "batch": step,
                            "batches": len(adapt), "loss": round(loss.item(), 6)})
+        if device == "cuda":
+            gpu_end.record()
+            torch.cuda.synchronize()
+            gpu_seconds = gpu_start.elapsed_time(gpu_end) / 1000
+        else:
+            gpu_seconds = None
+        wall_seconds = time.perf_counter() - wall_start
         validation = model_metrics(new, calibrate, device)
         score = validation["macro_f1"]
         row = {"epoch": epoch, "adapt_loss": round(total / len(adapt.dataset), 4),
                "calibration_2013_macro_f1": score,
                "calibration_2013_macro_iou": validation["macro_iou"]}
+        row["timing"] = {"adapt_wall_seconds": round(wall_seconds, 4),
+                         "adapt_gpu_seconds": round(gpu_seconds, 4) if gpu_seconds is not None else None,
+                         "adapt_images_per_second": round(len(adapt.dataset) / wall_seconds, 2)}
         store.log(row)
         store.save_model(new, "last", epoch, "calibration_2013_macro_f1", score)
         if score > best_score:

@@ -3,6 +3,7 @@ import argparse
 import csv
 import json
 import random
+import time
 from pathlib import Path
 
 import numpy as np
@@ -70,6 +71,11 @@ def main():
     for epoch in range(1, args.epochs + 1):
         model.train()
         loss_sum = 0.0
+        if device == "cuda":
+            torch.cuda.synchronize()
+            gpu_start, gpu_end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+            gpu_start.record()
+        wall_start = time.perf_counter()
         progress = tqdm(loaders["train"], desc=f"{args.method} epoch {epoch}/{args.epochs}", unit="batch")
         for step, (images, labels, _) in enumerate(progress, 1):
             images, labels = images.to(device), labels.to(device)
@@ -87,11 +93,22 @@ def main():
             if step % args.log_every == 0 or step == len(loaders["train"]):
                 store.log({"event": "train_batch", "epoch": epoch, "batch": step,
                            "batches": len(loaders["train"]), "loss": round(loss.item(), 6)})
+        if device == "cuda":
+            gpu_end.record()
+            torch.cuda.synchronize()
+            gpu_seconds = gpu_start.elapsed_time(gpu_end) / 1000
+        else:
+            gpu_seconds = None
+        wall_seconds = time.perf_counter() - wall_start
         validation, _ = evaluate(model, loaders, year_column, device, splits=("id_val",))
         score = validation["id_val"]["all"]["macro_f1"]
         row = {"epoch": epoch, "train_loss": round(loss_sum / len(loaders["train"].dataset), 4),
                "id_val_accuracy": validation["id_val"]["all"]["accuracy"],
                "id_val_macro_f1": score, "id_val_macro_iou": validation["id_val"]["all"]["macro_iou"]}
+        row["timing"] = {"train_wall_seconds": round(wall_seconds, 4),
+                         "train_gpu_seconds": round(gpu_seconds, 4) if gpu_seconds is not None else None,
+                         "train_images_per_second": round(len(loaders["train"].dataset) / wall_seconds, 2),
+                         "validation": validation["id_val"]["_timing"]}
         store.log(row)
         store.save_model(model, "last", epoch, "id_val_macro_f1", score)
         if score > best_score:

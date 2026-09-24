@@ -2,6 +2,7 @@
 import argparse
 import csv
 import json
+import time
 from pathlib import Path
 
 import torch
@@ -18,6 +19,11 @@ def evaluate(model, loaders, year_column, device, splits=("id_val", "id_test", "
     report, records = {}, []
     for split in splits:
         rows = []
+        if device == "cuda":
+            torch.cuda.synchronize()
+            gpu_start, gpu_end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+            gpu_start.record()
+        wall_start = time.perf_counter()
         for images, labels, metadata in tqdm(loaders[split], desc=f"evaluate {split}", unit="batch", leave=False):
             probabilities = model(images.to(device))[0].softmax(1)
             confidence, prediction = probabilities.max(1)
@@ -27,7 +33,21 @@ def evaluate(model, loaders, year_column, device, splits=("id_val", "id_test", "
                 rows.append({"split": split, "year": 2002 + year if year >= 0 else -1,
                              "true_class": actual, "prediction": predicted,
                              "confidence": round(score, 6)})
+        if device == "cuda":
+            gpu_end.record()
+            torch.cuda.synchronize()
+            gpu_seconds = gpu_start.elapsed_time(gpu_end) / 1000
+        else:
+            gpu_seconds = None
+        wall_seconds = time.perf_counter() - wall_start
         report[split] = grouped_classification(rows)
+        report[split]["_timing"] = {
+            "samples": len(rows), "batches": len(loaders[split]),
+            "wall_seconds": round(wall_seconds, 4),
+            "gpu_seconds": round(gpu_seconds, 4) if gpu_seconds is not None else None,
+            "images_per_second": round(len(rows) / wall_seconds, 2),
+            "milliseconds_per_image": round(1000 * wall_seconds / len(rows), 4),
+        }
         records.extend(rows)
     return report, records
 
