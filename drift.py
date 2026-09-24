@@ -6,7 +6,7 @@ from torchvision.transforms import functional as F
 
 from data import MEAN, STD
 
-SCENARIOS = ("saturation", "gaussian_noise", "occlusion", "combined")
+SCENARIOS = ("clean", "saturation", "gaussian_noise", "occlusion", "combined")
 
 
 def _seed(index, scenario, severity, seed):

@@ -39,14 +39,18 @@ def main():
     parser.add_argument("--limit-train", type=int)
     parser.add_argument("--limit-eval", type=int)
     parser.add_argument("--skip-smoke", action="store_true")
+    parser.add_argument("--evaluate-drift", action="store_true",
+                        help="Opt in to controlled corruption evaluation after final training")
     parser.add_argument("--smoke-only", action="store_true", help="Check CUDA and the model without dataset ingestion")
     args = parser.parse_args()
     if args.temporal_repeats < 0 or args.epochs < 1 or args.batch_size < 1:
         parser.error("temporal-repeats must be nonnegative; epochs and batch-size must be positive")
     if args.cv_only and args.temporal_repeats == 0:
         parser.error("--cv-only needs --temporal-repeats")
-    if args.smoke_only and (args.cv_only or args.temporal_repeats or args.skip_smoke):
-        parser.error("--smoke-only cannot be combined with CV or --skip-smoke")
+    if args.cv_only and args.evaluate_drift:
+        parser.error("--evaluate-drift requires the final models; omit --cv-only")
+    if args.smoke_only and (args.cv_only or args.temporal_repeats or args.skip_smoke or args.evaluate_drift):
+        parser.error("--smoke-only cannot be combined with backtesting, drift evaluation, or --skip-smoke")
     uv = Path("tools/uv").resolve()
     if not uv.is_file():
         parser.error("Run bash deploy/server.sh setup first")
@@ -97,6 +101,14 @@ def main():
                 run_id = f"{stamp}-final"
                 run_command(uv, "train.py", ["--method", method, "--run-id", run_id, *common], log)
                 results.append({"method": method, "run": str(Path("runs") / method / run_id)})
+                if args.evaluate_drift:
+                    run_dir = Path("runs") / method / run_id
+                    drift_args = ["--method", method, "--checkpoint", run_dir / "models/best.pt",
+                                  "--output", run_dir / "metrics/drift", "--batch-size", args.batch_size,
+                                  "--seed", args.seed]
+                    if args.limit_eval:
+                        drift_args += ["--limit", args.limit_eval]
+                    run_command(uv, "evaluate_drift.py", drift_args, log)
             checkpoint = Path("runs/xai") / f"{stamp}-final" / "models/best.pt"
             twin_args = ["--base-checkpoint", checkpoint, "--run-id", f"{stamp}-final",
                          "--epochs", args.epochs, "--batch-size", args.batch_size, "--seed", args.seed]
@@ -104,6 +116,8 @@ def main():
                 twin_args += ["--limit-adapt", args.limit_train]
             if args.limit_eval:
                 twin_args += ["--limit-calibrate", args.limit_eval, "--limit-test", args.limit_eval]
+            if args.evaluate_drift:
+                twin_args += ["--evaluate-drift"]
             run_command(uv, "train_siamese.py", twin_args, log)
             results.append({"method": "siamese", "run": str(Path("runs/siamese") / f"{stamp}-final")})
         cv_summary = {}
