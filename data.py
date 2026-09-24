@@ -70,7 +70,26 @@ def make_loaders(root="data", batch_size=8, workers=0, seed=42,
     for name, subset in list(subsets.items()):
         limit = limit_train if name == "train" else limit_eval
         if limit:
-            subsets[name] = Subset(subset, range(min(limit, len(subset))))
+            if name == "train":
+                indices = list(range(min(limit, len(subset))))
+            else:
+                # Preserve every year represented by a temporal split in small
+                # debug runs instead of truncating into its earliest year only.
+                by_year = {}
+                for index, year in enumerate(subset.metadata_array[:, 0].tolist()):
+                    by_year.setdefault(year, []).append(index)
+                indices = []
+                while len(indices) < min(limit, len(subset)):
+                    added = False
+                    for year in sorted(by_year):
+                        if by_year[year]:
+                            indices.append(by_year[year].pop(0))
+                            added = True
+                            if len(indices) == min(limit, len(subset)):
+                                break
+                    if not added:
+                        break
+            subsets[name] = Subset(subset, indices)
     generator = torch.Generator().manual_seed(seed)
     loaders = {name: DataLoader(subset, batch_size=batch_size, shuffle=(name == "train"),
                                 num_workers=workers, generator=generator if name == "train" else None)
