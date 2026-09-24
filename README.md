@@ -71,7 +71,7 @@ The routing rule is explicit: `D = JS(old_map, new_map)` and `E = P(predicted_cl
 
 Epoch records now include wall time, CUDA event time, training images/second, and validation inference latency. Every evaluated split also stores wall time, CUDA time, images/second, and milliseconds/image under `_timing`. Wall time is the operational measurement because it includes image loading and preprocessing; CUDA time isolates work queued on the GPU.
 
-`evaluate_drift.py` applies deterministic, evaluation-only covariate shifts to the later timeline: severity 1 in 2012, severity 2 in 2013, and severity 3 in 2014. Scenarios are reduced saturation, low Gaussian sensor noise, a small local-mean occlusion, and their combination. The configured levels are deliberately mild (saturation factors 0.90/0.80/0.70, noise standard deviations 0.01/0.02/0.035 on a `[0,1]` image, and occluded areas 2%/5%/8%). Training images and labels are never modified.
+Controlled drift is opt in and disabled during ordinary training. `evaluate_drift.py` applies deterministic, evaluation-only covariate shifts to the later timeline: severity 1 in 2012, severity 2 in 2013, and severity 3 in 2014. Reports include a clean reference plus reduced saturation, low Gaussian sensor noise, a small local-mean occlusion, and their combination. The configured levels are deliberately mild (saturation factors 0.90/0.80/0.70, noise standard deviations 0.01/0.02/0.035 on a `[0,1]` image, and occluded areas 2%/5%/8%). Training images and labels are never modified.
 
 These choices follow the common-corruption evaluation protocol introduced by [ImageNet-C](https://arxiv.org/abs/1903.12261), including noise and saturation at ordered severities. [AugMix](https://arxiv.org/abs/1912.02781) motivates evaluation against unforeseen corruptions, while the [IRUO occlusion study](https://doi.org/10.1016/j.patcog.2025.112215) reports that controlled synthetic occlusion can serve as a useful proxy for real occlusion. This suite measures sensitivity; it does not claim that synthetic corruptions reproduce every deployment shift.
 
@@ -81,7 +81,7 @@ Run it on the latest baseline and XAI checkpoints:
 bash deploy/server.sh drift --batch-size 16
 ```
 
-Results are saved beside each run at `metrics/drift/drift_evaluation.json`. Use `--limit 100` for a quick execution check.
+Results are saved beside each run at `metrics/drift/drift_evaluation.json`. Use `--limit 100` for a quick execution check. To include drift evaluation automatically after a future complete experiment, pass `--evaluate-drift` to `deploy/server.sh experiment`; omitting it performs no corruption evaluation. With the flag enabled, the Siamese router is also evaluated on the corrupted 2014 stream and writes `metrics/future_drift.json`.
 
 To export overlays, provide explicit run paths:
 

@@ -46,7 +46,8 @@ def main():
                                 num_workers=args.workers)
             report, _ = evaluate(model, {"drift": loader}, year_column, device, splits=("drift",))
             results["scenarios"][scenario][str(year)] = {
-                "severity": severity, "metrics": report["drift"]["all"],
+                "severity": 0 if scenario == "clean" else severity,
+                "metrics": report["drift"]["all"],
                 "timing": report["drift"]["_timing"]}
     args.output.mkdir(parents=True, exist_ok=True)
     destination = args.output / "drift_evaluation.json"

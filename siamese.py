@@ -51,7 +51,7 @@ class ViTTwinRouter(nn.Module):
 
 
 def fit_thresholds(class_scores, quantile=0.9, minimum=5):
-    """Calibrate only on correctly classified old-model examples from 2015."""
+    """Calibrate on correctly classified old-model examples from the calibration window."""
     values = [score for scores in class_scores.values() for score in scores]
     if not values:
         raise ValueError("No correct calibration examples were available")

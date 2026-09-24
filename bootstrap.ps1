@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Setup', 'Ingest', 'Baseline', 'Xai', 'Siamese', 'Evaluate', 'All')]
+    [ValidateSet('Setup', 'Ingest', 'Baseline', 'Xai', 'Siamese', 'Evaluate', 'Drift', 'All')]
     [string]$Action = 'Setup',
     [int]$Epochs = 3,
     [int]$BatchSize = 8
@@ -65,6 +65,12 @@ function Invoke-Eval([string]$method) {
     & $uv run evaluate.py --method $method --checkpoint $checkpoint --batch-size $BatchSize --output (Join-Path $run 'metrics\recheck')
     if ($LASTEXITCODE -ne 0) { throw "Evaluation failed for ${method}: $LASTEXITCODE" }
 }
+function Invoke-Drift([string]$method) {
+    $run = Get-LatestRun $method
+    $checkpoint = Join-Path $run 'models\best.pt'
+    & $uv run evaluate_drift.py --method $method --checkpoint $checkpoint --batch-size $BatchSize --output (Join-Path $run 'metrics\drift')
+    if ($LASTEXITCODE -ne 0) { throw "Drift evaluation failed for ${method}: $LASTEXITCODE" }
+}
 
 switch ($Action) {
     'Setup' { Write-Host 'Environment ready. Run -Action Ingest to download the benchmark.' }
@@ -77,6 +83,7 @@ switch ($Action) {
         if ($LASTEXITCODE -ne 0) { throw "Siamese adaptation failed: $LASTEXITCODE" }
     }
     'Evaluate' { Invoke-Eval 'baseline'; Invoke-Eval 'xai' }
+    'Drift' { Invoke-Drift 'baseline'; Invoke-Drift 'xai' }
     'All' {
         Invoke-Train 'baseline'
         Invoke-Train 'xai'

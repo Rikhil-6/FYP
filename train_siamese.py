@@ -10,9 +10,11 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.nn import functional as F
+from torch.utils.data import DataLoader, Subset
 from tqdm.auto import tqdm
 
 from data import open_dataset, year_loader
+from drift import SCENARIOS, drift_transform
 from metrics import binary_metrics, classification_metrics, topk_map_agreement
 from model import TemporalViT
 from run_store import RunStore
@@ -47,6 +49,11 @@ def calibrate_thresholds(router, loader, device):
 def evaluate_stream(router, loader, thresholds, device, year_column):
     router.eval()
     decisions = []
+    if device == "cuda":
+        torch.cuda.synchronize()
+        gpu_start, gpu_end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+        gpu_start.record()
+    wall_start = time.perf_counter()
     for images, labels, metadata in tqdm(loader, desc="future routing", unit="batch"):
         comparison = router.compare(images.to(device))
         routed, needs_update, use_new = router.route(comparison, thresholds)
@@ -69,6 +76,13 @@ def evaluate_stream(router, loader, thresholds, device, year_column):
                 "needs_update": bool(needs_update[index]),
                 "routed_to_new": bool(use_new[index]),
             })
+    if device == "cuda":
+        gpu_end.record()
+        torch.cuda.synchronize()
+        gpu_seconds = gpu_start.elapsed_time(gpu_end) / 1000
+    else:
+        gpu_seconds = None
+    wall_seconds = time.perf_counter() - wall_start
     grouped = defaultdict(list)
     for row in decisions:
         grouped["all"].append(row)
@@ -94,6 +108,11 @@ def evaluate_stream(router, loader, thresholds, device, year_column):
             "mean_saliency_top20_iou": round(float(np.mean([row["saliency_top20_iou"] for row in rows])), 4),
             "mean_saliency_top20_f1": round(float(np.mean([row["saliency_top20_f1"] for row in rows])), 4),
         }
+    report["_timing"] = {"samples": len(decisions), "batches": len(loader),
+                         "wall_seconds": round(wall_seconds, 4),
+                         "gpu_seconds": round(gpu_seconds, 4) if gpu_seconds is not None else None,
+                         "images_per_second": round(len(decisions) / wall_seconds, 2),
+                         "milliseconds_per_image": round(1000 * wall_seconds / len(decisions), 4)}
     return report, decisions
 
 
@@ -110,6 +129,8 @@ def main():
     parser.add_argument("--limit-test", type=int)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--log-every", type=int, default=25)
+    parser.add_argument("--evaluate-drift", action="store_true",
+                        help="Opt in to controlled 2014 corruption evaluation")
     args = parser.parse_args()
     if args.epochs < 1:
         parser.error("--epochs must be at least 1")
@@ -127,7 +148,7 @@ def main():
     future, year_column = year_loader(dataset, "test", (2014,), args.batch_size,
                                       limit=args.limit_test)
     if not len(adapt.dataset) or not len(calibrate.dataset) or not len(future.dataset):
-        raise ValueError("One year split is empty; check FMoW metadata")
+        raise ValueError("One year split is empty; check the CLEAR-100 manifest")
     checkpoint = torch.load(args.base_checkpoint, map_location="cpu", weights_only=True)
     classes = checkpoint["classifier.weight"].shape[0]
     old, new = TemporalViT("xai", classes).to(device), TemporalViT("xai", classes).to(device)
@@ -206,6 +227,19 @@ def main():
     store.log({"event": "final", "selected_checkpoint": "models/best.pt",
                "selection_metric": "calibration_2013_macro_f1", "best_score": best_score,
                "future_routed_macro_f1": result["all"]["routed"]["macro_f1"]})
+    if args.evaluate_drift:
+        drift_results = {}
+        for scenario in SCENARIOS:
+            subset = dataset.get_subset("test", transform=drift_transform(scenario, 3, args.seed))
+            indices = torch.where(subset.metadata_array[:, year_column] == 2014 - 2002)[0].tolist()
+            if args.limit_test:
+                indices = indices[:args.limit_test]
+            loader = DataLoader(Subset(subset, indices), batch_size=args.batch_size)
+            scenario_report, _ = evaluate_stream(router, loader, thresholds, device, year_column)
+            drift_results[scenario] = {"severity": 0 if scenario == "clean" else 3,
+                                       "results": scenario_report}
+        store.write_json("metrics/future_drift.json", {
+            "training_images_modified": False, "year": 2014, "scenarios": drift_results})
     print(json.dumps({"run": str(store.path), "future": {
         key: result["all"][key]["macro_f1"] for key in ("old", "new", "routed")}}, indent=2))
 

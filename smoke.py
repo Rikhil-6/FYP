@@ -1,4 +1,4 @@
-"""Tiny end-to-end runtime check. Synthetic inputs; no FMoW download."""
+"""Tiny end-to-end runtime check. Synthetic inputs; no CLEAR-100 download."""
 import json
 from pathlib import Path
 
