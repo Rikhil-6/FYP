@@ -12,7 +12,7 @@ STD = (0.229, 0.224, 0.225)
 NUM_CLASSES = 100
 
 
-def transform(image):
+def transform(image, index=None):
     image = F.resize(image.convert("RGB"), (224, 224))
     return F.normalize(F.to_tensor(image), MEAN, STD)
 
@@ -32,7 +32,7 @@ class ClearSubset(Dataset):
         with Image.open(self.root / row["path"]) as image:
             image = image.convert("RGB")
             if self.transform:
-                image = self.transform(image)
+                image = self.transform(image, index)
         return image, torch.tensor(int(row["label"]), dtype=torch.long), self.metadata_array[index]
 
 

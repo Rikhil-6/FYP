@@ -8,7 +8,7 @@ action="${1:-status}"
 if [[ "$#" -gt 0 ]]; then shift; fi
 
 usage() {
-  echo "Usage: bash deploy/server.sh {setup|status|smoke|ingest|experiment|baseline|xai|siamese|evaluate|all} [model options]"
+  echo "Usage: bash deploy/server.sh {setup|status|smoke|ingest|experiment|baseline|xai|siamese|evaluate|drift|all} [model options]"
   echo "Set FYP_ALLOW_CPU_TRAIN=1 to permit full training without a GPU."
 }
 
@@ -77,6 +77,14 @@ case "$action" in
     for method in baseline xai; do
       checkpoint="$(latest_best "$method")"
       "$uv" run --no-sync evaluate.py --method "$method" --checkpoint "$checkpoint" --output "$(dirname "$(dirname "$checkpoint")")/metrics/recheck" "$@"
+    done
+    ;;
+  drift)
+    for method in baseline xai; do
+      checkpoint="$(latest_best "$method")"
+      run_root="$(dirname "$(dirname "$checkpoint")")"
+      "$uv" run --no-sync evaluate_drift.py --method "$method" --checkpoint "$checkpoint" \
+        --output "${run_root}/metrics/drift" "$@"
     done
     ;;
   all)
