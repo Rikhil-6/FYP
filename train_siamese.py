@@ -18,7 +18,8 @@ from drift import SCENARIOS, drift_transform
 from metrics import binary_metrics, classification_metrics, topk_map_agreement
 from model import TemporalViT
 from run_store import RunStore
-from siamese import ViTTwinRouter, fit_thresholds
+from siamese import ViTTwinRouter
+from transparent_router import FEATURES, apply_policy, feature_tensor, fit_policy
 
 
 @torch.no_grad()
@@ -33,20 +34,22 @@ def model_metrics(model, loader, device):
 
 
 @torch.no_grad()
-def calibrate_thresholds(router, loader, device):
+def calibrate_router(router, loader, device):
     router.eval()
-    class_scores = defaultdict(list)
+    features, beneficial, old_all, new_all, truth = [], [], [], [], []
     for images, labels, _ in tqdm(loader, desc="calibrate routing", unit="batch", leave=False):
         comparison = router.compare(images.to(device))
-        old_prediction = comparison["old_logits"].argmax(1).cpu()
-        for index, class_id in enumerate(old_prediction.tolist()):
-            if class_id == int(labels[index]):
-                class_scores[class_id].append(float(comparison["saliency_gap"][index]))
-    return fit_thresholds(class_scores)
+        old = comparison["old_logits"].argmax(1).cpu().numpy()
+        new = comparison["new_logits"].argmax(1).cpu().numpy()
+        actual = labels.numpy()
+        features.extend(feature_tensor(comparison).cpu().numpy().tolist())
+        beneficial.extend(((old != actual) & (new == actual)).astype(int).tolist())
+        old_all.extend(old.tolist()); new_all.extend(new.tolist()); truth.extend(actual.tolist())
+    return fit_policy(features, beneficial, np.asarray(old_all), np.asarray(new_all), np.asarray(truth))
 
 
 @torch.no_grad()
-def evaluate_stream(router, loader, thresholds, device, year_column):
+def evaluate_stream(router, loader, policy, device, year_column):
     router.eval()
     decisions = []
     if device == "cuda":
@@ -56,7 +59,7 @@ def evaluate_stream(router, loader, thresholds, device, year_column):
     wall_start = time.perf_counter()
     for images, labels, metadata in tqdm(loader, desc="future routing", unit="batch"):
         comparison = router.compare(images.to(device))
-        routed, needs_update, use_new = router.route(comparison, thresholds)
+        routed, needs_update, use_new, route_probability, features = apply_policy(comparison, policy)
         old = comparison["old_logits"].argmax(1)
         new = comparison["new_logits"].argmax(1)
         for index, year_id in enumerate(metadata[:, year_column].tolist()):
@@ -70,9 +73,12 @@ def evaluate_stream(router, loader, thresholds, device, year_column):
                 "saliency_js": round(float(comparison["saliency_gap"][index]), 6),
                 "saliency_top20_iou": overlap["iou"],
                 "saliency_top20_f1": overlap["f1"],
-                "class_threshold": round(thresholds.get(old_class, thresholds["global"]), 6),
+                "route_probability": round(float(route_probability[index]), 6),
+                "route_threshold": policy["probability_threshold"],
                 "old_evidence": round(float(comparison["old_evidence"][index]), 6),
                 "new_evidence": round(float(comparison["new_evidence"][index]), 6),
+                **{name: round(float(features[index, position]), 6)
+                   for position, name in enumerate(FEATURES)},
                 "needs_update": bool(needs_update[index]),
                 "routed_to_new": bool(use_new[index]),
             })
@@ -216,9 +222,9 @@ def main():
             store.save_model(new, "best", epoch, "calibration_2013_macro_f1", score)
         print(json.dumps(row), flush=True)
     new.load_state_dict(torch.load(store.path / "models" / "best.pt", map_location=device, weights_only=True))
-    thresholds = calibrate_thresholds(router, calibrate, device)
-    store.write_json("metrics/thresholds.json", thresholds)
-    result, decisions = evaluate_stream(router, future, thresholds, device, year_column)
+    policy = calibrate_router(router, calibrate, device)
+    store.write_json("metrics/router_policy.json", policy)
+    result, decisions = evaluate_stream(router, future, policy, device, year_column)
     store.write_json("metrics/future_test.json", result)
     with (store.path / "logs" / "routing_decisions.csv").open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(decisions[0]))
@@ -235,7 +241,7 @@ def main():
             if args.limit_test:
                 indices = indices[:args.limit_test]
             loader = DataLoader(Subset(subset, indices), batch_size=args.batch_size)
-            scenario_report, _ = evaluate_stream(router, loader, thresholds, device, year_column)
+            scenario_report, _ = evaluate_stream(router, loader, policy, device, year_column)
             drift_results[scenario] = {"severity": 0 if scenario == "clean" else 3,
                                        "results": scenario_report}
         store.write_json("metrics/future_drift.json", {
