@@ -7,6 +7,7 @@ from torchvision.transforms import functional as F
 from data import MEAN, STD
 
 SCENARIOS = ("clean", "saturation", "gaussian_noise", "occlusion", "combined")
+ADAPT_SCENARIOS = ("clean", "clean", "clean", "saturation", "gaussian_noise", "occlusion")
 
 
 def _seed(index, scenario, severity, seed):
@@ -42,5 +43,16 @@ def drift_transform(scenario, severity, seed=42):
             fill = tensor.mean(dim=(1, 2), keepdim=True)
             tensor[:, top:top + side, left:left + side] = fill
         return F.normalize(tensor, MEAN, STD)
+
+    return apply
+
+
+def mixed_drift_transform(severity, seed=42):
+    """Deterministic 50% clean / 50% single-corruption mixture; never combined."""
+    transforms = {name: drift_transform(name, severity, seed) for name in set(ADAPT_SCENARIOS)}
+
+    def apply(image, index=0):
+        scenario = ADAPT_SCENARIOS[_seed(index, "mixture", severity, seed) % len(ADAPT_SCENARIOS)]
+        return transforms[scenario](image, index)
 
     return apply

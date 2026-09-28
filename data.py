@@ -49,6 +49,8 @@ class ClearDataset:
             rows = list(csv.DictReader(handle))
         self.rows = {split: [row for row in rows if row["split"] == split]
                      for split in ("train", "id_val", "id_test", "val", "test")}
+        self.rows["train_source"] = [row for row in rows if row["source"] == "train"]
+        self.rows["test_source"] = [row for row in rows if row["source"] == "test"]
         if any(not split_rows for split_rows in self.rows.values()):
             raise ValueError("CLEAR-100 manifest has an empty required split")
 
@@ -97,9 +99,10 @@ def make_loaders(root="data", batch_size=8, workers=0, seed=42,
     return loaders, dataset.metadata_fields.index("year")
 
 
-def year_loader(dataset, split, years, batch_size=8, shuffle=False, limit=None, seed=42):
+def year_loader(dataset, split, years, batch_size=8, shuffle=False, limit=None, seed=42,
+                image_transform=transform):
     """Select real upload-year buckets from a CLEAR-100 split."""
-    subset = dataset.get_subset(split, transform=transform)
+    subset = dataset.get_subset(split, transform=image_transform)
     year_column = dataset.metadata_fields.index("year")
     year_ids = torch.tensor([year - 2002 for year in years])
     indices = torch.where(torch.isin(subset.metadata_array[:, year_column], year_ids))[0].tolist()

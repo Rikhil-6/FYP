@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader, Subset
 from tqdm.auto import tqdm
 
 from data import open_dataset, year_loader
-from drift import SCENARIOS, drift_transform
+from drift import SCENARIOS, drift_transform, mixed_drift_transform
 from metrics import binary_metrics, classification_metrics, topk_map_agreement
 from model import TemporalViT
 from run_store import RunStore
@@ -137,6 +137,11 @@ def main():
     parser.add_argument("--log-every", type=int, default=25)
     parser.add_argument("--evaluate-drift", action="store_true",
                         help="Opt in to controlled 2014 corruption evaluation")
+    parser.add_argument("--adapt-year", type=int, default=2012)
+    parser.add_argument("--calibration-year", type=int, default=2013)
+    parser.add_argument("--test-years", type=int, nargs="+", default=(2014,))
+    parser.add_argument("--long-horizon", action="store_true",
+                        help="Use drift-aware 2010 adaptation, 2011 calibration, and frozen 2012-2014 tests")
     args = parser.parse_args()
     if args.epochs < 1:
         parser.error("--epochs must be at least 1")
@@ -147,12 +152,24 @@ def main():
     torch.manual_seed(args.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dataset = open_dataset(args.data_root)
-    adapt, _ = year_loader(dataset, "val", (2012,), args.batch_size,
-                           shuffle=True, limit=args.limit_adapt, seed=args.seed)
-    calibrate, _ = year_loader(dataset, "val", (2013,), args.batch_size,
-                               limit=args.limit_calibrate)
-    future, year_column = year_loader(dataset, "test", (2014,), args.batch_size,
-                                      limit=args.limit_test)
+    if args.long_horizon:
+        args.adapt_year, args.calibration_year, args.test_years = 2010, 2011, (2012, 2013, 2014)
+        adapt_transform = mixed_drift_transform(1, args.seed)
+        calibration_transform = mixed_drift_transform(2, args.seed)
+        adapt_split = calibration_split = "train_source"
+        test_split = "test_source"
+    else:
+        adapt_transform = calibration_transform = None
+        adapt_split, calibration_split, test_split = "val", "val", "test"
+    adapt, _ = year_loader(dataset, adapt_split, (args.adapt_year,), args.batch_size,
+                           shuffle=True, limit=args.limit_adapt, seed=args.seed,
+                           image_transform=adapt_transform or drift_transform("clean", 1, args.seed))
+    calibrate, _ = year_loader(dataset, calibration_split, (args.calibration_year,), args.batch_size,
+                               limit=args.limit_calibrate,
+                               image_transform=calibration_transform or drift_transform("clean", 1, args.seed))
+    future, year_column = year_loader(dataset, test_split, args.test_years, args.batch_size,
+                                      limit=args.limit_test,
+                                      image_transform=drift_transform("clean", 1, args.seed))
     if not len(adapt.dataset) or not len(calibrate.dataset) or not len(future.dataset):
         raise ValueError("One year split is empty; check the CLEAR-100 manifest")
     checkpoint = torch.load(args.base_checkpoint, map_location="cpu", weights_only=True)
@@ -209,17 +226,18 @@ def main():
         wall_seconds = time.perf_counter() - wall_start
         validation = model_metrics(new, calibrate, device)
         score = validation["macro_f1"]
+        metric_name = f"calibration_{args.calibration_year}_macro_f1"
         row = {"epoch": epoch, "adapt_loss": round(total / len(adapt.dataset), 4),
-               "calibration_2013_macro_f1": score,
-               "calibration_2013_macro_iou": validation["macro_iou"]}
+               metric_name: score,
+               f"calibration_{args.calibration_year}_macro_iou": validation["macro_iou"]}
         row["timing"] = {"adapt_wall_seconds": round(wall_seconds, 4),
                          "adapt_gpu_seconds": round(gpu_seconds, 4) if gpu_seconds is not None else None,
                          "adapt_images_per_second": round(len(adapt.dataset) / wall_seconds, 2)}
         store.log(row)
-        store.save_model(new, "last", epoch, "calibration_2013_macro_f1", score)
+        store.save_model(new, "last", epoch, metric_name, score)
         if score > best_score:
             best_score = score
-            store.save_model(new, "best", epoch, "calibration_2013_macro_f1", score)
+            store.save_model(new, "best", epoch, metric_name, score)
         print(json.dumps(row), flush=True)
     new.load_state_dict(torch.load(store.path / "models" / "best.pt", map_location=device, weights_only=True))
     policy = calibrate_router(router, calibrate, device)
@@ -231,21 +249,24 @@ def main():
         writer.writeheader()
         writer.writerows(decisions)
     store.log({"event": "final", "selected_checkpoint": "models/best.pt",
-               "selection_metric": "calibration_2013_macro_f1", "best_score": best_score,
+               "selection_metric": f"calibration_{args.calibration_year}_macro_f1", "best_score": best_score,
                "future_routed_macro_f1": result["all"]["routed"]["macro_f1"]})
     if args.evaluate_drift:
         drift_results = {}
         for scenario in SCENARIOS:
-            subset = dataset.get_subset("test", transform=drift_transform(scenario, 3, args.seed))
-            indices = torch.where(subset.metadata_array[:, year_column] == 2014 - 2002)[0].tolist()
-            if args.limit_test:
-                indices = indices[:args.limit_test]
-            loader = DataLoader(Subset(subset, indices), batch_size=args.batch_size)
-            scenario_report, _ = evaluate_stream(router, loader, policy, device, year_column)
-            drift_results[scenario] = {"severity": 0 if scenario == "clean" else 3,
-                                       "results": scenario_report}
+            drift_results[scenario] = {}
+            for severity, year in enumerate(args.test_years, 1):
+                subset = dataset.get_subset(test_split, transform=drift_transform(scenario, severity, args.seed))
+                indices = torch.where(subset.metadata_array[:, year_column] == year - 2002)[0].tolist()
+                if args.limit_test:
+                    indices = indices[:args.limit_test]
+                loader = DataLoader(Subset(subset, indices), batch_size=args.batch_size)
+                scenario_report, _ = evaluate_stream(router, loader, policy, device, year_column)
+                drift_results[scenario][str(year)] = {
+                    "severity": 0 if scenario == "clean" else severity,
+                    "results": scenario_report}
         store.write_json("metrics/future_drift.json", {
-            "training_images_modified": False, "year": 2014, "scenarios": drift_results})
+            "combined_held_out": True, "test_years": args.test_years, "scenarios": drift_results})
     print(json.dumps({"run": str(store.path), "future": {
         key: result["all"][key]["macro_f1"] for key in ("old", "new", "routed")}}, indent=2))
 

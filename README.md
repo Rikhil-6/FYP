@@ -135,3 +135,7 @@ The setup and runner derive their project path from their own file location. A s
 Branch `Rik/transparent-router` keeps combined corruption entirely held out until the 2014 test. The router is calibrated only on 2013 labels using four logged features: saliency Jensen-Shannon divergence, confidence gain, entropy reduction, and counterfactual evidence gain. A standardized logistic rule and an explicit saliency floor choose whether to use the updated ViT. `metrics/router_policy.json` records every coefficient, scale, and threshold.
 
 `export_router_report.py` writes three bounded four-panel examples for every condition (clean, saturation, Gaussian noise, occlusion, and combined) plus `samples.json`. Store these under `reports/transparent_router/<run-id>/` so the visual evidence can be committed without adding the full dataset or thousands of generated images.
+
+### Long-horizon protocol
+
+Pass `--long-horizon` to freeze the chronology as follows: historical fit 2004-2008, checkpoint selection 2009, drift-aware adaptation 2010, router calibration 2011, and untouched test-source evaluation in 2012-2014. Adaptation and calibration use a deterministic 50% clean / 50% single-corruption mixture; combined corruption is excluded until the future test. The model is not updated between test years. `evaluate_drift.py --long-horizon` and `export_router_report.py --long-horizon` use the same three-year horizon.

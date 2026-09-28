@@ -22,6 +22,8 @@ def main():
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--long-horizon", action="store_true",
+                        help="Evaluate frozen checkpoints on test-source years 2012-2014")
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -30,7 +32,8 @@ def main():
     model.load_state_dict(state)
     dataset = open_dataset(args.data_root)
     year_column = dataset.metadata_fields.index("year")
-    plan = ((2012, "val", 1), (2013, "val", 2), (2014, "test", 3))
+    plan = ((2012, "test_source", 1), (2013, "test_source", 2), (2014, "test_source", 3)) if args.long_horizon else \
+           ((2012, "val", 1), (2013, "val", 2), (2014, "test", 3))
     results = {"protocol": {"training_images_modified": False,
                             "progression": {str(year): severity for year, _, severity in plan}},
                "scenarios": {}}

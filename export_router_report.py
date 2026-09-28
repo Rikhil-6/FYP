@@ -32,6 +32,7 @@ def main():
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=Path("reports/transparent_router"))
     parser.add_argument("--indices", type=int, nargs="+", default=(0, 777, 1777))
+    parser.add_argument("--long-horizon", action="store_true")
     args = parser.parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     base = torch.load(args.base_checkpoint, map_location=device, weights_only=True)
@@ -42,13 +43,18 @@ def main():
     router = ViTTwinRouter(old, new).eval()
     policy = json.loads((args.run_dir / "metrics/router_policy.json").read_text())
     dataset = open_dataset()
-    clean = dataset.get_subset("test", transform=drift_transform("clean", 3))
     records = []
+    years = (2012, 2013, 2014) if args.long_horizon else (2014,)
+    split = "test_source" if args.long_horizon else "test"
     for scenario in SCENARIOS:
-        shifted = dataset.get_subset("test", transform=drift_transform(scenario, 3))
-        folder = args.output / scenario
+      for severity, year in enumerate(years, 1):
+        clean = dataset.get_subset(split, transform=drift_transform("clean", severity))
+        shifted = dataset.get_subset(split, transform=drift_transform(scenario, severity))
+        year_indices = torch.where(clean.metadata_array[:, 0] == year - 2002)[0].tolist()
+        folder = args.output / scenario / str(year)
         folder.mkdir(parents=True, exist_ok=True)
-        for index in args.indices:
+        for offset in args.indices:
+            index = year_indices[offset % len(year_indices)]
             clean_image, label, _ = clean[index]
             image, _, _ = shifted[index]
             with torch.no_grad():
@@ -62,9 +68,10 @@ def main():
             draw = ImageDraw.Draw(canvas)
             for position, (panel, name) in enumerate(zip(panels, names)):
                 canvas.paste(panel, (position * 224, 26)); draw.text((position * 224 + 4, 5), name, fill="black")
-            path = folder / f"sample_{index:04d}.png"
+            path = folder / f"sample_{offset:04d}.png"
             canvas.save(path, optimize=True)
-            records.append({"scenario": scenario, "index": index, "image": path.as_posix(),
+            records.append({"scenario": scenario, "year": year, "severity": 0 if scenario == "clean" else severity,
+                            "index": index, "image": path.as_posix(),
                             "true_class": int(label),
                             "old_class": int(comparison["old_logits"].argmax(1)[0]),
                             "new_class": int(comparison["new_logits"].argmax(1)[0]),
