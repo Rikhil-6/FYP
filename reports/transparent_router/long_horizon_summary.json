@@ -1,0 +1,120 @@
+{
+  "experiment": "fixed three-year temporal drift horizon",
+  "train_years": [
+    2004,
+    2005,
+    2006,
+    2007,
+    2008
+  ],
+  "selection_year": 2009,
+  "adaptation_year": 2010,
+  "router_calibration_year": 2011,
+  "held_out_test_years": [
+    2012,
+    2013,
+    2014
+  ],
+  "macro_f1": {
+    "clean": {
+      "baseline": [
+        0.9586,
+        0.9527,
+        0.9513
+      ],
+      "historical_xai": [
+        0.9596,
+        0.9523,
+        0.9524
+      ],
+      "updated_xai": [
+        0.9656,
+        0.9613,
+        0.9585
+      ],
+      "routed": [
+        0.964,
+        0.9579,
+        0.9546
+      ],
+      "helpful_routes": [
+        30,
+        40,
+        30
+      ],
+      "harmful_routes": [
+        8,
+        12,
+        18
+      ]
+    },
+    "combined": {
+      "baseline": [
+        0.9547,
+        0.9375,
+        0.9059
+      ],
+      "historical_xai": [
+        0.9547,
+        0.9381,
+        0.9034
+      ],
+      "updated_xai": [
+        0.9617,
+        0.9471,
+        0.9175
+      ],
+      "routed": [
+        0.9608,
+        0.9455,
+        0.915
+      ],
+      "helpful_routes": [
+        45,
+        72,
+        120
+      ],
+      "harmful_routes": [
+        14,
+        32,
+        48
+      ]
+    }
+  },
+  "router_policy": {
+    "feature_names": [
+      "saliency_js",
+      "confidence_gain",
+      "entropy_reduction",
+      "evidence_gain"
+    ],
+    "mean": [
+      0.0029209102533102895,
+      0.002315586668115717,
+      0.006061343810636839,
+      -0.00177528542486039
+    ],
+    "scale": [
+      0.0026289982675033637,
+      0.07780564393256553,
+      0.19276307423796804,
+      0.056466078245220507
+    ],
+    "coefficients": [
+      0.24028677743325474,
+      0.44048680316058864,
+      -0.32053303441503,
+      -0.054656776350252255
+    ],
+    "intercept": -0.15820765829223582,
+    "probability_threshold": 0.35,
+    "saliency_floor": 0.0022135991603136063,
+    "calibration_macro_f1": 0.9468,
+    "calibration_harmful_routes": 40
+  },
+  "source_runs": {
+    "baseline": "20260928T152657Z-horizon",
+    "historical_xai": "20260928T161159Z-horizon-xai",
+    "transparent_router": "20260928T161159Z-horizon-router"
+  }
+}
