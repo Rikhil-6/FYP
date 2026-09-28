@@ -1,0 +1,78 @@
+"""Export bounded, Git-friendly saliency panels for every drift condition."""
+import argparse
+import json
+from pathlib import Path
+
+import numpy as np
+import torch
+from PIL import Image, ImageDraw
+
+from data import MEAN, STD, open_dataset
+from drift import SCENARIOS, drift_transform
+from model import TemporalViT
+from siamese import ViTTwinRouter
+from transparent_router import apply_policy
+
+
+def rgb(tensor):
+    value = tensor.cpu() * torch.tensor(STD)[:, None, None] + torch.tensor(MEAN)[:, None, None]
+    return Image.fromarray((value.clamp(0, 1).permute(1, 2, 0).numpy() * 255).astype(np.uint8))
+
+
+def overlay(base, weights):
+    heat = weights.reshape(16, 16).detach().cpu().numpy()
+    heat = Image.fromarray((255 * heat / max(heat.max(), 1e-8)).astype(np.uint8)).resize(base.size)
+    return Image.composite(Image.new("RGB", base.size, (255, 25, 25)), base,
+                           heat.point(lambda value: int(value * 0.65)))
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--base-checkpoint", type=Path, required=True)
+    parser.add_argument("--run-dir", type=Path, required=True)
+    parser.add_argument("--output", type=Path, default=Path("reports/transparent_router"))
+    parser.add_argument("--indices", type=int, nargs="+", default=(0, 777, 1777))
+    args = parser.parse_args()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    base = torch.load(args.base_checkpoint, map_location=device, weights_only=True)
+    classes = base["classifier.weight"].shape[0]
+    old, new = TemporalViT("xai", classes).to(device), TemporalViT("xai", classes).to(device)
+    old.load_state_dict(base)
+    new.load_state_dict(torch.load(args.run_dir / "models/best.pt", map_location=device, weights_only=True))
+    router = ViTTwinRouter(old, new).eval()
+    policy = json.loads((args.run_dir / "metrics/router_policy.json").read_text())
+    dataset = open_dataset()
+    clean = dataset.get_subset("test", transform=drift_transform("clean", 3))
+    records = []
+    for scenario in SCENARIOS:
+        shifted = dataset.get_subset("test", transform=drift_transform(scenario, 3))
+        folder = args.output / scenario
+        folder.mkdir(parents=True, exist_ok=True)
+        for index in args.indices:
+            clean_image, label, _ = clean[index]
+            image, _, _ = shifted[index]
+            with torch.no_grad():
+                comparison = router.compare(image[None].to(device))
+                routed, flag, use_new, probability, features = apply_policy(comparison, policy)
+            clean_rgb, shifted_rgb = rgb(clean_image), rgb(image)
+            panels = [clean_rgb, shifted_rgb, overlay(shifted_rgb, comparison["old_map"][0]),
+                      overlay(shifted_rgb, comparison["new_map"][0])]
+            canvas = Image.new("RGB", (896, 250), "white")
+            names = ("clean", scenario, "old saliency", "new saliency")
+            draw = ImageDraw.Draw(canvas)
+            for position, (panel, name) in enumerate(zip(panels, names)):
+                canvas.paste(panel, (position * 224, 26)); draw.text((position * 224 + 4, 5), name, fill="black")
+            path = folder / f"sample_{index:04d}.png"
+            canvas.save(path, optimize=True)
+            records.append({"scenario": scenario, "index": index, "image": path.as_posix(),
+                            "true_class": int(label),
+                            "old_class": int(comparison["old_logits"].argmax(1)[0]),
+                            "new_class": int(comparison["new_logits"].argmax(1)[0]),
+                            "routed_class": int(routed[0]), "update_flag": bool(flag[0]),
+                            "routed_to_new": bool(use_new[0]), "route_probability": float(probability[0]),
+                            **{name: float(features[0, i]) for i, name in enumerate(policy["feature_names"])}})
+    (args.output / "samples.json").write_text(json.dumps(records, indent=2), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()

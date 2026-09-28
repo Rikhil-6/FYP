@@ -129,3 +129,9 @@ Ingestion resumes a partial archive download, skips valid archives and already e
 | Future test | Test bucket 10 | 2014 |
 
 The setup and runner derive their project path from their own file location. A separate Git worktree can therefore use `FYP_STORAGE_DIR=/mnt/sdd/FYP-fork FYP_DATA_DIR=/mnt/sdd/FYP/data FYP_CACHE_DIR=/mnt/sdd/FYP/cache FYP_TOOLS_DIR=/mnt/sdd/FYP/tools bash deploy/server.sh setup` to share the downloaded dataset, uv package cache, and uv executable while keeping its own runs and virtual environment on the mounted volume.
+
+## Transparent router fork
+
+Branch `Rik/transparent-router` keeps combined corruption entirely held out until the 2014 test. The router is calibrated only on 2013 labels using four logged features: saliency Jensen-Shannon divergence, confidence gain, entropy reduction, and counterfactual evidence gain. A standardized logistic rule and an explicit saliency floor choose whether to use the updated ViT. `metrics/router_policy.json` records every coefficient, scale, and threshold.
+
+`export_router_report.py` writes three bounded four-panel examples for every condition (clean, saturation, Gaussian noise, occlusion, and combined) plus `samples.json`. Store these under `reports/transparent_router/<run-id>/` so the visual evidence can be committed without adding the full dataset or thousands of generated images.
