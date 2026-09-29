@@ -27,21 +27,23 @@ def fit_policy(features, labels, old_predictions, new_predictions, truth):
     model = LogisticRegression(class_weight="balanced", max_iter=1000, random_state=42)
     model.fit((features - mean) / scale, labels)
     probabilities = model.predict_proba((features - mean) / scale)[:, 1]
-    saliency_floor = float(np.quantile(features[:, 0], 0.5))
     best = None
-    for threshold in np.linspace(0.1, 0.9, 33):
-        use_new = ((old_predictions != new_predictions) &
-                   (features[:, 0] >= saliency_floor) & (probabilities >= threshold))
-        routed = np.where(use_new, new_predictions, old_predictions)
-        score = classification_metrics(truth, routed)["macro_f1"]
-        harmful = int(np.sum(use_new & (old_predictions == truth) & (new_predictions != truth)))
-        candidate = (score, -harmful, float(threshold))
-        if best is None or candidate > best:
-            best = candidate
+    for quantile in (0.20, 0.35, 0.50, 0.65):
+        saliency_floor = float(np.quantile(features[:, 0], quantile))
+        for threshold in np.linspace(0.1, 0.9, 33):
+            use_new = ((old_predictions != new_predictions) &
+                       (features[:, 0] >= saliency_floor) & (probabilities >= threshold))
+            routed = np.where(use_new, new_predictions, old_predictions)
+            score = classification_metrics(truth, routed)["macro_f1"]
+            harmful = int(np.sum(use_new & (old_predictions == truth) & (new_predictions != truth)))
+            candidate = (score, -harmful, -quantile, float(threshold), saliency_floor)
+            if best is None or candidate > best:
+                best = candidate
     return {"feature_names": list(FEATURES), "mean": mean.tolist(), "scale": scale.tolist(),
             "coefficients": model.coef_[0].tolist(), "intercept": float(model.intercept_[0]),
-            "probability_threshold": best[2], "saliency_floor": saliency_floor,
-            "calibration_macro_f1": best[0], "calibration_harmful_routes": -best[1]}
+            "probability_threshold": best[3], "saliency_floor": best[4],
+            "saliency_quantile": -best[2], "calibration_macro_f1": best[0],
+            "calibration_harmful_routes": -best[1]}
 
 
 def apply_policy(comparison, policy):
