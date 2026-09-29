@@ -81,6 +81,77 @@
       ]
     }
   },
+  "enhanced_macro_f1": {
+    "clean": {
+      "old": [
+        0.9596,
+        0.9523,
+        0.9524
+      ],
+      "new": [
+        0.9589,
+        0.9549,
+        0.9547
+      ],
+      "routed": [
+        0.9603,
+        0.9555,
+        0.953
+      ],
+      "helpful_routes": [
+        65,
+        60,
+        69
+      ],
+      "harmful_routes": [
+        62,
+        44,
+        64
+      ]
+    },
+    "combined": {
+      "old": [
+        0.9547,
+        0.9381,
+        0.9034
+      ],
+      "new": [
+        0.9571,
+        0.9443,
+        0.9199
+      ],
+      "routed": [
+        0.9581,
+        0.9444,
+        0.9185
+      ],
+      "helpful_routes": [
+        76,
+        101,
+        188
+      ],
+      "harmful_routes": [
+        58,
+        66,
+        90
+      ]
+    }
+  },
+  "enhanced_training": {
+    "run_id": "20260929-enhanced-3pp",
+    "selected_epoch": 4,
+    "selection_macro_f1": 0.9439,
+    "epoch_wall_seconds": [
+      150.6013,
+      138.1634,
+      138.2531,
+      138.0546,
+      137.8166
+    ],
+    "hypothesis_h1_three_point_gap": "not_met",
+    "hypothesis_h2_retain_75_percent_gain": "met",
+    "hypothesis_h3_clean_drop_at_most_half_point": "met"
+  },
   "router_policy": {
     "feature_names": [
       "saliency_js",

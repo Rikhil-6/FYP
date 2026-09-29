@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This prototype tests whether a fully vision-transformer pipeline can respond to temporal image drift while keeping its update decision inspectable. A historical ViT is trained on 2004–2008 images and selected on 2009. A newer XAI-regularised ViT is adapted on 2010 images with realistic mild corruptions. An explicit router is calibrated on 2011 and evaluated once on the untouched 2012–2014 horizon. The router uses visible changes in saliency and prediction evidence rather than an opaque routing embedding. Under the strongest combined drift in 2014, the updated model improves macro F1 by **1.41 percentage points** over the historical XAI model; the router retains **1.16 points**, or **82.3%** of the available update gain. These are exploratory single-run results rather than a final statistical claim.
+This prototype tests whether a fully vision-transformer pipeline can respond to temporal image drift while keeping its update decision inspectable. A historical ViT is trained on 2004–2008 images and selected on 2009. A newer XAI-regularised ViT is adapted on 2010 images with realistic corruptions. An explicit router is calibrated on 2011 and evaluated once on the untouched 2012–2014 horizon. In the completed enhanced run, the newer model reaches **91.99%** macro F1 under 2014 combined drift: **+1.40 points** over the original baseline ViT and **+1.65 points** over historical XAI. Routing reaches **91.85%** and retains **91.5%** of the available update gain. The predeclared 3-point hypothesis was not met.
 
 ## 1. Research question
 
@@ -53,7 +53,7 @@ The newly added `--adaptation-profile enhanced` mode is a predeclared attempt to
 - the saliency divergence margin increases from `0.05` to `0.08`;
 - router calibration jointly selects a saliency-floor quantile and probability threshold on 2011 only.
 
-The enhanced run must reuse the same historical checkpoint, random seed, epoch budget, 2011 calibration set, and frozen 2012–2014 evaluation streams. Combined corruption remains unavailable during adaptation and calibration.
+The completed enhanced run reused the same historical checkpoint, seed 42, 2011 calibration set, and frozen 2012–2014 evaluation streams. Combined corruption remained unavailable during adaptation and calibration. Epoch 4 was selected by 2011 macro F1 (**94.39%**); epoch 5 declined to **93.00%**, indicating overfitting after the selected checkpoint. Training took approximately **138 seconds per epoch** after warm-up.
 
 ### 3.2 Hypotheses and success criteria
 
@@ -62,6 +62,12 @@ The enhanced run must reuse the same historical checkpoint, random seed, epoch b
 - **H3:** clean 2014 macro F1 does not fall by more than 0.50 points relative to the historical XAI model.
 
 The 3-point value is a target fixed before viewing the enhanced results. Failure to reach it must be reported as a negative result rather than addressed by tuning on 2012–2014 labels.
+
+### 3.3 Enhanced result against the hypotheses
+
+- **H1 not met:** the updated model improved by **1.40 points** over baseline ViT, below the 3.00-point target.
+- **H2 met:** routing retained `(91.85−90.34)/(91.99−90.34) = 91.5%` of the newer model's gain over historical XAI.
+- **H3 met:** routed clean 2014 macro F1 was **95.30%**, 0.06 points above historical XAI.
 
 ## 4. Main results
 
@@ -78,6 +84,19 @@ Macro F1 is shown as a percentage. Helpful and harmful routes count cases where 
 
 On 2014 combined drift, the baseline reaches **90.59%**, the historical XAI model **90.34%**, the updated XAI model **91.75%**, and the transparent router **91.50%** macro F1. The router captures `(91.50−90.34)/(91.75−90.34) = 82.3%` of the available update gain. The updated model also remains stronger on clean images, although the router becomes more conservative and records 18 harmful routes against 30 helpful routes in 2014.
 
+### 4.1 Enhanced profile results
+
+| Scenario | Year | Historical XAI | Enhanced XAI | Enhanced routed | Helpful | Harmful |
+|---|---:|---:|---:|---:|---:|---:|
+| Clean | 2012 | 95.96 | 95.89 | 96.03 | 65 | 62 |
+| Clean | 2013 | 95.23 | 95.49 | 95.55 | 60 | 44 |
+| Clean | 2014 | 95.24 | 95.47 | 95.30 | 69 | 64 |
+| Combined | 2012 | 95.47 | 95.71 | 95.81 | 76 | 58 |
+| Combined | 2013 | 93.81 | 94.43 | 94.44 | 101 | 66 |
+| Combined | 2014 | 90.34 | 91.99 | 91.85 | 188 | 90 |
+
+The enhanced curriculum improved the always-new 2014 combined score from **91.75% to 91.99%**, a further **0.24 points**. The routed score increased from **91.50% to 91.85%**, a further **0.35 points**. The modest change indicates that simply increasing adaptation capacity is insufficient to create a 3-point separation.
+
 ## 5. What the saliency panels show
 
 Each panel places the input beside the historical and updated attention maps, then prints the router features and decision. This makes a route auditable: a reviewer can compare *where* each ViT looked with the numerical evidence used by the logistic rule.
@@ -90,7 +109,7 @@ Each panel places the input beside the historical and updated attention maps, th
 
 The longer test horizon exposes a clearer decline under compound drift and a larger benefit from drift-aware updating. The rule remains explainable because its four standardized inputs, coefficients, threshold, and saliency floor are saved in `router_policy.json`. Coefficient signs are empirical correlations from 2011 calibration, not causal explanations.
 
-The evidence is limited to one seed, one temporal dataset stream, synthetic corruptions, and one fitted threshold. No confidence intervals or multi-seed hypothesis tests are reported. The enhanced configuration has been implemented but has **not yet produced results**, because the remote server was unavailable when launch was attempted. Its target must not be presented as an achieved result.
+The evidence is limited to one seed, one temporal dataset stream, synthetic corruptions, and one fitted threshold. No confidence intervals or multi-seed hypothesis tests are reported. The enhanced configuration produced a valid negative result for H1: the gain remained below 3 points. That target must not be presented as achieved.
 
 The next defensible step is repeated temporal backtesting with bootstrap confidence intervals and an untouched external dataset. The router should also be compared with always-old, always-new, confidence-only, and saliency-only ablations. Report macro F1 and macro IoU by year and drift type, helpful and harmful routes, update-trigger precision/recall, throughput, and training time per epoch.
 
@@ -99,6 +118,7 @@ The next defensible step is repeated temporal backtesting with bootstrap confide
 - `long_horizon_summary.json`: compact protocol, scores, and router policy.
 - `router_policy.json`: learned standardized logistic coefficients and thresholds.
 - `20260928T161159Z-horizon-router/`: 45 saved saliency panels plus sample metadata.
+- Enhanced server run: `runs/siamese/20260929-enhanced-3pp/`.
 - Source checkpoints remain server-side because each model file is about 85 MB.
 
 ## References
