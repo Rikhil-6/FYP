@@ -52,6 +52,23 @@ RESULTS = {
     },
 }
 
+ENHANCED = {
+    "clean": {
+        "old": [0.9596, 0.9523, 0.9524],
+        "new": [0.9589, 0.9549, 0.9547],
+        "routed": [0.9603, 0.9555, 0.9530],
+        "helpful_routes": [65, 60, 69],
+        "harmful_routes": [62, 44, 64],
+    },
+    "combined": {
+        "old": [0.9547, 0.9381, 0.9034],
+        "new": [0.9571, 0.9443, 0.9199],
+        "routed": [0.9581, 0.9444, 0.9185],
+        "helpful_routes": [76, 101, 188],
+        "harmful_routes": [58, 66, 90],
+    },
+}
+
 
 def pp(value: float) -> str:
     return f"{value * 100:.2f}"
@@ -67,6 +84,16 @@ def build_summary() -> None:
         "router_calibration_year": 2011,
         "held_out_test_years": YEARS,
         "macro_f1": RESULTS,
+        "enhanced_macro_f1": ENHANCED,
+        "enhanced_training": {
+            "run_id": "20260929-enhanced-3pp",
+            "selected_epoch": 4,
+            "selection_macro_f1": 0.9439,
+            "epoch_wall_seconds": [150.6013, 138.1634, 138.2531, 138.0546, 137.8166],
+            "hypothesis_h1_three_point_gap": "not_met",
+            "hypothesis_h2_retain_75_percent_gain": "met",
+            "hypothesis_h3_clean_drop_at_most_half_point": "met",
+        },
         "router_policy": policy,
         "source_runs": {
             "baseline": "20260928T152657Z-horizon",
@@ -87,6 +114,14 @@ def build_markdown() -> None:
                 f"{pp(r['historical_xai'][i])} | {pp(r['updated_xai'][i])} | "
                 f"{pp(r['routed'][i])} | {r['helpful_routes'][i]} | {r['harmful_routes'][i]} |"
             )
+    enhanced_rows = []
+    for scenario in ("clean", "combined"):
+        for i, year in enumerate(YEARS):
+            r = ENHANCED[scenario]
+            enhanced_rows.append(
+                f"| {scenario.title()} | {year} | {pp(r['old'][i])} | {pp(r['new'][i])} | "
+                f"{pp(r['routed'][i])} | {r['helpful_routes'][i]} | {r['harmful_routes'][i]} |"
+            )
 
     markdown = f"""# Transparent Saliency Routing for Temporal Image Drift
 
@@ -94,7 +129,7 @@ def build_markdown() -> None:
 
 ## Abstract
 
-This prototype tests whether a fully vision-transformer pipeline can respond to temporal image drift while keeping its update decision inspectable. A historical ViT is trained on 2004–2008 images and selected on 2009. A newer XAI-regularised ViT is adapted on 2010 images with realistic mild corruptions. An explicit router is calibrated on 2011 and evaluated once on the untouched 2012–2014 horizon. The router uses visible changes in saliency and prediction evidence rather than an opaque routing embedding. Under the strongest combined drift in 2014, the updated model improves macro F1 by **1.41 percentage points** over the historical XAI model; the router retains **1.16 points**, or **82.3%** of the available update gain. These are exploratory single-run results rather than a final statistical claim.
+This prototype tests whether a fully vision-transformer pipeline can respond to temporal image drift while keeping its update decision inspectable. A historical ViT is trained on 2004–2008 images and selected on 2009. A newer XAI-regularised ViT is adapted on 2010 images with realistic corruptions. An explicit router is calibrated on 2011 and evaluated once on the untouched 2012–2014 horizon. In the completed enhanced run, the newer model reaches **91.99%** macro F1 under 2014 combined drift: **+1.40 points** over the original baseline ViT and **+1.65 points** over historical XAI. Routing reaches **91.85%** and retains **91.5%** of the available update gain. The predeclared 3-point hypothesis was not met.
 
 ## 1. Research question
 
@@ -143,7 +178,7 @@ The newly added `--adaptation-profile enhanced` mode is a predeclared attempt to
 - the saliency divergence margin increases from `0.05` to `0.08`;
 - router calibration jointly selects a saliency-floor quantile and probability threshold on 2011 only.
 
-The enhanced run must reuse the same historical checkpoint, random seed, epoch budget, 2011 calibration set, and frozen 2012–2014 evaluation streams. Combined corruption remains unavailable during adaptation and calibration.
+The completed enhanced run reused the same historical checkpoint, seed 42, 2011 calibration set, and frozen 2012–2014 evaluation streams. Combined corruption remained unavailable during adaptation and calibration. Epoch 4 was selected by 2011 macro F1 (**94.39%**); epoch 5 declined to **93.00%**, indicating overfitting after the selected checkpoint. Training took approximately **138 seconds per epoch** after warm-up.
 
 ### 3.2 Hypotheses and success criteria
 
@@ -152,6 +187,12 @@ The enhanced run must reuse the same historical checkpoint, random seed, epoch b
 - **H3:** clean 2014 macro F1 does not fall by more than 0.50 points relative to the historical XAI model.
 
 The 3-point value is a target fixed before viewing the enhanced results. Failure to reach it must be reported as a negative result rather than addressed by tuning on 2012–2014 labels.
+
+### 3.3 Enhanced result against the hypotheses
+
+- **H1 not met:** the updated model improved by **1.40 points** over baseline ViT, below the 3.00-point target.
+- **H2 met:** routing retained `(91.85−90.34)/(91.99−90.34) = 91.5%` of the newer model's gain over historical XAI.
+- **H3 met:** routed clean 2014 macro F1 was **95.30%**, 0.06 points above historical XAI.
 
 ## 4. Main results
 
@@ -162,6 +203,14 @@ Macro F1 is shown as a percentage. Helpful and harmful routes count cases where 
 {chr(10).join(rows)}
 
 On 2014 combined drift, the baseline reaches **90.59%**, the historical XAI model **90.34%**, the updated XAI model **91.75%**, and the transparent router **91.50%** macro F1. The router captures `(91.50−90.34)/(91.75−90.34) = 82.3%` of the available update gain. The updated model also remains stronger on clean images, although the router becomes more conservative and records 18 harmful routes against 30 helpful routes in 2014.
+
+### 4.1 Enhanced profile results
+
+| Scenario | Year | Historical XAI | Enhanced XAI | Enhanced routed | Helpful | Harmful |
+|---|---:|---:|---:|---:|---:|---:|
+{chr(10).join(enhanced_rows)}
+
+The enhanced curriculum improved the always-new 2014 combined score from **91.75% to 91.99%**, a further **0.24 points**. The routed score increased from **91.50% to 91.85%**, a further **0.35 points**. The modest change indicates that simply increasing adaptation capacity is insufficient to create a 3-point separation.
 
 ## 5. What the saliency panels show
 
@@ -175,7 +224,7 @@ Each panel places the input beside the historical and updated attention maps, th
 
 The longer test horizon exposes a clearer decline under compound drift and a larger benefit from drift-aware updating. The rule remains explainable because its four standardized inputs, coefficients, threshold, and saliency floor are saved in `router_policy.json`. Coefficient signs are empirical correlations from 2011 calibration, not causal explanations.
 
-The evidence is limited to one seed, one temporal dataset stream, synthetic corruptions, and one fitted threshold. No confidence intervals or multi-seed hypothesis tests are reported. The enhanced configuration has been implemented but has **not yet produced results**, because the remote server was unavailable when launch was attempted. Its target must not be presented as an achieved result.
+The evidence is limited to one seed, one temporal dataset stream, synthetic corruptions, and one fitted threshold. No confidence intervals or multi-seed hypothesis tests are reported. The enhanced configuration produced a valid negative result for H1: the gain remained below 3 points. That target must not be presented as achieved.
 
 The next defensible step is repeated temporal backtesting with bootstrap confidence intervals and an untouched external dataset. The router should also be compared with always-old, always-new, confidence-only, and saliency-only ablations. Report macro F1 and macro IoU by year and drift type, helpful and harmful routes, update-trigger precision/recall, throughput, and training time per epoch.
 
@@ -184,6 +233,7 @@ The next defensible step is repeated temporal backtesting with bootstrap confide
 - `long_horizon_summary.json`: compact protocol, scores, and router policy.
 - `router_policy.json`: learned standardized logistic coefficients and thresholds.
 - `20260928T161159Z-horizon-router/`: 45 saved saliency panels plus sample metadata.
+- Enhanced server run: `runs/siamese/20260929-enhanced-3pp/`.
 - Source checkpoints remain server-side because each model file is about 85 MB.
 
 ## References
@@ -290,7 +340,7 @@ def build_pdf() -> None:
         Paragraph("Coefficients act on standardized features. Their signs describe the 2011 calibration relationship; they are not causal effects. The explicit saliency floor ensures that saliency remains part of the decision rather than a decorative post-hoc plot.", styles["Smallx"]),
         PageBreak(),
         Paragraph("4. Enhanced correction experiment", styles["H1x"]),
-        Paragraph("Status: implemented in commit 42ca356; results pending because the remote server was unavailable at launch. The 3-point value below is a predeclared target, not an observed result.", styles["Bodyx"]),
+        Paragraph("Status: completed as server run 20260929-enhanced-3pp. The 3-point value was fixed before inspection; the run did not meet that primary target.", styles["Bodyx"]),
     ]
     enhanced = [["Controlled item", "Standard profile", "Enhanced profile"],
                 ["2010 stream", "50% clean; severity 1", "25% clean; individual severity 1–3"],
@@ -307,9 +357,9 @@ def build_pdf() -> None:
         Paragraph("4.1 Fixed controls", styles["H1x"]),
         Paragraph("Historical checkpoint, CLEAR-100 chronology, random seed, epoch budget, 2011 calibration labels, frozen 2012–2014 test streams, corruption code, batch size, and metrics must match the standard run. Combined corruption remains absent from adaptation and calibration.", styles["Bodyx"]),
         Paragraph("4.2 Predeclared hypotheses", styles["H1x"]),
-        Paragraph("H1: at least +3.00 macro-F1 points over baseline ViT on 2014 combined drift. H2: routing retains at least 75% of the always-new gain. H3: 2014 clean macro F1 falls by no more than 0.50 points versus historical XAI. Missing H1 is a negative result; test labels must not be used for another tuning cycle.", styles["Bodyx"]),
+        Paragraph("H1 not met: enhanced XAI gained 1.40 points over baseline ViT on 2014 combined drift. H2 met: routing retained 91.5% of the newer model's gain over historical XAI. H3 met: routed clean 2014 macro F1 was 0.06 points above historical XAI. Test labels must not be used for another tuning cycle.", styles["Bodyx"]),
         Paragraph("4.3 Evaluation matrix", styles["H1x"]),
-        Paragraph("Report baseline, historical XAI, updated XAI, and routed predictions for every year and condition. Primary metric: macro F1. Secondary metrics: accuracy, macro IoU, update-trigger precision/recall/F1, helpful and harmful routes, training seconds per epoch, inference milliseconds per image, and saliency-map overlap. Repeat across seeds before making a final claim.", styles["Bodyx"]),
+        Paragraph("The selected epoch was 4, with 94.39% calibration macro F1; epoch 5 fell to 93.00%. Post-warm-up epochs took about 138 seconds. Final reporting includes accuracy, macro F1, macro IoU, update-trigger metrics, helpful and harmful routes, timing, and saliency-map overlap. Multiple seeds remain necessary before a final claim.", styles["Bodyx"]),
         PageBreak(),
         Paragraph("5. Completed fixed-horizon results", styles["H1x"]),
         Paragraph("Macro F1 under combined saturation, noise, and occlusion. The widening decline across years makes the temporal effect visible.", styles["Bodyx"]),
@@ -324,12 +374,25 @@ def build_pdf() -> None:
     results_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0B6E69")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("ALIGN", (1, 1), (-1, -1), "CENTER"), ("FONTSIZE", (0, 0), (-1, -1), 8), ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#CBD5E1")), ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F3F7F8")]), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
     story += [results_table, Spacer(1, 4 * mm), Paragraph("In 2014, the updated XAI model gains 1.41 points over historical XAI. Routing retains 1.16 points: (91.50−90.34)/(91.75−90.34) = 82.3% of the available gain. Clean-data macro F1 is 95.13% baseline, 95.24% historical XAI, 95.85% updated XAI, and 95.46% routed.", styles["Bodyx"])]
 
+    enhanced_data = [["Year", "Hist. XAI", "Std. updated", "Enhanced updated", "Enhanced routed", "Helpful / harmful"]]
+    for i, year in enumerate(YEARS):
+        enhanced_data.append([str(year), pp(ENHANCED["combined"]["old"][i]),
+                              pp(RESULTS["combined"]["updated_xai"][i]),
+                              pp(ENHANCED["combined"]["new"][i]),
+                              pp(ENHANCED["combined"]["routed"][i]),
+                              f"{ENHANCED['combined']['helpful_routes'][i]} / {ENHANCED['combined']['harmful_routes'][i]}"])
+    enhanced_results_table = Table(enhanced_data, colWidths=[16 * mm, 24 * mm, 28 * mm, 34 * mm, 32 * mm, 34 * mm], repeatRows=1)
+    enhanced_results_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#13293D")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("ALIGN", (1, 1), (-1, -1), "CENTER"), ("FONTSIZE", (0, 0), (-1, -1), 7.5), ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#CBD5E1")), ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F3F7F8")]), ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
+    story += [Paragraph("5.1 Enhanced combined-drift result", styles["H1x"]), enhanced_results_table,
+              Spacer(1, 3 * mm),
+              Paragraph("In 2014, enhanced XAI reaches 91.99%: +1.40 points over baseline ViT and +1.65 over historical XAI. Enhanced routing reaches 91.85%, retaining 91.5% of the available gain. Relative to the standard profile, enhancement adds 0.24 points always-new and 0.35 points routed. H1 fails; H2 and H3 pass.", styles["Bodyx"])]
+
     panels = [RUN / "combined" / "2012" / "sample_0777.png", RUN / "combined" / "2014" / "sample_0777.png"]
     story += [PageBreak(), Paragraph("6. Saliency audit examples", styles["H1x"]), Paragraph("Each panel shows the clean reference, drifted input, historical saliency, and updated saliency. Together with the saved decision log, this lets a reviewer connect the route to visible attention changes and prediction evidence.", styles["Bodyx"])]
     for year, panel in zip((2012, 2014), panels):
         if panel.exists():
             story += [Paragraph(f"Combined drift • {year}", styles["Smallx"]), Image(str(panel), width=155 * mm, height=87 * mm), Spacer(1, 3 * mm)]
-    story += [PageBreak(), Paragraph("7. Interpretation", styles["H1x"]), Paragraph("Compound drift produces a clearer gap than the earlier one-year test. The completed standard run shows that the adapted ViT improves drifted and clean predictions and that routing captures most of the improvement. Confidence gain has the strongest positive learned coefficient; saliency divergence contributes positively and is reinforced by the explicit saliency floor. Coefficient signs are calibration correlations rather than causal explanations.", styles["Bodyx"]), Paragraph("8. Limitations and validity threats", styles["H1x"]), Paragraph("The completed evidence is one exploratory seed on one temporal stream with synthetic corruptions and one calibrated threshold. It has no confidence intervals or external validation dataset. The new 3-point target is an experimental objective, not a reported achievement. Increasing adaptation capacity could improve accuracy because of added optimization capacity rather than saliency alone, so ablations must isolate trainable blocks, corruption curriculum, saliency loss, and router calibration.", styles["Bodyx"]), Paragraph("9. Next experimental sequence", styles["H1x"]), Paragraph("Run standard and enhanced profiles with identical controls; freeze outputs; compute paired per-sample bootstrap intervals; then repeat across at least three seeds. Compare always-old, always-new, confidence-only, saliency-only, and full routing. Finally, repeat the untouched protocol on a second temporally indexed image dataset before claiming generality.", styles["Bodyx"]), Paragraph("10. Reproducibility", styles["H1x"]), Paragraph("The repository includes a compact JSON summary, learned router policy, 45 saliency panels, report generator, and all training source. Large checkpoints remain server-side. Completed run identifiers: baseline 20260928T152657Z-horizon, historical XAI 20260928T161159Z-horizon-xai, and router 20260928T161159Z-horizon-router. Enhanced-profile results remain pending.", styles["Bodyx"]), Paragraph("References", styles["H1x"]), Paragraph("[1] Dosovitskiy et al., Vision Transformer, 2020. [2] Oquab et al., DINOv2, 2023. [3] Hendrycks & Dietterich, ImageNet-C, 2019. [4] Hendrycks et al., AugMix, 2019. [5] Lin et al., CLEAR, 2021. Full links appear in the Markdown version.", styles["Smallx"])]
+    story += [PageBreak(), Paragraph("7. Interpretation", styles["H1x"]), Paragraph("The completed enhanced run improves both the always-new and routed combined-drift scores, but only modestly. This indicates that broader corruption exposure, three trainable blocks, and stronger saliency losses do not by themselves create the targeted 3-point separation. The routed model preserves most of the newer model's benefit, showing that transparent selection remains viable even though the underlying adaptation gain is limited.", styles["Bodyx"]), Paragraph("8. Limitations and validity threats", styles["H1x"]), Paragraph("Both completed profiles use one seed on one temporal stream with synthetic corruptions and one calibrated threshold. They have no confidence intervals or external validation dataset. H1 is a valid negative result. Increased optimization capacity and the saliency curriculum changed together, so ablations must isolate trainable blocks, corruption curriculum, saliency loss, and router calibration before attributing the incremental gain to saliency.", styles["Bodyx"]), Paragraph("9. Next experimental sequence", styles["H1x"]), Paragraph("Freeze these outputs, compute paired per-sample bootstrap intervals, and repeat both profiles across at least three seeds. Compare always-old, always-new, confidence-only, saliency-only, and full routing. A stronger next method should introduce saliency-guided patch corruption or clean-drift consistency training as a predeclared intervention, then repeat on a second temporal image dataset.", styles["Bodyx"]), Paragraph("10. Reproducibility", styles["H1x"]), Paragraph("The repository includes compact JSON results, learned router policy, 45 saliency panels, report generator, and all training source. Large checkpoints remain server-side. Completed run identifiers include baseline 20260928T152657Z-horizon, standard router 20260928T161159Z-horizon-router, and enhanced router 20260929-enhanced-3pp.", styles["Bodyx"]), Paragraph("References", styles["H1x"]), Paragraph("[1] Dosovitskiy et al., Vision Transformer, 2020. [2] Oquab et al., DINOv2, 2023. [3] Hendrycks & Dietterich, ImageNet-C, 2019. [4] Hendrycks et al., AugMix, 2019. [5] Lin et al., CLEAR, 2021. Full links appear in the Markdown version.", styles["Smallx"])]
 
     def footer(canvas, document):
         canvas.saveState()
