@@ -142,6 +142,8 @@ def main():
     parser.add_argument("--test-years", type=int, nargs="+", default=(2014,))
     parser.add_argument("--long-horizon", action="store_true",
                         help="Use drift-aware 2010 adaptation, 2011 calibration, and frozen 2012-2014 tests")
+    parser.add_argument("--adaptation-profile", choices=("standard", "enhanced"), default="standard",
+                        help="Enhanced uses a broader individual-drift curriculum and stronger ViT adaptation")
     args = parser.parse_args()
     if args.epochs < 1:
         parser.error("--epochs must be at least 1")
@@ -154,7 +156,9 @@ def main():
     dataset = open_dataset(args.data_root)
     if args.long_horizon:
         args.adapt_year, args.calibration_year, args.test_years = 2010, 2011, (2012, 2013, 2014)
-        adapt_transform = mixed_drift_transform(1, args.seed)
+        adapt_transform = (mixed_drift_transform((1, 2, 3), args.seed, clean_repeats=1)
+                           if args.adaptation_profile == "enhanced"
+                           else mixed_drift_transform(1, args.seed))
         calibration_transform = mixed_drift_transform(2, args.seed)
         adapt_split = calibration_split = "train_source"
         test_split = "test_source"
@@ -182,10 +186,17 @@ def main():
         parameter.requires_grad = False
     for parameter in new.backbone.parameters():
         parameter.requires_grad = False
-    for parameter in new.backbone.encoder.layer[-1].parameters():
-        parameter.requires_grad = True
+    trainable_blocks = 3 if args.adaptation_profile == "enhanced" else 1
+    for block in new.backbone.encoder.layer[-trainable_blocks:]:
+        for parameter in block.parameters():
+            parameter.requires_grad = True
     router = ViTTwinRouter(old, new)
-    optimizer = torch.optim.AdamW((p for p in new.parameters() if p.requires_grad), lr=1e-5)
+    backbone_parameters = [p for p in new.backbone.parameters() if p.requires_grad]
+    head_parameters = list(new.saliency_head.parameters()) + list(new.classifier.parameters())
+    optimizer = torch.optim.AdamW([
+        {"params": backbone_parameters, "lr": 1e-5},
+        {"params": head_parameters, "lr": 5e-5 if args.adaptation_profile == "enhanced" else 1e-5},
+    ], weight_decay=0.01)
     store = RunStore(args.output, "siamese", args.run_id)
     store.write_json("config.json", vars(args) | {"dataset": "CLEAR-100", "num_classes": classes,
                                                   "device": device, "torch_version": torch.__version__,
@@ -206,9 +217,14 @@ def main():
             logits = comparison["new_logits"]
             gap = comparison["saliency_gap"]
             old_correct = comparison["old_logits"].argmax(1).eq(labels)
-            pair_loss = torch.where(old_correct, gap, F.relu(0.05 - gap)).mean()
+            margin = 0.08 if args.adaptation_profile == "enhanced" else 0.05
+            pair_loss = torch.where(old_correct, gap, F.relu(margin - gap)).mean()
             true_evidence = (logits.softmax(1) - comparison["new_inverse"].softmax(1)).gather(1, labels[:, None])
-            loss = F.cross_entropy(logits, labels) + 0.1 * pair_loss + 0.1 * F.relu(0.02 - true_evidence).mean()
+            saliency_weight = 0.25 if args.adaptation_profile == "enhanced" else 0.1
+            loss = (F.cross_entropy(logits, labels,
+                                    label_smoothing=0.05 if args.adaptation_profile == "enhanced" else 0.0)
+                    + saliency_weight * pair_loss
+                    + saliency_weight * F.relu(0.03 - true_evidence).mean())
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

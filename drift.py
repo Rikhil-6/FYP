@@ -47,12 +47,22 @@ def drift_transform(scenario, severity, seed=42):
     return apply
 
 
-def mixed_drift_transform(severity, seed=42):
-    """Deterministic 50% clean / 50% single-corruption mixture; never combined."""
-    transforms = {name: drift_transform(name, severity, seed) for name in set(ADAPT_SCENARIOS)}
+def mixed_drift_transform(severity, seed=42, clean_repeats=3):
+    """Deterministic clean/single-corruption mixture; combined stays held out.
+
+    ``severity`` may be one level or a tuple of levels.  The enhanced adaptation
+    profile uses every individual severity while retaining 25% clean examples.
+    """
+    severities = (severity,) if isinstance(severity, int) else tuple(severity)
+    if not severities or any(level not in (1, 2, 3) for level in severities):
+        raise ValueError("severity levels must be drawn from 1, 2, and 3")
+    scenarios = ("clean",) * clean_repeats + ("saturation", "gaussian_noise", "occlusion")
+    transforms = {(name, level): drift_transform(name, level, seed)
+                  for name in set(scenarios) for level in severities}
 
     def apply(image, index=0):
-        scenario = ADAPT_SCENARIOS[_seed(index, "mixture", severity, seed) % len(ADAPT_SCENARIOS)]
-        return transforms[scenario](image, index)
+        scenario = scenarios[_seed(index, "mixture-scenario", severities, seed) % len(scenarios)]
+        level = severities[_seed(index, "mixture-severity", scenario, seed) % len(severities)]
+        return transforms[scenario, level](image, index)
 
     return apply
