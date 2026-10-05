@@ -171,10 +171,10 @@ def build() -> None:
     styles = document.styles
     normal = styles["Normal"]
     normal.font.name = "Aptos"
-    normal.font.size = Pt(10.5)
+    normal.font.size = Pt(11)
     normal.font.color.rgb = RGBColor(0, 0, 0)
     normal.paragraph_format.space_after = Pt(6)
-    normal.paragraph_format.line_spacing = 1.08
+    normal.paragraph_format.line_spacing = 1.15
 
     title = styles["Title"]
     title.font.name = "Aptos Display"
@@ -224,6 +224,11 @@ def build() -> None:
             flush_paragraph()
             index += 1
             continue
+        if stripped == "[PAGEBREAK]":
+            flush_paragraph()
+            document.add_page_break()
+            index += 1
+            continue
         if stripped.startswith("!["):
             flush_paragraph()
             match = re.match(r"!\[(.*?)\]\((.*?)\)", stripped)
@@ -261,8 +266,6 @@ def build() -> None:
                 keyword_run.bold = True
                 keyword_paragraph.add_run("temporal data drift, vision transformer, explainable artificial intelligence, saliency, Siamese network, transparent routing")
                 text = "1. Introduction and research question"
-            if text == "3. Temporal protocol":
-                add_related_work(document)
             style = "Title" if level == 1 else f"Heading {level - 1}"
             paragraph = document.add_paragraph(style=style)
             add_inline(paragraph, text)
@@ -302,12 +305,6 @@ def build() -> None:
         paragraph_lines.append(line)
         index += 1
     flush_paragraph()
-
-    for reference in SOURCE_REFERENCES:
-        paragraph = document.add_paragraph()
-        paragraph.paragraph_format.left_indent = Inches(0.25)
-        paragraph.paragraph_format.first_line_indent = Inches(-0.25)
-        paragraph.add_run(reference)
 
     document.core_properties.title = "Transparent Saliency Routing for Temporal Image Drift"
     document.core_properties.subject = "Completed fixed-horizon prototype report"
