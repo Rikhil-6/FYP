@@ -26,6 +26,9 @@ from siamese import ViTTwinRouter
 from transparent_router import FEATURES, apply_policy
 
 
+SALIENCY_OVERLAY_STRENGTH = 0.35
+
+
 class IndexedDataset(Dataset):
     def __init__(self, subset, indices):
         self.subset = subset
@@ -52,8 +55,11 @@ def overlay(base, weights):
     heat = weights.detach().cpu().reshape(side, side).numpy()
     heat = Image.fromarray((255 * heat / max(float(heat.max()), 1e-8)).astype(np.uint8)).resize(
         base.size, Image.Resampling.BILINEAR)
-    return Image.composite(Image.new("RGB", base.size, (255, 20, 20)), base,
-                           heat.point(lambda value: int(value * 0.65)))
+    return Image.composite(
+        Image.new("RGB", base.size, (255, 20, 20)),
+        base,
+        heat.point(lambda value: int(value * SALIENCY_OVERLAY_STRENGTH)),
+    )
 
 
 def delete_patches(image, saliency, highest=True, fraction=0.20):
