@@ -1,0 +1,40 @@
+{
+  "scenario": "combined",
+  "year": 2014,
+  "rows": 4999,
+  "outcomes": {
+    "helpful": {
+      "count": 125,
+      "mean_saliency_js": 0.060708,
+      "mean_confidence_gain": -0.049815,
+      "mean_entropy_reduction": -1.091672,
+      "mean_evidence_gain": -0.020863,
+      "mean_route_probability": 0.821308
+    },
+    "harmful": {
+      "count": 43,
+      "mean_saliency_js": 0.051166,
+      "mean_confidence_gain": -0.311161,
+      "mean_entropy_reduction": -1.736434,
+      "mean_evidence_gain": -0.045441,
+      "mean_route_probability": 0.767243
+    },
+    "neutral_routed": {
+      "count": 77,
+      "mean_saliency_js": 0.062005,
+      "mean_confidence_gain": -0.237057,
+      "mean_entropy_reduction": -1.610725,
+      "mean_evidence_gain": -0.049934,
+      "mean_route_probability": 0.817572
+    },
+    "kept_old": {
+      "count": 4754,
+      "mean_saliency_js": 0.047339,
+      "mean_confidence_gain": -0.074223,
+      "mean_entropy_reduction": -0.50964,
+      "mean_evidence_gain": 0.023134,
+      "mean_route_probability": 0.309942
+    }
+  },
+  "helpful_to_harmful_ratio": 2.907
+}

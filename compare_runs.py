@@ -21,6 +21,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     report = {"metric": "macro_f1", "runs": {}}
+    controls = ("epochs", "batch_size", "seed", "adapt_year", "calibration_year", "test_years", "long_horizon")
     for specification in args.run:
         name, raw_path = specification.split("=", 1)
         path = Path(raw_path)
@@ -37,12 +38,20 @@ def main():
                 } | {key: result[key] for key in ("helpful_routes", "harmful_routes", "routed_to_new")}
         report["runs"][name] = {
             "path": str(path),
-            "config": {key: config.get(key) for key in (
-                "epochs", "batch_size", "seed", "adaptation_profile", "disable_saliency_loss")},
+            "config": {key: config.get(key) for key in controls + (
+                "adaptation_profile", "disable_saliency_loss")},
             "epochs": read_events(path / "logs" / "events.jsonl"),
             "policy": policy,
             "scenarios": scenarios,
         }
+    report["comparability"] = {
+        key: {
+            "matched": len({json.dumps(run["config"].get(key), sort_keys=True)
+                            for run in report["runs"].values()}) == 1,
+            "values": {name: run["config"].get(key) for name, run in report["runs"].items()},
+        }
+        for key in controls
+    }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(args.output)

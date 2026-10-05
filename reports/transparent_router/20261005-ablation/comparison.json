@@ -1,0 +1,636 @@
+{
+  "metric": "macro_f1",
+  "runs": {
+    "matched_standard": {
+      "path": "/mnt/sdd/FYP-fork/runs/siamese/20261005-standard-5ep",
+      "config": {
+        "epochs": 5,
+        "batch_size": 8,
+        "seed": 42,
+        "adapt_year": 2010,
+        "calibration_year": 2011,
+        "test_years": [
+          2012,
+          2013,
+          2014
+        ],
+        "long_horizon": true,
+        "adaptation_profile": "standard",
+        "disable_saliency_loss": false
+      },
+      "epochs": [
+        {
+          "epoch": 1,
+          "adapt_loss": 0.1825,
+          "calibration_2011_macro_f1": 0.9487,
+          "calibration_2011_macro_iou": 0.9047,
+          "timing": {
+            "adapt_wall_seconds": 129.3334,
+            "adapt_gpu_seconds": 129.3362,
+            "adapt_images_per_second": 77.28
+          }
+        },
+        {
+          "epoch": 2,
+          "adapt_loss": 0.0806,
+          "calibration_2011_macro_f1": 0.9498,
+          "calibration_2011_macro_iou": 0.9067,
+          "timing": {
+            "adapt_wall_seconds": 116.3033,
+            "adapt_gpu_seconds": 116.3058,
+            "adapt_images_per_second": 85.94
+          }
+        },
+        {
+          "epoch": 3,
+          "adapt_loss": 0.0395,
+          "calibration_2011_macro_f1": 0.9489,
+          "calibration_2011_macro_iou": 0.9051,
+          "timing": {
+            "adapt_wall_seconds": 116.4985,
+            "adapt_gpu_seconds": 116.501,
+            "adapt_images_per_second": 85.8
+          }
+        },
+        {
+          "epoch": 4,
+          "adapt_loss": 0.0208,
+          "calibration_2011_macro_f1": 0.9504,
+          "calibration_2011_macro_iou": 0.908,
+          "timing": {
+            "adapt_wall_seconds": 118.7161,
+            "adapt_gpu_seconds": 118.7186,
+            "adapt_images_per_second": 84.19
+          }
+        },
+        {
+          "epoch": 5,
+          "adapt_loss": 0.0124,
+          "calibration_2011_macro_f1": 0.9491,
+          "calibration_2011_macro_iou": 0.9054,
+          "timing": {
+            "adapt_wall_seconds": 115.5701,
+            "adapt_gpu_seconds": 115.5726,
+            "adapt_images_per_second": 86.48
+          }
+        }
+      ],
+      "policy": {
+        "feature_names": [
+          "saliency_js",
+          "confidence_gain",
+          "entropy_reduction",
+          "evidence_gain"
+        ],
+        "mean": [
+          0.0036341463408756975,
+          0.008694860531582131,
+          0.030612917826785477,
+          -0.0004226060563677901
+        ],
+        "scale": [
+          0.00303337196689804,
+          0.0882586138771827,
+          0.22244888992032089,
+          0.061345397830663784
+        ],
+        "coefficients": [
+          0.2487271190415406,
+          0.20486284251916753,
+          0.18180926345940354,
+          -0.011026056621212562
+        ],
+        "intercept": -0.2538838216248926,
+        "probability_threshold": 0.2,
+        "saliency_floor": 0.0014972287230193616,
+        "saliency_quantile": 0.2,
+        "calibration_macro_f1": 0.9511,
+        "calibration_harmful_routes": 81
+      },
+      "scenarios": {
+        "clean": {
+          "2012": {
+            "old": 0.9596,
+            "new": 0.9652,
+            "routed": 0.9652,
+            "helpful_routes": 62,
+            "harmful_routes": 34,
+            "routed_to_new": 117
+          },
+          "2013": {
+            "old": 0.9523,
+            "new": 0.9594,
+            "routed": 0.9578,
+            "helpful_routes": 59,
+            "harmful_routes": 31,
+            "routed_to_new": 129
+          },
+          "2014": {
+            "old": 0.9524,
+            "new": 0.958,
+            "routed": 0.9578,
+            "helpful_routes": 66,
+            "harmful_routes": 38,
+            "routed_to_new": 129
+          }
+        },
+        "combined": {
+          "2012": {
+            "old": 0.9547,
+            "new": 0.9629,
+            "routed": 0.9627,
+            "helpful_routes": 72,
+            "harmful_routes": 31,
+            "routed_to_new": 141
+          },
+          "2013": {
+            "old": 0.9381,
+            "new": 0.9484,
+            "routed": 0.9494,
+            "helpful_routes": 98,
+            "harmful_routes": 38,
+            "routed_to_new": 178
+          },
+          "2014": {
+            "old": 0.9034,
+            "new": 0.9168,
+            "routed": 0.9172,
+            "helpful_routes": 144,
+            "harmful_routes": 57,
+            "routed_to_new": 299
+          }
+        }
+      }
+    },
+    "enhanced_full": {
+      "path": "/mnt/sdd/FYP-fork/runs/siamese/20260929-enhanced-3pp",
+      "config": {
+        "epochs": 5,
+        "batch_size": 8,
+        "seed": 42,
+        "adapt_year": 2010,
+        "calibration_year": 2011,
+        "test_years": [
+          2012,
+          2013,
+          2014
+        ],
+        "long_horizon": true,
+        "adaptation_profile": "enhanced",
+        "disable_saliency_loss": null
+      },
+      "epochs": [
+        {
+          "epoch": 1,
+          "adapt_loss": 0.7712,
+          "calibration_2011_macro_f1": 0.9396,
+          "calibration_2011_macro_iou": 0.8886,
+          "timing": {
+            "adapt_wall_seconds": 150.6013,
+            "adapt_gpu_seconds": 150.6047,
+            "adapt_images_per_second": 66.37
+          }
+        },
+        {
+          "epoch": 2,
+          "adapt_loss": 0.559,
+          "calibration_2011_macro_f1": 0.9426,
+          "calibration_2011_macro_iou": 0.8946,
+          "timing": {
+            "adapt_wall_seconds": 138.1634,
+            "adapt_gpu_seconds": 138.1664,
+            "adapt_images_per_second": 72.34
+          }
+        },
+        {
+          "epoch": 3,
+          "adapt_loss": 0.5033,
+          "calibration_2011_macro_f1": 0.9404,
+          "calibration_2011_macro_iou": 0.8901,
+          "timing": {
+            "adapt_wall_seconds": 138.2531,
+            "adapt_gpu_seconds": 138.2561,
+            "adapt_images_per_second": 72.29
+          }
+        },
+        {
+          "epoch": 4,
+          "adapt_loss": 0.4771,
+          "calibration_2011_macro_f1": 0.9439,
+          "calibration_2011_macro_iou": 0.8963,
+          "timing": {
+            "adapt_wall_seconds": 138.0546,
+            "adapt_gpu_seconds": 138.0577,
+            "adapt_images_per_second": 72.4
+          }
+        },
+        {
+          "epoch": 5,
+          "adapt_loss": 0.4671,
+          "calibration_2011_macro_f1": 0.93,
+          "calibration_2011_macro_iou": 0.875,
+          "timing": {
+            "adapt_wall_seconds": 137.8166,
+            "adapt_gpu_seconds": 137.8197,
+            "adapt_images_per_second": 72.52
+          }
+        }
+      ],
+      "policy": {
+        "feature_names": [
+          "saliency_js",
+          "confidence_gain",
+          "entropy_reduction",
+          "evidence_gain"
+        ],
+        "mean": [
+          0.005599480683390807,
+          -0.08886956067325116,
+          -0.5894283024718411,
+          0.052225206221814625
+        ],
+        "scale": [
+          0.003877809651683153,
+          0.1386418620132533,
+          0.6113902831394918,
+          0.07744530449592955
+        ],
+        "coefficients": [
+          0.2945198257647852,
+          1.5846636318607206,
+          -2.319357852395917,
+          -0.20900096747887031
+        ],
+        "intercept": -0.7781592463564703,
+        "probability_threshold": 0.225,
+        "saliency_floor": 0.002805825136601925,
+        "saliency_quantile": 0.2,
+        "calibration_macro_f1": 0.9464,
+        "calibration_harmful_routes": 148
+      },
+      "scenarios": {
+        "clean": {
+          "2012": {
+            "old": 0.9596,
+            "new": 0.9589,
+            "routed": 0.9603,
+            "helpful_routes": 65,
+            "harmful_routes": 62,
+            "routed_to_new": 163
+          },
+          "2013": {
+            "old": 0.9523,
+            "new": 0.9549,
+            "routed": 0.9555,
+            "helpful_routes": 60,
+            "harmful_routes": 44,
+            "routed_to_new": 157
+          },
+          "2014": {
+            "old": 0.9524,
+            "new": 0.9547,
+            "routed": 0.953,
+            "helpful_routes": 69,
+            "harmful_routes": 64,
+            "routed_to_new": 174
+          }
+        },
+        "saturation": {
+          "2012": {
+            "old": 0.9595,
+            "new": 0.959,
+            "routed": 0.9601,
+            "helpful_routes": 64,
+            "harmful_routes": 61,
+            "routed_to_new": 161
+          },
+          "2013": {
+            "old": 0.9527,
+            "new": 0.9551,
+            "routed": 0.9552,
+            "helpful_routes": 55,
+            "harmful_routes": 42,
+            "routed_to_new": 151
+          },
+          "2014": {
+            "old": 0.9536,
+            "new": 0.9558,
+            "routed": 0.9543,
+            "helpful_routes": 64,
+            "harmful_routes": 59,
+            "routed_to_new": 164
+          }
+        },
+        "gaussian_noise": {
+          "2012": {
+            "old": 0.9585,
+            "new": 0.9588,
+            "routed": 0.9601,
+            "helpful_routes": 63,
+            "harmful_routes": 55,
+            "routed_to_new": 160
+          },
+          "2013": {
+            "old": 0.9489,
+            "new": 0.9504,
+            "routed": 0.9511,
+            "helpful_routes": 65,
+            "harmful_routes": 54,
+            "routed_to_new": 167
+          },
+          "2014": {
+            "old": 0.9388,
+            "new": 0.9423,
+            "routed": 0.9406,
+            "helpful_routes": 86,
+            "harmful_routes": 75,
+            "routed_to_new": 219
+          }
+        },
+        "occlusion": {
+          "2012": {
+            "old": 0.9567,
+            "new": 0.9577,
+            "routed": 0.9589,
+            "helpful_routes": 79,
+            "harmful_routes": 67,
+            "routed_to_new": 191
+          },
+          "2013": {
+            "old": 0.9405,
+            "new": 0.9495,
+            "routed": 0.9482,
+            "helpful_routes": 99,
+            "harmful_routes": 56,
+            "routed_to_new": 211
+          },
+          "2014": {
+            "old": 0.9317,
+            "new": 0.9407,
+            "routed": 0.9402,
+            "helpful_routes": 130,
+            "harmful_routes": 76,
+            "routed_to_new": 283
+          }
+        },
+        "combined": {
+          "2012": {
+            "old": 0.9547,
+            "new": 0.9571,
+            "routed": 0.9581,
+            "helpful_routes": 76,
+            "harmful_routes": 58,
+            "routed_to_new": 181
+          },
+          "2013": {
+            "old": 0.9381,
+            "new": 0.9443,
+            "routed": 0.9444,
+            "helpful_routes": 101,
+            "harmful_routes": 66,
+            "routed_to_new": 224
+          },
+          "2014": {
+            "old": 0.9034,
+            "new": 0.9199,
+            "routed": 0.9185,
+            "helpful_routes": 188,
+            "harmful_routes": 90,
+            "routed_to_new": 388
+          }
+        }
+      }
+    },
+    "enhanced_no_aux": {
+      "path": "/mnt/sdd/FYP-fork/runs/siamese/20261005-enhanced-nosaliency",
+      "config": {
+        "epochs": 5,
+        "batch_size": 8,
+        "seed": 42,
+        "adapt_year": 2010,
+        "calibration_year": 2011,
+        "test_years": [
+          2012,
+          2013,
+          2014
+        ],
+        "long_horizon": true,
+        "adaptation_profile": "enhanced",
+        "disable_saliency_loss": true
+      },
+      "epochs": [
+        {
+          "epoch": 1,
+          "adapt_loss": 0.7632,
+          "calibration_2011_macro_f1": 0.9395,
+          "calibration_2011_macro_iou": 0.8885,
+          "timing": {
+            "adapt_wall_seconds": 133.046,
+            "adapt_gpu_seconds": 133.0488,
+            "adapt_images_per_second": 75.12
+          }
+        },
+        {
+          "epoch": 2,
+          "adapt_loss": 0.553,
+          "calibration_2011_macro_f1": 0.9419,
+          "calibration_2011_macro_iou": 0.8934,
+          "timing": {
+            "adapt_wall_seconds": 134.2627,
+            "adapt_gpu_seconds": 134.2655,
+            "adapt_images_per_second": 74.44
+          }
+        },
+        {
+          "epoch": 3,
+          "adapt_loss": 0.499,
+          "calibration_2011_macro_f1": 0.9401,
+          "calibration_2011_macro_iou": 0.8896,
+          "timing": {
+            "adapt_wall_seconds": 134.3417,
+            "adapt_gpu_seconds": 134.3445,
+            "adapt_images_per_second": 74.4
+          }
+        },
+        {
+          "epoch": 4,
+          "adapt_loss": 0.4731,
+          "calibration_2011_macro_f1": 0.9463,
+          "calibration_2011_macro_iou": 0.9006,
+          "timing": {
+            "adapt_wall_seconds": 134.8336,
+            "adapt_gpu_seconds": 134.8365,
+            "adapt_images_per_second": 74.13
+          }
+        },
+        {
+          "epoch": 5,
+          "adapt_loss": 0.4641,
+          "calibration_2011_macro_f1": 0.9307,
+          "calibration_2011_macro_iou": 0.8761,
+          "timing": {
+            "adapt_wall_seconds": 134.0928,
+            "adapt_gpu_seconds": 134.0957,
+            "adapt_images_per_second": 74.54
+          }
+        }
+      ],
+      "policy": {
+        "feature_names": [
+          "saliency_js",
+          "confidence_gain",
+          "entropy_reduction",
+          "evidence_gain"
+        ],
+        "mean": [
+          0.038950590967728356,
+          -0.08781973138391912,
+          -0.5860252363992076,
+          0.019900365518378066
+        ],
+        "scale": [
+          0.018180054159202222,
+          0.13815979012981075,
+          0.6086056594184556,
+          0.06497602683394002
+        ],
+        "coefficients": [
+          -0.00449604306500804,
+          1.598015930961454,
+          -2.350789680096884,
+          -0.23187733246460102
+        ],
+        "intercept": -0.736483065756448,
+        "probability_threshold": 0.6,
+        "saliency_floor": 0.023865142464637758,
+        "saliency_quantile": 0.2,
+        "calibration_macro_f1": 0.9475,
+        "calibration_harmful_routes": 73
+      },
+      "scenarios": {
+        "clean": {
+          "2012": {
+            "old": 0.9596,
+            "new": 0.9605,
+            "routed": 0.9636,
+            "helpful_routes": 46,
+            "harmful_routes": 26,
+            "routed_to_new": 85
+          },
+          "2013": {
+            "old": 0.9523,
+            "new": 0.9554,
+            "routed": 0.9537,
+            "helpful_routes": 29,
+            "harmful_routes": 22,
+            "routed_to_new": 79
+          },
+          "2014": {
+            "old": 0.9524,
+            "new": 0.954,
+            "routed": 0.9545,
+            "helpful_routes": 43,
+            "harmful_routes": 32,
+            "routed_to_new": 98
+          }
+        },
+        "combined": {
+          "2012": {
+            "old": 0.9547,
+            "new": 0.9581,
+            "routed": 0.9574,
+            "helpful_routes": 48,
+            "harmful_routes": 34,
+            "routed_to_new": 100
+          },
+          "2013": {
+            "old": 0.9381,
+            "new": 0.9437,
+            "routed": 0.9418,
+            "helpful_routes": 62,
+            "harmful_routes": 40,
+            "routed_to_new": 137
+          },
+          "2014": {
+            "old": 0.9034,
+            "new": 0.9186,
+            "routed": 0.9162,
+            "helpful_routes": 125,
+            "harmful_routes": 43,
+            "routed_to_new": 245
+          }
+        }
+      }
+    }
+  },
+  "comparability": {
+    "epochs": {
+      "matched": true,
+      "values": {
+        "matched_standard": 5,
+        "enhanced_full": 5,
+        "enhanced_no_aux": 5
+      }
+    },
+    "batch_size": {
+      "matched": true,
+      "values": {
+        "matched_standard": 8,
+        "enhanced_full": 8,
+        "enhanced_no_aux": 8
+      }
+    },
+    "seed": {
+      "matched": true,
+      "values": {
+        "matched_standard": 42,
+        "enhanced_full": 42,
+        "enhanced_no_aux": 42
+      }
+    },
+    "adapt_year": {
+      "matched": true,
+      "values": {
+        "matched_standard": 2010,
+        "enhanced_full": 2010,
+        "enhanced_no_aux": 2010
+      }
+    },
+    "calibration_year": {
+      "matched": true,
+      "values": {
+        "matched_standard": 2011,
+        "enhanced_full": 2011,
+        "enhanced_no_aux": 2011
+      }
+    },
+    "test_years": {
+      "matched": true,
+      "values": {
+        "matched_standard": [
+          2012,
+          2013,
+          2014
+        ],
+        "enhanced_full": [
+          2012,
+          2013,
+          2014
+        ],
+        "enhanced_no_aux": [
+          2012,
+          2013,
+          2014
+        ]
+      }
+    },
+    "long_horizon": {
+      "matched": true,
+      "values": {
+        "matched_standard": true,
+        "enhanced_full": true,
+        "enhanced_no_aux": true
+      }
+    }
+  }
+}

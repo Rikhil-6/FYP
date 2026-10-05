@@ -198,3 +198,34 @@ Commit history milestones:
 4. Run standard, random-mask control, and saliency-mask method with the same three seeds and epoch budget.
 5. Freeze outputs, compute paired confidence intervals, and export enhanced saliency panels.
 6. Update the paper only after the preregistered comparison is complete.
+
+## 2026-10-05 checkpoint and controlled-ablation follow-up
+
+Implementation additions:
+
+- `RunStore.save_training_checkpoint` atomically writes `models/resume.pt` after every evaluated epoch and records `resume.json` metadata. The checkpoint contains the newer ViT, AdamW optimizer, completed epoch, and best score.
+- `train_siamese.py --resume-run-dir` restores the next epoch from that state. A deliberate stop after standard epoch 2 resumed at epoch 3 and later selected epoch 4.
+- `--disable-saliency-loss` sets the pairwise divergence and complementary-evidence auxiliary weights to zero. It does not remove the learned saliency gate from the classifier forward pass.
+- `--drift-scenarios clean combined` supports focused final ablations.
+- Per-sample drift routing decisions are now written to `logs/drift_routing_decisions.csv`.
+- `analyze_saliency.py` emits outcome-stratified CSV/JSON, a compact headline JSON, and a box-plot PNG.
+- `compare_runs.py` reports scores, policies, epoch traces, and explicit equality checks for the fixed protocol controls.
+- `tests/test_run_store.py` verifies model weights, optimizer state, epoch, score, and metadata survive a checkpoint round trip.
+
+All three comparison runs match on five epochs, batch size 8, seed 42, adaptation year 2010, calibration year 2011, test years 2012–2014, and long-horizon mode. All selected epoch 4.
+
+| Five-epoch configuration | Best 2011 F1 | 2014 clean routed | 2014 combined new | 2014 combined routed | Helpful / harmful | Routed to new |
+|---|---:|---:|---:|---:|---:|---:|
+| Matched standard | 95.04 | 95.78 | 91.68 | 91.72 | 144 / 57 | 299 |
+| Enhanced with auxiliary saliency losses | 94.39 | 95.30 | 91.99 | 91.85 | 188 / 90 | 388 |
+| Enhanced without auxiliary saliency losses | 94.63 | 95.45 | 91.86 | 91.62 | 125 / 43 | 245 |
+
+Interpretation:
+
+- Equalizing the epoch budget reduces the enhanced-versus-standard difference to **+0.31 points always-new** and **+0.13 points routed** on 2014 combined drift.
+- Holding the enhanced architecture and curriculum fixed, the explicit auxiliary saliency objectives contribute **+0.13 points always-new** and **+0.23 points routed** versus the no-auxiliary-loss control.
+- The full enhanced router trades higher coverage and more helpful corrections for more harmful switches. The no-auxiliary control has a higher helpful/harmful ratio (2.91 versus 2.09) but a lower overall routed macro F1.
+- In the no-auxiliary control, helpful routes have mean saliency JS 0.0607, harmful routes 0.0512, and retained historical cases 0.0473. Mean route probabilities are 0.821, 0.767, and 0.310. Distributions overlap, so saliency change is a clear routing eligibility signal but only a modest discriminator of useful versus harmful updates.
+- Inspected full-enhanced panels show interpretable but often contextual evidence: bowling lanes, cloud structure, or framed display regions may receive more weight than a single object. These learned patch gates are not segmentation masks.
+
+New Git-friendly artifacts are under `reports/transparent_router/20261005-ablation/`: compact comparison JSON, two saliency-analysis bundles, and 90 bounded full-enhanced/control panels. Large checkpoints and raw future JSON remain server-side.
