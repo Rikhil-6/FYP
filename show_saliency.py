@@ -10,6 +10,9 @@ from data import MEAN, STD, make_loaders
 from model import TemporalViT
 
 
+SALIENCY_OVERLAY_STRENGTH = 0.35
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -34,7 +37,11 @@ def main():
     heat = (255 * heat / max(heat.max(), 1e-8)).astype(np.uint8)
     heat = Image.fromarray(heat).resize(base.size, Image.Resampling.BILINEAR)
     red = Image.new("RGB", base.size, (255, 30, 30))
-    overlay = Image.composite(red, base, heat.point(lambda value: int(value * 0.65)))
+    overlay = Image.composite(
+        red,
+        base,
+        heat.point(lambda value: int(value * SALIENCY_OVERLAY_STRENGTH)),
+    )
     canvas = Image.new("RGB", (448, 224))
     canvas.paste(base, (0, 0))
     canvas.paste(overlay, (224, 0))

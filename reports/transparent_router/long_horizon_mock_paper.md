@@ -6,21 +6,27 @@
 
 This study tests a transparent update mechanism for image classifiers exposed to temporal drift. A historical Vision Transformer is compared with a newer saliency-guided ViT adapted on later data. A small, explicit router chooses between their predictions using observable changes in confidence, entropy, class evidence, and patch saliency. Evaluation follows a fixed chronology from historical training through a frozen 2012–2014 horizon. The strongest updated model improves 2014 combined-drift macro F1 by 1.65 percentage points over historical XAI; routing retains 91.5% of that gain. The predeclared three-point target is not reached. The result supports inspectable drift correction while showing that the incremental benefit of explicit saliency supervision is modest.
 
-[PAGEBREAK]
 
-## 1. Research question
+## 1. Introduction and thesis
 
-Can a transparent, saliency-aware routing rule decide when a drift-adapted ViT should replace a historical ViT prediction, while preserving accuracy on clean data and improving performance as temporal drift accumulates?
+Image classification systems are commonly developed under an implicit stationarity assumption: training, validation, and deployment images are expected to represent the same underlying distribution. That assumption is fragile in operational settings. Camera hardware and image-processing pipelines are replaced, illumination and weather vary, compression settings change, viewpoints and backgrounds evolve, and the prevalence of individual classes can shift. ImageNet-C demonstrates that ordinary noise, blur, weather, and digital degradation can substantially reduce classification accuracy [1], while CLEAR shows that visual concepts also evolve naturally across a decade even without an artificial corruption boundary [2]. WILDS extends this concern to changes across camera locations, geography, institutions, and time [3]. A deployed classifier may therefore continue to operate normally while becoming progressively less reliable on particular classes or acquisition conditions.
 
-Image classifiers are often evaluated as if their deployment distribution were fixed. Real systems rarely remain static. Camera hardware changes, image compression is revised, illumination follows seasonal patterns, backgrounds evolve, and the frequency of classes shifts. A model can therefore remain available while its error profile gradually changes. Temporal drift is difficult precisely because it is incremental: there may be no single moment at which the old model obviously fails.
+Continual adaptation offers one response, but automatically replacing a historical model creates a second problem: an updated model can correct some failures while introducing new ones. A deployment decision consequently requires more than evidence that the aggregate score improved. It should expose which model changed, why a particular sample was routed to it, and how many switches helped or harmed. This project separates historical model fitting, temporal adaptation, and sample-level routing so each stage can be evaluated independently. The historical classifier remains frozen as a reference; a newer classifier adapts on a bounded later window; and an explicit policy decides which prediction to use after comparing the two models.
 
-This project separates three decisions that are frequently mixed together. Historical training determines the original model. Temporal adaptation determines how a candidate model learns from a newer window. Routing determines whether the candidate should answer a particular sample. Separating these decisions makes the source of a gain easier to identify and allows the historical model to remain an auditable fallback.
+The explanation mechanism is motivated by work that treats saliency as a training signal rather than a decorative post-hoc picture. Yao and Gong use saliency priors to constrain self-attention that would otherwise spread into irrelevant regions [4]. XGD combines predictive alignment with saliency-based feature refinement and evaluates the contribution of its explanation objectives through ablation [5]. Related XAI-driven knowledge distillation work applies the broader principle that explanation information can influence model transfer, although its language-model setting is not used as architectural evidence here [6]. Ismail et al. perturb low-saliency features while enforcing predictive consistency, connecting the explanation map to observable model behaviour [7]. Saliency Guided Image Warping further argues that domain adaptation can become dominated by changing backgrounds while smaller foreground regions remain underrepresented [8]. Together, these studies motivate a classifier whose patch weights participate directly in prediction and whose explanations can be tested through masking rather than judged only by appearance.
 
-The study deliberately uses a fixed chronology instead of randomly mixing years. Earlier images train and select the historical system. A later period supports adaptation, the following period calibrates the route policy, and the final years remain untouched until evaluation. This arrangement resembles a deployment cycle and prevents later labels from silently shaping an earlier decision.
+The temporal comparison also draws on Siamese reasoning. Siamese-ViT shows that paired transformer branches can support comparison across changed views [9], while asymmetric Siamese networks show that observations from different temporal distributions can require different roles [10]. The present architecture therefore uses the same ViT family on both sides but freezes the historical branch and adapts only the newer branch. Their relationship is intentionally asymmetric: one represents established behaviour and the other represents a candidate update. Both branches are transformer based. Neither branch is a convolutional neural network: spatial structure is represented by an ordered grid of image-patch tokens, and information is exchanged through self-attention rather than convolutional kernels.
 
-The intended contribution is methodological. The project does not claim a new state-of-the-art classifier. It tests whether update decisions can be made visible through saved saliency maps, confidence changes, entropy changes, class evidence, explicit coefficients, and outcome counts. The failure to reach the strongest target is retained as part of the evidence.
+**Thesis statement.** A drift-adapted Vision Transformer can be introduced more safely when its prediction is compared with a frozen historical ViT through an explicit, saliency-aware routing policy; however, saliency should be treated as one auditable source of evidence rather than as proof that an update is correct. The central empirical question is whether visible changes in patch weighting, predictive confidence, distributional uncertainty, and complementary class evidence identify beneficial updates while limiting harmful switches across a chronologically frozen future horizon.
 
-[PAGEBREAK]
+This thesis is examined through three research questions:
+
+1. **RQ1:** Does temporal adaptation improve future-year macro F1 and macro IoU under natural and controlled image drift without materially degrading clean performance?
+2. **RQ2:** Can a transparent router retain most of the newer model's improvement while avoiding cases where the historical model was already correct?
+3. **RQ3:** Do the explicit saliency objectives add measurable value beyond the same architecture, data curriculum, trainable blocks, and epoch budget without those objectives?
+
+The study contributes a ViT-only historical/newer comparison, an embedded patch-gating mechanism, a chronological adaptation and calibration protocol, a fully logged routing equation, matched ablations, and an outcome-level audit of helpful, harmful, and missed switches. The intended contribution is methodological rather than a claim of state-of-the-art accuracy. Negative results, including failure to reach the predeclared three-point target, remain part of the thesis evidence.
+
 
 ## 2. System design
 
@@ -30,17 +36,24 @@ The prototype contains three ViT-only variants:
 2. **XAI ViT:** the same class of model with attention-derived saliency used during learning and evaluation.
 3. **Transparent update router:** a historical XAI ViT and a drift-adapted XAI ViT evaluated as a pair. A calibrated logistic rule selects the newer prediction only when its visible evidence passes the learned threshold and a minimum saliency-change floor.
 
-The router inputs are **saliency Jensen–Shannon divergence**, **confidence gain**, **entropy reduction**, and **class-evidence gain**. Every routed sample is logged with the feature values, route probability, selected model, correctness, and saliency images.
+All three variants use the same DINOv2-small transformer backbone. This controls architecture as a source of variation: the comparison changes the patch aggregation, temporal adaptation, and routing policy while keeping the underlying feature family fixed. The baseline is therefore a conventional ViT reference, not a CNN reference.
+
+The router uses four deliberately compact signals. **Saliency Jensen–Shannon divergence** is a symmetric, bounded information-theoretic difference between the historical and updated normalized patch-weight distributions [11]. If the two models allocate evidence to the same patches, the value approaches zero; it rises as their spatial evidence separates. **Confidence gain** is the updated model's maximum softmax probability minus the historical model's maximum probability. **Entropy reduction** is `H(p_old) − H(p_new)`, where `H(p) = −Σ p(c) log p(c)` is Shannon entropy [12]; a positive value means the updated predictive distribution is more concentrated. **Class-evidence gain** compares each model's predicted-class support from its saliency-selected representation against the complementary low-saliency representation, following the behavioural logic of saliency-guided training and feature refinement [5, 7]. Every sample records these values, the logistic route probability, the chosen branch, the final class, correctness, and the corresponding maps.
 
 The baseline and historical XAI models are trained once on the historical period and then frozen. They are not retrained separately for every evaluation year. This ensures that the 2012, 2013, and 2014 scores measure increasing distance from the same deployed reference. The newer branch is also fixed after 2011 calibration, so the final horizon does not become another optimization loop.
 
 The three classifier views serve different analytical roles. Baseline ViT measures a conventional transformer pipeline without the saliency-gated head. Historical XAI controls for the embedded explanation architecture. Updated XAI measures the maximum benefit available from adaptation when it is always selected. Routed XAI then measures how much of that benefit survives a conditional, inspectable decision policy.
 
-[PAGEBREAK]
 
 ### 2.1 ViT classifier and embedded explanation
 
-DINOv2-small produces one class token and a grid of patch tokens. The baseline averages patch evidence uniformly. The XAI model learns a scalar gate for every patch, normalises those gates into a saliency distribution, and uses the saliency-weighted patch sum together with the class token for classification. The same weights therefore affect the logits directly: the map is part of the forward computation rather than a detached visualisation.
+DINOv2-small follows the Vision Transformer representation introduced by Dosovitskiy et al. [13] and the self-supervised DINOv2 pretraining procedure [14]. The local data pipeline first converts every image to RGB, resizes it deterministically to 224 × 224 pixels, converts channel values to the zero-to-one range, and normalizes them with ImageNet channel means `(0.485, 0.456, 0.406)` and standard deviations `(0.229, 0.224, 0.225)`. A direct square resize was chosen to keep the prototype deterministic and inexpensive, although its possible aspect-ratio distortion is a limitation that should be tested against resize-and-crop preprocessing in later work.
+
+The prepared image is divided into non-overlapping 14 × 14 pixel patches, producing a 16 × 16 grid, or 256 patch tokens. Each patch is projected into a 384-dimensional embedding. Positional information preserves where the patch came from, and repeated self-attention blocks allow every token to exchange information with every other token. This global token interaction is the main architectural difference from a CNN, which builds representations through local convolutional filters and progressively expanding receptive fields. A learned class token travels through the same transformer blocks and acts as a global image summary, while the 256 patch tokens retain a spatial index that can be reshaped back to the 16 × 16 grid.
+
+The baseline classifier gives every patch equal weight. It averages the 256 patch vectors, concatenates that result with the global class token, and applies a linear 100-class head. The XAI variant replaces the uniform average with a learned gate. For patch representation *hᵢ*, a LayerNorm, linear layer, and sigmoid produce a non-negative gate *gᵢ*. Dividing each gate by the sum of all gates produces the normalized saliency weight *sᵢ*. The selected representation *v* is the weighted sum of all patch representations. In compact form, *sᵢ = gᵢ / Σⱼgⱼ* and *v = Σᵢsᵢhᵢ*. The classifier receives the class token and *v* together. Consequently, changing a patch weight changes the feature vector used to calculate the class logits. The displayed 16 × 16 heatmap is a resized view of these same normalized weights, rather than a separate visualization computed after prediction.
+
+![Figure 1. ViT-only historical and saliency-guided update architecture](architecture_overview.png)
 
 For faithfulness training, the model also classifies the complementary low-saliency patches. The loss rewards greater evidence for the true class in selected patches than in their complement. During update training, a pairwise term keeps the new and historical maps close when the historical prediction is correct and requires a minimum divergence when it is wrong.
 
@@ -50,35 +63,18 @@ The complementary path adds a falsifiable expectation. If the selected patches t
 
 During paired adaptation, the frozen branch supplies a stable point of comparison. When the historical prediction is correct, unnecessary explanation movement is discouraged. When it is wrong, the newer branch is permitted and encouraged to move its spatial evidence. Correctness still comes from the class label; saliency divergence alone never counts as a successful update.
 
-[PAGEBREAK]
 
 ### 2.2 Explicit routing rule
 
 For a sample `x`, the old and new ViTs produce predictions and saliency distributions. The policy standardises four observable differences and applies a saved logistic equation. The newer prediction is eligible only when the models disagree, saliency divergence exceeds a calibrated floor, and the logistic probability exceeds its calibrated threshold. All coefficients, means, scales, and thresholds are stored in `router_policy.json`.
 
-The policy can be written as `p(update | x) = sigmoid(b + w^T z)`, where `z` contains the four standardized features. The intercept, coefficients, feature means, and feature scales are stored with the thresholds. Given the two model outputs and the policy file, a route can therefore be reproduced without access to a hidden routing network.
+The policy uses logistic regression because its decision can be reconstructed from a short coefficient vector rather than another opaque neural network. This choice follows the interpretable-model argument that a high-stakes decision should be directly inspectable when a simple model is adequate [15]. On the 2011 calibration set, a positive target is assigned only when the historical branch is wrong and the newer branch is correct. The four features are standardized because their numerical ranges differ, and class-balanced fitting reduces the tendency to ignore the rarer helpful-update class. The fitted score is *p(update | x) = sigmoid(b + wᵀz)*, where *z* contains the four standardized features. The stored intercept *b*, coefficients *w*, feature means, and feature scales are sufficient to reproduce the probability.
+
+Probability alone does not determine the route. The implementation searches saliency-floor quantiles and probability thresholds on 2011 only, choosing the pair with the highest calibration macro F1 and then fewer harmful routes as the tie-breaker. At inference, the newer branch is selected only if the branches disagree, saliency change exceeds the stored floor, and the fitted probability exceeds the stored threshold. This staged rule reflects the calibration literature's warning that a classifier score should not automatically be treated as a trustworthy probability without empirical checking [16]. It also keeps the final decision auditable: a reviewer can see the raw signals, standardized values, weighted sum, two eligibility checks, and selected branch for every image.
 
 Saliency divergence measures how much the spatial evidence distribution changed. Confidence gain measures whether the newer branch is more certain in its selected class. Entropy reduction measures whether its full predictive distribution became more concentrated. Class-evidence gain measures whether the newer representation provides stronger support for the candidate class. No feature is assumed to be sufficient in isolation.
 
 Coefficient signs describe associations in the 2011 calibration sample. A positive confidence coefficient means that confidence gain was associated with useful updates after the other features were considered. It does not prove that increasing confidence would cause correctness. The router is transparent as a policy, while its statistical relationships remain empirical.
-
-### 2.3 Related work and design rationale
-
-The supplied literature supports using explanations as trainable evidence rather than detached illustrations. Yao and Gong constrain self-attention with saliency priors to limit attention spreading into irrelevant regions [6]. XGD combines prediction alignment with saliency-based feature refinement and tests the contribution through ablation [7]. Ismail et al. perturb low-saliency features while preserving predictive consistency, directly connecting saliency to model behaviour [11]. These findings motivate the learned patch gate, complementary low-saliency path, and explicit saliency losses used here.
-
-The paired-model design follows Siamese comparison while preserving temporal asymmetry. Siamese-ViT shows that weight-sharing ViT branches support comparison across changed views [8], while Asymmetric Siamese Networks show that temporal observations from different distributions may need deliberately different roles [12]. This project therefore freezes the historical branch as an auditable reference and adapts only the newer branch.
-
-Saliency Guided Image Warping argues that changing backgrounds can dominate domain adaptation while smaller foreground regions remain underrepresented [10]. DiXtill similarly transfers explanation agreement alongside predictive behaviour [9]. The resulting hypothesis is narrow: saliency guidance should help most when class semantics remain stable but nuisance appearance or contextual shortcuts change. It is less suitable for new classes, label-definition drift, complete object loss, or cases where the relevant visual evidence itself disappears.
-
-| Literature-supported idea | Project implementation | Testable implication |
-|---|---|---|
-| Saliency constrains diffuse attention [6] | Patch weights directly determine the ViT feature sum | Removing highly weighted patches should change class evidence more than removing low-weight patches |
-| Saliency objectives can be isolated by ablation [7, 11] | Matched control removes only the auxiliary saliency losses | Any difference can be attributed to those losses within the fixed run, subject to sampling limits |
-| Paired views support comparison [8, 12] | Frozen historical ViT and adapted newer ViT | Old/new disagreements can be audited sample by sample |
-| Background shift can dominate adaptation [10] | Saturation, noise, occlusion, and temporal context are evaluated separately | Benefits should concentrate where stable class evidence survives the nuisance shift |
-| Explanations can guide transfer [9] | Saliency divergence and complementary evidence enter learning and routing | Route decisions remain numerically traceable |
-
-[PAGEBREAK]
 
 ## 3. Temporal protocol
 
@@ -90,15 +86,18 @@ Saliency Guided Image Warping argues that changing backgrounds can dominate doma
 | Router calibration | 2011 | Fit the explicit routing rule and threshold |
 | Frozen evaluation | 2012–2014 | Test clean and drifted data once across a future horizon |
 
-The optional drift generator applies modest saturation shifts, Gaussian sensor noise, and partial occlusion. Individual corruptions appear during adaptation and calibration; their combined composition is withheld until final testing. This follows the corruption-testing motivation of ImageNet-C and AugMix while preserving chronological separation.
+The completed experiments reported below use the original, frozen `combined` condition: modest saturation change, Gaussian sensor noise, and partial occlusion. Individual corruptions appear during adaptation and calibration, while their composition is withheld until final testing. Retaining this exact condition preserves the validity of the completed comparison and follows the corruption-testing motivation of ImageNet-C and AugMix while maintaining chronological separation [1, 17].
 
 The clean stream and the corrupted stream answer different questions. Clean year-by-year evaluation measures performance on the naturally ordered dataset. Corruption tests measure sensitivity when plausible visual degradation is added to that chronology. Synthetic corruption is therefore not presented as the source of the underlying temporal drift.
 
-Saturation represents changes in illumination or camera colour processing. Gaussian noise approximates sensor and transmission degradation. Partial occlusion represents obstruction, cropping, dirt, or an intervening object. Severity is bounded and logged so that the stress test remains interpretable rather than making the original image unrecognizable.
+Acquisition drift arises when the image-forming process changes while the class meaning remains stable. Replacing a camera can alter sensor noise, lens blur, colour response, resolution, and compression; moving that camera can change viewpoint and background; weather, season, and lighting alter illumination and white balance. These are covariate changes because the observed pixels change even when the depicted object retains the same label. ImageNet-C formalizes several sensor, optical, environmental, and digital failure modes [1]. WILDS records naturally occurring changes across camera locations, institutions, geography, and time [3], while camera-trap studies show that a classifier can rely on location-specific backgrounds and fail at unseen camera sites [18]. CLEAR supplies the separate chronological component by preserving real image years [2].
+
+Within the original stress test, saturation represents illumination or camera colour processing, Gaussian noise approximates sensor and transmission degradation, and partial occlusion represents obstruction, cropping, dirt, or an intervening object. Severity is bounded and logged so that the stress test remains interpretable rather than making the original image unrecognizable. These perturbations are controlled proxies for acquisition mechanisms, not proof that a specific physical camera was replaced. Occlusion is only one possible acquisition shift and should not dominate the scientific claim.
+
+A broader source-separated protocol has therefore been added for subsequent evaluation. It covers illumination, white-balance change, sensor noise, defocus blur, motion blur, JPEG compression, resolution loss, mild viewpoint shift, and localized occlusion. Each family corresponds to a distinct plausible source in the imaging pipeline, and the realistic mixture samples them at bounded severity with occlusion assigned only a small share. This design allows results to be reported per drift source, prevents a single visually dramatic corruption from standing in for all drift, and makes it possible to ask whether routing succeeds for optical, sensor, digital, geometric, and obstruction-related change separately. Natural distribution-shift benchmarks likewise show that robustness conclusions can differ across acquisition sources rather than reducing to one corruption type [19]. Those new runs are treated as prospective evidence and are not blended into the completed values in this paper until their frozen evaluation is complete.
 
 The combined condition is reserved for final evaluation. Adaptation and calibration use individual corruption families, so success on the composition measures limited generalization beyond the exact perturbation pattern seen during updating.
 
-[PAGEBREAK]
 
 ### 3.1 Enhanced correction experiment
 
@@ -113,7 +112,6 @@ The newly added `--adaptation-profile enhanced` mode is a predeclared attempt to
 
 The completed enhanced run reused the same historical checkpoint, seed 42, 2011 calibration set, and frozen 2012–2014 evaluation streams. Combined corruption remained unavailable during adaptation and calibration. Epoch 4 was selected by 2011 macro F1 (**94.39%**); epoch 5 declined to **93.00%**, indicating overfitting after the selected checkpoint. Training took approximately **138 seconds per epoch** after warm-up.
 
-[PAGEBREAK]
 
 ### 3.2 Hypotheses and success criteria
 
@@ -123,7 +121,6 @@ The completed enhanced run reused the same historical checkpoint, seed 42, 2011 
 
 The 3-point value is a target fixed before viewing the enhanced results. Failure to reach it must be reported as a negative result rather than addressed by tuning on 2012–2014 labels.
 
-[PAGEBREAK]
 
 ### 3.3 Enhanced result against the hypotheses
 
@@ -131,13 +128,11 @@ The 3-point value is a target fixed before viewing the enhanced results. Failure
 - **H2 met:** routing retained `(91.85−90.34)/(91.99−90.34) = 91.5%` of the newer model's gain over historical XAI.
 - **H3 met:** routed clean 2014 macro F1 was **95.30%**, 0.06 points above historical XAI.
 
-[PAGEBREAK]
 
 ### 3.4 Checkpoint and interruption recovery
 
 Every evaluated epoch atomically replaces `models/resume.pt` and writes a small `resume.json`. The binary checkpoint contains the newer ViT parameters, optimizer state, completed epoch, and best validation score; the separate best-model file remains the checkpoint used for final evaluation. The matched standard run was deliberately stopped after epoch 2 and resumed at epoch 3. It retained the epoch-2 optimizer and best score, later selected epoch 4, and completed the frozen horizon normally. A local round-trip regression test independently reloads and compares weights, optimizer state, epoch, score, and metadata.
 
-[PAGEBREAK]
 
 ## 4. Main results
 
@@ -154,7 +149,6 @@ Macro F1 is shown as a percentage. Helpful and harmful routes count cases where 
 
 On 2014 combined drift, the baseline reaches **90.59%**, the historical XAI model **90.34%**, the updated XAI model **91.75%**, and the transparent router **91.50%** macro F1. The router captures `(91.50−90.34)/(91.75−90.34) = 82.3%` of the available update gain. The updated model also remains stronger on clean images, although the router becomes more conservative and records 18 harmful routes against 30 helpful routes in 2014.
 
-[PAGEBREAK]
 
 ### 4.1 Enhanced profile results
 
@@ -170,7 +164,6 @@ On 2014 combined drift, the baseline reaches **90.59%**, the historical XAI mode
 The enhanced curriculum improved the always-new 2014 combined score from **91.75% to 91.99%**, a further **0.24 points**. The routed score increased from **91.50% to 91.85%**, a further **0.35 points**. The modest change indicates that simply increasing adaptation capacity is insufficient to create a 3-point separation.
 
 
-[PAGEBREAK]
 
 ### 4.2 Controlled five-epoch ablation
 
@@ -178,14 +171,15 @@ The matched run removes the earlier three-versus-five-epoch imbalance. The auxil
 
 | Configuration | 2014 clean routed | Combined old | Combined new | Combined routed | Helpful | Harmful |
 |---|---:|---:|---:|---:|---:|---:|
-| Matched standard (5 epochs) | 95.78 | 90.34 | 91.68 | 91.72 | 144 | 57 |
-| Enhanced with auxiliary saliency losses | 95.30 | 90.34 | 91.99 | 91.85 | 188 | 90 |
-| Enhanced without auxiliary saliency losses | 95.45 | 90.34 | 91.86 | 91.62 | 125 | 43 |
+| Matched standard (5 epochs) | **95.78** | **90.34** | 91.68 | 91.72 | 144 | 57 |
+| Enhanced with auxiliary saliency losses | 95.30 | **90.34** | **91.99** | **91.85** | **188** | 90 |
+| Enhanced without auxiliary saliency losses | 95.45 | **90.34** | 91.86 | 91.62 | 125 | **43** |
+
+Bold type marks the best value in each evaluation column across the three matched configurations; ties are bolded together. Helpful and harmful counts describe route composition rather than interchangeable accuracy measures, so the most helpful and least harmful counts are emphasized separately.
 
 Against the matched enhanced control, the explicit auxiliary saliency objectives changed 2014 combined macro F1 by **+0.13 points** for always-new inference and **+0.23 points** after routing. These are single-run paired differences, not confidence-bounded causal estimates.
 
 
-[PAGEBREAK]
 
 ## 5. What the saliency panels show
 
@@ -195,7 +189,6 @@ Each panel places the input beside the historical and updated attention maps, th
 
 ![Enhanced full model under combined drift in 2014](20261005-ablation/enhanced-full-panels/combined/2014/sample_0777.png)
 
-[PAGEBREAK]
 
 ### 5.1 Quantitative saliency outcome analysis
 
@@ -203,9 +196,12 @@ For the 2014 combined-drift auxiliary-loss control, helpful routes had mean sali
 
 ![Saliency and route probability by outcome](20261005-ablation/enhanced-nosaliency/saliency_route_outcomes.png)
 
-The distributions overlap substantially. Saliency change clearly separates routed from retained examples, because it is an explicit eligibility condition, while it only modestly separates helpful from harmful routes. In the inspected panels, maps often emphasize contextual regions such as a bowling lane, cloud structure, or framed display area. They are evidence gates rather than object masks, so their spatial overlap must not be presented as segmentation IoU.
+The distributions overlap substantially, and that overlap is central to interpreting the router. Saliency change clearly separates routed from retained examples because the policy explicitly requires a minimum Jensen–Shannon divergence before an update can be selected. That separation is therefore partly mechanical: it demonstrates that the implemented gate is functioning, but does not independently validate that large map changes predict correctness. The more demanding comparison is between helpful and harmful routes. Helpful cases have a somewhat larger mean divergence and route probability, yet harmful cases occupy much of the same range. A threshold on saliency movement alone would therefore admit many regressions.
 
-[PAGEBREAK]
+There are several reasons for the overlap. First, a newer model can redirect attention and still select the wrong class; explanation change measures difference, not improvement. Second, confidence and entropy can become more decisive around an incorrect prediction. Third, CLEAR provides image-level labels rather than object masks, so context such as a bowling lane, cloud structure, kitchen surface, or display frame may carry legitimate class information in some images while acting as a brittle shortcut in others. The patch gate cannot distinguish those roles from visual appearance alone. Finally, the old and new models share a pretrained backbone and initialization, so many successful corrections require only small redistributions of evidence rather than visually dramatic maps.
+
+The maps should consequently be interpreted as **evidence-allocation diagnostics**. They answer where the classifier weighted its encoded patch features, and their divergence helps make a route reviewable. They do not demonstrate that the highlighted region is the complete object, that the unhighlighted region is irrelevant, or that the map change caused the corrected label. That stronger claim requires behavioural checks. The deletion audit addresses part of this requirement by asking whether removing highly weighted patches changes true-class probability more than removing equally many low-weight patches. Even that result remains a perturbation-based association because deletion creates an input that was not sampled from the original data distribution.
+
 
 ### 5.2 Counterexample and faithfulness audit
 
@@ -219,15 +215,15 @@ For every one of the 304 samples where one model is correct and the other is wro
 
 The helpful example raises true-class probability from **0.060** in the historical model to **0.403** in the updated model; deleting the newer model's most salient patches causes a **0.372** larger confidence drop than deleting its least salient patches. The harmful example shows why saliency change alone is insufficient: the historical model was already correct and its map had the stronger deletion response. These perturbation results remain observational. Patch deletion introduces an artificial input and does not prove that the highlighted pixels caused adaptation.
 
-[PAGEBREAK]
 
 ### 5.3 Where saliency-guided drift correction is credible
 
-The most credible deployment setting is class-conditional covariate drift: labels and object identity remain stable while acquisition or context changes. Examples include camera replacement, compression and sensor noise, shifts in white balance or saturation, changing illumination and season, partial occlusion, and background or viewpoint changes that break a historical shortcut. Saliency guidance is useful when the stable evidence is still visible and the newer model can reweight it. The present combined condition approximates several such changes simultaneously while the CLEAR chronology supplies real temporal variation.
+The most credible deployment setting is class-conditional covariate drift: labels and object identity remain stable while acquisition or context changes. Examples include camera replacement, compression and sensor noise, shifts in white balance or saturation, changing illumination and season, partial occlusion, and background or viewpoint changes that break a historical shortcut. Saliency guidance is useful when stable class evidence remains visible and the newer model can reweight it. It is least credible when corruption destroys the evidence entirely. The present combined condition approximates several changes simultaneously while the CLEAR chronology supplies real temporal variation, but the completed counterexample panels remain occlusion-heavy. They illustrate the masking audit and should not be read as coverage of all operational drift.
+
+The source-separated suite addresses that limitation directly. Performance, helpful routes, harmful routes, and saliency movement must be reported independently for illumination, colour, sensor, blur, compression, resolution, viewpoint, and occlusion conditions before claiming general drift correction. A genuine saliency-guided advantage would appear across multiple families where the object remains recognizable, with explanations shifting away from unstable acquisition artifacts and toward class-relevant evidence. An improvement confined to occlusion would support only an occlusion-specific conclusion.
 
 The method should not be expected to solve concept drift where the label meaning changes, new-class emergence, extreme occlusion, or systematic dataset errors. In those cases the saliency map may faithfully explain a wrong premise. A stronger next experiment should therefore add a matched random-mask control and an external temporal dataset, then compare confidence-only, saliency-only, and deletion-aware routers without tuning on the final horizon.
 
-[PAGEBREAK]
 
 ## 6. Interpretation and limits
 
@@ -237,22 +233,6 @@ The evidence is limited to one seed, one temporal dataset stream, synthetic corr
 
 The next defensible step is repeated temporal backtesting with bootstrap confidence intervals and an untouched external dataset. The router should also be compared with always-old, always-new, confidence-only, and saliency-only ablations. Report macro F1 and macro IoU by year and drift type, helpful and harmful routes, update-trigger precision/recall, throughput, and training time per epoch.
 
-[PAGEBREAK]
-
-## 7. Reproducibility artifacts
-
-- `long_horizon_summary.json`: compact protocol, scores, and router policy.
-- `router_policy.json`: learned standardized logistic coefficients and thresholds.
-- `20260928T161159Z-horizon-router/`: 45 saved saliency panels plus sample metadata.
-- Enhanced server run: `runs/siamese/20260929-enhanced-3pp/`.
-- Controlled server runs: `runs/siamese/20261005-standard-5ep/` and `runs/siamese/20261005-enhanced-nosaliency/`.
-- `20261005-ablation/comparison.json`: matched-control check, epoch traces, policies, and compact scores.
-- `20261005-ablation/enhanced-full-panels/` and `enhanced-nosaliency-panels/`: 90 bounded saliency panels with sample-level metadata.
-- `20261005-ablation/*/saliency_route_*`: outcome-stratified CSV, JSON, headline JSON, and figure.
-- `20261005-counterexamples/`: all 4,999 decisions, a 304-case deletion audit, 24 bounded counterexample panels, and a compact JSON summary.
-- Source checkpoints remain server-side because each model file is about 85 MB.
-
-[PAGEBREAK]
 
 ## Appendix A. Metric and routing glossary
 
@@ -266,19 +246,25 @@ The next defensible step is repeated temporal backtesting with bootstrap confide
 
 These definitions are fixed across the report. They make clear which measures evaluate classification, which evaluate the decision policy, and which describe explanation change. None of the routing features is itself a ground-truth measure of drift.
 
-[PAGEBREAK]
 
 ## References
 
-1. Dosovitskiy et al. (2020), *An Image is Worth 16×16 Words: Transformers for Image Recognition at Scale*. https://arxiv.org/abs/2010.11929
-2. Oquab et al. (2023), *DINOv2: Learning Robust Visual Features without Supervision*. https://arxiv.org/abs/2304.07193
-3. Hendrycks and Dietterich (2019), *Benchmarking Neural Network Robustness to Common Corruptions and Perturbations*. https://arxiv.org/abs/1903.12261
-4. Hendrycks et al. (2019), *AugMix: A Simple Data Processing Method to Improve Robustness and Uncertainty*. https://arxiv.org/abs/1912.02781
-5. Lin et al. (2021), *CLEAR: A Benchmark for Continual Learning on Real-World Imagery*. https://clear-benchmark.github.io/
-6. Yao and Gong (2020), *Saliency Guided Self-attention Network for Weakly and Semi-supervised Semantic Segmentation*. arXiv:1910.05475.
-7. Nguyen et al. (2025), *XGD: Explainable AI-Guided Knowledge Distillation with Feature Refinement for Semantic Segmentation*. 38th Canadian Conference on Artificial Intelligence.
-8. Cheng et al. (2026), *Siamese-ViT: A Local–Global Feature Fusion Method for Real-Time Visual Navigation of UAVs in Real-World Environments*. Remote Sensing, 18, 1556. https://doi.org/10.3390/rs18101556
-9. Cantini, Orsino, and Talia (2024), *XAI-driven knowledge distillation of large language models for efficient deployment on low-resource devices*. Journal of Big Data, 11, 63. https://doi.org/10.1186/s40537-024-00928-3
-10. Zheng, Ghosh, and Narasimhan (2024), *Saliency Guided Image Warping for Unsupervised Domain Adaptation*. arXiv:2403.12712.
-11. Ismail, Feizi, and Corrada Bravo (2021), *Improving Deep Learning Interpretability by Saliency Guided Training*. Advances in Neural Information Processing Systems.
-12. Yang et al. (2021), *Semantic Change Detection with Asymmetric Siamese Networks*. arXiv:2010.05687.
+1. Hendrycks and Dietterich (2019), *Benchmarking Neural Network Robustness to Common Corruptions and Perturbations*. https://arxiv.org/abs/1903.12261
+2. Lin et al. (2021), *CLEAR: A Benchmark for Continual Learning on Real-World Imagery*. https://clear-benchmark.github.io/
+3. Koh et al. (2021), *WILDS: A Benchmark of in-the-Wild Distribution Shifts*. Proceedings of the 38th International Conference on Machine Learning. https://arxiv.org/abs/2012.07421
+4. Yao and Gong (2020), *Saliency Guided Self-attention Network for Weakly and Semi-supervised Semantic Segmentation*. arXiv:1910.05475.
+5. Nguyen et al. (2025), *XGD: Explainable AI-Guided Knowledge Distillation with Feature Refinement for Semantic Segmentation*. 38th Canadian Conference on Artificial Intelligence.
+6. Cantini, Orsino, and Talia (2024), *XAI-driven knowledge distillation of large language models for efficient deployment on low-resource devices*. Journal of Big Data, 11, 63. https://doi.org/10.1186/s40537-024-00928-3
+7. Ismail, Feizi, and Corrada Bravo (2021), *Improving Deep Learning Interpretability by Saliency Guided Training*. Advances in Neural Information Processing Systems.
+8. Zheng, Ghosh, and Narasimhan (2024), *Saliency Guided Image Warping for Unsupervised Domain Adaptation*. arXiv:2403.12712.
+9. Cheng et al. (2026), *Siamese-ViT: A Local–Global Feature Fusion Method for Real-Time Visual Navigation of UAVs in Real-World Environments*. Remote Sensing, 18, 1556. https://doi.org/10.3390/rs18101556
+10. Yang et al. (2021), *Semantic Change Detection with Asymmetric Siamese Networks*. arXiv:2010.05687.
+11. Lin (1991), *Divergence Measures Based on the Shannon Entropy*. IEEE Transactions on Information Theory, 37(1), 145–151. https://doi.org/10.1109/18.61115
+12. Shannon (1948), *A Mathematical Theory of Communication*. Bell System Technical Journal, 27, 379–423 and 623–656. https://doi.org/10.1002/j.1538-7305.1948.tb01338.x
+13. Dosovitskiy et al. (2020), *An Image is Worth 16×16 Words: Transformers for Image Recognition at Scale*. https://arxiv.org/abs/2010.11929
+14. Oquab et al. (2023), *DINOv2: Learning Robust Visual Features without Supervision*. https://arxiv.org/abs/2304.07193
+15. Rudin (2019), *Stop Explaining Black Box Machine Learning Models for High Stakes Decisions and Use Interpretable Models Instead*. Nature Machine Intelligence, 1, 206–215. https://doi.org/10.1038/s42256-019-0048-x
+16. Niculescu-Mizil and Caruana (2005), *Predicting Good Probabilities with Supervised Learning*. Proceedings of the 22nd International Conference on Machine Learning, 625–632. https://doi.org/10.1145/1102351.1102430
+17. Hendrycks et al. (2019), *AugMix: A Simple Data Processing Method to Improve Robustness and Uncertainty*. https://arxiv.org/abs/1912.02781
+18. Beery, Van Horn, and Perona (2018), *Recognition in Terra Incognita*. Proceedings of the European Conference on Computer Vision. https://doi.org/10.1007/978-3-030-01270-0_28
+19. Taori et al. (2020), *Measuring Robustness to Natural Distribution Shifts in Image Classification*. Advances in Neural Information Processing Systems, 33.

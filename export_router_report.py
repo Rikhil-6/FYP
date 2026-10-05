@@ -15,6 +15,9 @@ from siamese import ViTTwinRouter
 from transparent_router import apply_policy
 
 
+SALIENCY_OVERLAY_STRENGTH = 0.35
+
+
 def rgb(tensor):
     value = tensor.cpu() * torch.tensor(STD)[:, None, None] + torch.tensor(MEAN)[:, None, None]
     return Image.fromarray((value.clamp(0, 1).permute(1, 2, 0).numpy() * 255).astype(np.uint8))
@@ -23,8 +26,11 @@ def rgb(tensor):
 def overlay(base, weights):
     heat = weights.reshape(16, 16).detach().cpu().numpy()
     heat = Image.fromarray((255 * heat / max(heat.max(), 1e-8)).astype(np.uint8)).resize(base.size)
-    return Image.composite(Image.new("RGB", base.size, (255, 25, 25)), base,
-                           heat.point(lambda value: int(value * 0.65)))
+    return Image.composite(
+        Image.new("RGB", base.size, (255, 25, 25)),
+        base,
+        heat.point(lambda value: int(value * SALIENCY_OVERLAY_STRENGTH)),
+    )
 
 
 def main():

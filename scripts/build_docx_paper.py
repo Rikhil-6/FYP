@@ -261,12 +261,12 @@ def build() -> None:
             flush_paragraph()
             level = len(heading.group(1))
             text = heading.group(2)
-            if text == "1. Research question":
+            if text in {"1. Research question", "1. Introduction and thesis"}:
                 keyword_paragraph = document.add_paragraph()
                 keyword_run = keyword_paragraph.add_run("Keywords  ")
                 keyword_run.bold = True
                 keyword_paragraph.add_run("temporal data drift, vision transformer, explainable artificial intelligence, saliency, Siamese network, transparent routing")
-                text = "1. Introduction and research question"
+                text = "1. Introduction and thesis"
             style = "Title" if level == 1 else f"Heading {level - 1}"
             paragraph = document.add_paragraph(style=style)
             add_inline(paragraph, text)
@@ -306,6 +306,18 @@ def build() -> None:
         paragraph_lines.append(line)
         index += 1
     flush_paragraph()
+
+    in_references = False
+    for paragraph in document.paragraphs:
+        if paragraph.text.strip() == "References":
+            in_references = True
+            continue
+        if not in_references:
+            continue
+        paragraph.paragraph_format.space_after = Pt(2)
+        paragraph.paragraph_format.line_spacing = 1.0
+        for run in paragraph.runs:
+            run.font.size = Pt(9)
 
     document.core_properties.title = "Transparent Saliency Routing for Temporal Image Drift"
     document.core_properties.subject = "Completed fixed-horizon prototype report"
