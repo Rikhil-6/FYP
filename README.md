@@ -144,6 +144,17 @@ Add `--adaptation-profile enhanced` to test a predeclared stronger correction po
 
 Use `--adaptation-profile realistic` for the source-separated v2 protocol. Its 2010 and 2011 streams are 25% clean and 75% individually shifted; each of the nine shift sources, including occlusion, occupies 1/12 of the full stream. Compound mixtures remain held out for final testing. A defensible comparison pairs this run with `--disable-saliency-loss` using the same seed, five-epoch budget, trainable blocks, learning rates, and frozen test horizon.
 
+Launch that matched five-epoch pair on the configured server with:
+
+```bash
+RUN_STAMP=drift-v2-r1 EPOCHS=5 BATCH_SIZE=8 bash deploy/run_drift_v2.sh
+```
+
+The script checks the GPU, runs the saliency-supervised profile followed by the
+matched no-auxiliary-saliency control, evaluates every source separately plus the
+held-out mixture, and writes a combined console log under
+`runs/experiments/drift-v2-<stamp>/`.
+
 Every twin-ViT epoch now atomically updates `models/resume.pt` and `models/resume.json` with model, optimizer, epoch, and best-score state. Resume an interrupted run without overwriting its earlier events:
 
 ```bash
