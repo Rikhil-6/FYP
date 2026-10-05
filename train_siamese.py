@@ -298,6 +298,10 @@ def main():
         for scenario in args.drift_scenarios:
             drift_results[scenario] = {}
             for severity, year in enumerate(args.test_years, 1):
+                progress_event = {"event": "drift_eval_start", "scenario": scenario,
+                                  "year": year, "severity": 0 if scenario == "clean" else severity}
+                store.log(progress_event)
+                print(json.dumps(progress_event), flush=True)
                 subset = dataset.get_subset(test_split, transform=drift_transform(scenario, severity, args.seed))
                 indices = torch.where(subset.metadata_array[:, year_column] == year - 2002)[0].tolist()
                 if args.limit_test:
@@ -314,6 +318,20 @@ def main():
                 drift_results[scenario][str(year)] = {
                     "severity": 0 if scenario == "clean" else severity,
                     "results": scenario_report}
+                completed_event = {
+                    "event": "drift_eval_complete", "scenario": scenario, "year": year,
+                    "severity": 0 if scenario == "clean" else severity,
+                    "old_macro_f1": scenario_report["all"]["old"]["macro_f1"],
+                    "new_macro_f1": scenario_report["all"]["new"]["macro_f1"],
+                    "routed_macro_f1": scenario_report["all"]["routed"]["macro_f1"],
+                    "helpful_routes": scenario_report["all"]["helpful_routes"],
+                    "harmful_routes": scenario_report["all"]["harmful_routes"],
+                }
+                store.log(completed_event)
+                print(json.dumps(completed_event), flush=True)
+                store.write_json("metrics/future_drift.partial.json", {
+                    "compound_shift_held_out": True, "test_years": args.test_years,
+                    "scenarios": drift_results})
         store.write_json("metrics/future_drift.json", {
             "compound_shift_held_out": True, "test_years": args.test_years,
             "scenarios": drift_results})

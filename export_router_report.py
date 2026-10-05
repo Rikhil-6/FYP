@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from data import MEAN, STD, open_dataset
 from drift import (REALISTIC_BENCHMARK_SCENARIOS, SCENARIOS, drift_transform,
@@ -15,7 +15,18 @@ from siamese import ViTTwinRouter
 from transparent_router import apply_policy
 
 
-SALIENCY_OVERLAY_STRENGTH = 0.35
+SALIENCY_OVERLAY_STRENGTH = 0.28
+SALIENCY_COLOR = (213, 94, 0)
+
+
+def figure_font(size=14, bold=False):
+    names = ("timesbd.ttf", "DejaVuSerif-Bold.ttf") if bold else ("times.ttf", "DejaVuSerif.ttf")
+    roots = (Path("C:/Windows/Fonts"), Path("/usr/share/fonts/truetype/dejavu"))
+    for root, name in zip(roots, names):
+        candidate = root / name
+        if candidate.is_file():
+            return ImageFont.truetype(candidate, size)
+    return ImageFont.load_default(size=size)
 
 
 def rgb(tensor):
@@ -27,7 +38,7 @@ def overlay(base, weights):
     heat = weights.reshape(16, 16).detach().cpu().numpy()
     heat = Image.fromarray((255 * heat / max(heat.max(), 1e-8)).astype(np.uint8)).resize(base.size)
     return Image.composite(
-        Image.new("RGB", base.size, (255, 25, 25)),
+        Image.new("RGB", base.size, SALIENCY_COLOR),
         base,
         heat.point(lambda value: int(value * SALIENCY_OVERLAY_STRENGTH)),
     )
@@ -72,11 +83,17 @@ def main():
             clean_rgb, shifted_rgb = rgb(clean_image), rgb(image)
             panels = [clean_rgb, shifted_rgb, overlay(shifted_rgb, comparison["old_map"][0]),
                       overlay(shifted_rgb, comparison["new_map"][0])]
-            canvas = Image.new("RGB", (896, 250), "white")
-            names = ("clean", scenario, "old saliency", "new saliency")
+            canvas = Image.new("RGB", (896, 282), "white")
+            names = ("(a) Clean reference", f"(b) {scenario.replace('_', ' ')}",
+                     "(c) Historical evidence", "(d) Updated evidence")
             draw = ImageDraw.Draw(canvas)
             for position, (panel, name) in enumerate(zip(panels, names)):
-                canvas.paste(panel, (position * 224, 26)); draw.text((position * 224 + 4, 5), name, fill="black")
+                canvas.paste(panel, (position * 224, 28))
+                draw.text((position * 224 + 6, 6), name, font=figure_font(14), fill="black")
+            footer = (f"sample {index}   true {int(label)}   old {int(comparison['old_logits'].argmax(1)[0])}   "
+                      f"new {int(comparison['new_logits'].argmax(1)[0])}   routed {int(routed[0])}   "
+                      f"route probability {float(probability[0]):.3f}")
+            draw.text((6, 258), footer, font=figure_font(13), fill="black")
             path = folder / f"sample_{offset:04d}.png"
             canvas.save(path, optimize=True)
             records.append({"scenario": scenario, "year": year, "severity": 0 if scenario == "clean" else severity,

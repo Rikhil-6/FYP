@@ -10,7 +10,7 @@ from data import MEAN, STD, make_loaders
 from model import TemporalViT
 
 
-SALIENCY_OVERLAY_STRENGTH = 0.35
+SALIENCY_OVERLAY_STRENGTH = 0.28
 
 
 def main():
@@ -36,7 +36,7 @@ def main():
     heat = saliency[0].reshape(16, 16).cpu().numpy()
     heat = (255 * heat / max(heat.max(), 1e-8)).astype(np.uint8)
     heat = Image.fromarray(heat).resize(base.size, Image.Resampling.BILINEAR)
-    red = Image.new("RGB", base.size, (255, 30, 30))
+    red = Image.new("RGB", base.size, (213, 94, 0))
     overlay = Image.composite(
         red,
         base,

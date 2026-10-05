@@ -12,7 +12,7 @@ from model import TemporalViT
 from siamese import ViTTwinRouter
 
 
-SALIENCY_OVERLAY_STRENGTH = 0.35
+SALIENCY_OVERLAY_STRENGTH = 0.28
 
 
 def overlay(base, weights):
@@ -20,7 +20,7 @@ def overlay(base, weights):
     heat = Image.fromarray((255 * heat / max(heat.max(), 1e-8)).astype(np.uint8))
     heat = heat.resize(base.size, Image.Resampling.BILINEAR)
     return Image.composite(
-        Image.new("RGB", base.size, (255, 25, 25)),
+        Image.new("RGB", base.size, (213, 94, 0)),
         base,
         heat.point(lambda value: int(value * SALIENCY_OVERLAY_STRENGTH)),
     )
