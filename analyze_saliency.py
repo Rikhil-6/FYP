@@ -54,6 +54,19 @@ def main():
 
     combined_2014 = [row for row in rows if row.get("scenario") == "combined" and int(row["year"]) == 2014]
     labels = ("helpful", "harmful", "neutral_routed", "kept_old")
+    headline = {"scenario": "combined", "year": 2014, "rows": len(combined_2014), "outcomes": {}}
+    for label in labels:
+        selected = [row for row in combined_2014 if outcome(row) == label]
+        headline["outcomes"][label] = {
+            "count": len(selected),
+            **({f"mean_{feature}": round(float(np.mean([float(row[feature]) for row in selected])), 6)
+                for feature in FEATURES} if selected else {})
+        }
+    helpful = headline["outcomes"]["helpful"]["count"]
+    harmful = headline["outcomes"]["harmful"]["count"]
+    headline["helpful_to_harmful_ratio"] = round(helpful / harmful, 4) if harmful else None
+    (args.output / "saliency_route_headline.json").write_text(
+        json.dumps(headline, indent=2), encoding="utf-8")
     figure, axes = plt.subplots(1, 2, figsize=(9, 3.6))
     for axis, feature, title in zip(axes, ("saliency_js", "route_probability"),
                                     ("Saliency divergence", "Route probability")):
@@ -63,7 +76,8 @@ def main():
         axis.grid(axis="y", alpha=.25)
     figure.tight_layout()
     figure.savefig(args.output / "saliency_route_outcomes.png", dpi=180)
-    print(json.dumps({"rows": len(rows), "groups": len(summary), "output": str(args.output)}, indent=2))
+    print(json.dumps({"rows": len(rows), "groups": len(summary), "output": str(args.output),
+                      "combined_2014": headline}, indent=2))
 
 
 if __name__ == "__main__":

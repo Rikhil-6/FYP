@@ -141,3 +141,17 @@ Branch `Rik/transparent-router` keeps combined corruption entirely held out unti
 Pass `--long-horizon` to freeze the chronology as follows: historical fit 2004-2008, checkpoint selection 2009, drift-aware adaptation 2010, router calibration 2011, and untouched test-source evaluation in 2012-2014. Adaptation and calibration use a deterministic 50% clean / 50% single-corruption mixture; combined corruption is excluded until the future test. The model is not updated between test years. `evaluate_drift.py --long-horizon` and `export_router_report.py --long-horizon` use the same three-year horizon.
 
 Add `--adaptation-profile enhanced` to test a predeclared stronger correction policy. It exposes the newer ViT to a deterministic 25% clean / 75% individual-corruption curriculum spanning severities 1-3, trains its final three transformer blocks, uses separate conservative backbone and head learning rates, and increases the saliency faithfulness loss. Combined corruption remains unseen until the frozen future test. Router calibration jointly selects one of four saliency-floor quantiles and its route-probability threshold on 2011 only. Compare this run against `standard` with the same historical checkpoint, seed, epoch count, calibration year, and 2012-2014 test horizon.
+
+Every twin-ViT epoch now atomically updates `models/resume.pt` and `models/resume.json` with model, optimizer, epoch, and best-score state. Resume an interrupted run without overwriting its earlier events:
+
+```bash
+uv run train_siamese.py --base-checkpoint runs/xai/<run>/models/best.pt \
+  --resume-run-dir runs/siamese/<interrupted-run> --long-horizon --epochs 5
+```
+
+For a matched capacity/data control, add `--disable-saliency-loss`. Use `--drift-scenarios clean combined` for a focused ablation while retaining all five conditions in the main run. New drift evaluations save `logs/drift_routing_decisions.csv`. Summarize helpful/harmful route saliency and generate a 2014 combined-drift outcome figure with:
+
+```bash
+uv run --with matplotlib analyze_saliency.py \
+  --run-dir runs/siamese/<run> --output reports/saliency/<run>
+```
