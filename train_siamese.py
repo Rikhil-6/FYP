@@ -137,6 +137,8 @@ def main():
     parser.add_argument("--log-every", type=int, default=25)
     parser.add_argument("--evaluate-drift", action="store_true",
                         help="Opt in to controlled 2014 corruption evaluation")
+    parser.add_argument("--drift-scenarios", nargs="+", choices=SCENARIOS, default=list(SCENARIOS),
+                        help="Subset of drift conditions to evaluate; useful for controlled ablations")
     parser.add_argument("--adapt-year", type=int, default=2012)
     parser.add_argument("--calibration-year", type=int, default=2013)
     parser.add_argument("--test-years", type=int, nargs="+", default=(2014,))
@@ -284,7 +286,7 @@ def main():
     if args.evaluate_drift:
         drift_results = {}
         drift_decisions = []
-        for scenario in SCENARIOS:
+        for scenario in args.drift_scenarios:
             drift_results[scenario] = {}
             for severity, year in enumerate(args.test_years, 1):
                 subset = dataset.get_subset(test_split, transform=drift_transform(scenario, severity, args.seed))
