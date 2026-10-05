@@ -229,3 +229,11 @@ Interpretation:
 - Inspected full-enhanced panels show interpretable but often contextual evidence: bowling lanes, cloud structure, or framed display regions may receive more weight than a single object. These learned patch gates are not segmentation masks.
 
 New Git-friendly artifacts are under `reports/transparent_router/20261005-ablation/`: compact comparison JSON, two saliency-analysis bundles, and 90 bounded full-enhanced/control panels. Large checkpoints and raw future JSON remain server-side.
+
+## 2026-10-05 counterexample audit
+
+`audit_counterexamples.py` now evaluates the complete 4,999-image 2014 combined-drift stream while retaining manifest indices. The enhanced run contains 188 helpful routes, 90 harmful routes, 17 missed helpful switches, and 9 cases where retaining the historical model prevents a newer-model error. The router therefore makes 98 net corrections.
+
+For all 304 cases where one model is correct and the other is wrong, an equal-area deletion test removes either the top or bottom 20% of patches under each model's own saliency map. The new-model mean faithfulness margin is 0.175 on helpful routes and 0.010 on harmful routes; its positive-margin fractions are 72.3% and 57.8%. The historical-model mean margin reverses from 0.048 on helpful routes to 0.182 on harmful routes. This supports an outcome-level association between correct predictions and behaviourally consequential saliency, but it does not establish object localization or causal attribution.
+
+Artifacts are in `reports/transparent_router/20261005-counterexamples/`: `all_decisions.csv`, `selected_cases.csv`, `counterexample_audit.json`, and 24 bounded six-panel images. The editable Word report incorporates the supplied saliency-guided attention, XGD, Siamese-ViT, explanation-guided distillation, saliency-guided warping, saliency-guided training, and asymmetric Siamese papers as design rationale.

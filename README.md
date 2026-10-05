@@ -155,3 +155,22 @@ For a matched capacity/data control, add `--disable-saliency-loss`. Use `--drift
 uv run --with matplotlib analyze_saliency.py \
   --run-dir runs/siamese/<run> --output reports/saliency/<run>
 ```
+
+Audit the complete 2014 compound-drift stream for corrections, regressions, missed
+updates, and saliency deletion faithfulness with:
+
+```bash
+uv run --no-sync audit_counterexamples.py \
+  --base-checkpoint runs/xai/<historical-run>/models/best.pt \
+  --run-dir runs/siamese/<enhanced-run> \
+  --data-root data \
+  --output reports/transparent_router/<audit-name>
+```
+
+The audit keeps each manifest index, writes every decision to CSV, applies an
+equal-area top-versus-bottom 20% patch deletion check to every sample where the
+old and new models differ in correctness, and exports bounded panels for helpful,
+harmful, and missed routes. A positive deletion margin means that removing the
+model's most salient patches reduced true-class probability more than removing
+its least salient patches. This is a prediction-sensitivity check rather than an
+object-segmentation score or causal proof.
