@@ -31,9 +31,16 @@ cd "$project_dir"
 run_profile() {
   local suffix="$1"
   shift
+  local run_dir="${project_dir}/runs/siamese/${stamp}-realistic-${suffix}"
+  local -a resume_args=()
+  if [[ -f "${run_dir}/config.json" && -f "${run_dir}/models/resume.pt" ]]; then
+    echo "Resuming ${suffix} from ${run_dir}/models/resume.pt"
+    resume_args=(--resume-run-dir "$run_dir")
+  fi
   "$uv" run --no-sync train_siamese.py \
     --base-checkpoint "$base_checkpoint" \
     --run-id "${stamp}-realistic-${suffix}" \
+    "${resume_args[@]}" \
     --long-horizon \
     --adaptation-profile realistic \
     --epochs "$epochs" \
@@ -53,6 +60,6 @@ run_profile() {
   echo "Starting matched no-auxiliary-saliency control"
   run_profile noaux --disable-saliency-loss
   echo "Completed drift v2 matched run"
-} 2>&1 | tee "$log"
+} 2>&1 | tee -a "$log"
 
 echo "Log: $log"
