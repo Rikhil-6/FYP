@@ -144,6 +144,10 @@ def main():
                         help="Use drift-aware 2010 adaptation, 2011 calibration, and frozen 2012-2014 tests")
     parser.add_argument("--adaptation-profile", choices=("standard", "enhanced"), default="standard",
                         help="Enhanced uses a broader individual-drift curriculum and stronger ViT adaptation")
+    parser.add_argument("--disable-saliency-loss", action="store_true",
+                        help="Ablation: retain the enhanced data/capacity but remove both saliency losses")
+    parser.add_argument("--resume-run-dir", type=Path,
+                        help="Resume the next epoch from models/resume.pt in an interrupted run")
     args = parser.parse_args()
     if args.epochs < 1:
         parser.error("--epochs must be at least 1")
@@ -197,12 +201,20 @@ def main():
         {"params": backbone_parameters, "lr": 1e-5},
         {"params": head_parameters, "lr": 5e-5 if args.adaptation_profile == "enhanced" else 1e-5},
     ], weight_decay=0.01)
-    store = RunStore(args.output, "siamese", args.run_id)
-    store.write_json("config.json", vars(args) | {"dataset": "CLEAR-100", "num_classes": classes,
-                                                  "device": device, "torch_version": torch.__version__,
-                                                  "cuda_build": torch.version.cuda})
-    best_score = -1.0
-    for epoch in range(1, args.epochs + 1):
+    start_epoch, best_score = 1, -1.0
+    if args.resume_run_dir:
+        store = RunStore.from_existing(args.resume_run_dir)
+        resume = torch.load(store.path / "models" / "resume.pt", map_location=device, weights_only=False)
+        new.load_state_dict(resume["model"])
+        optimizer.load_state_dict(resume["optimizer"])
+        start_epoch, best_score = int(resume["epoch"]) + 1, float(resume["best_score"])
+        store.log({"event": "resume", "from_epoch": resume["epoch"], "next_epoch": start_epoch})
+    else:
+        store = RunStore(args.output, "siamese", args.run_id)
+        store.write_json("config.json", vars(args) | {"dataset": "CLEAR-100", "num_classes": classes,
+                                                      "device": device, "torch_version": torch.__version__,
+                                                      "cuda_build": torch.version.cuda})
+    for epoch in range(start_epoch, args.epochs + 1):
         new.train()
         total = 0.0
         if device == "cuda":
@@ -220,7 +232,8 @@ def main():
             margin = 0.08 if args.adaptation_profile == "enhanced" else 0.05
             pair_loss = torch.where(old_correct, gap, F.relu(margin - gap)).mean()
             true_evidence = (logits.softmax(1) - comparison["new_inverse"].softmax(1)).gather(1, labels[:, None])
-            saliency_weight = 0.25 if args.adaptation_profile == "enhanced" else 0.1
+            saliency_weight = (0.0 if args.disable_saliency_loss else
+                               (0.25 if args.adaptation_profile == "enhanced" else 0.1))
             loss = (F.cross_entropy(logits, labels,
                                     label_smoothing=0.05 if args.adaptation_profile == "enhanced" else 0.0)
                     + saliency_weight * pair_loss
@@ -254,6 +267,7 @@ def main():
         if score > best_score:
             best_score = score
             store.save_model(new, "best", epoch, metric_name, score)
+        store.save_training_checkpoint(new, optimizer, epoch, best_score)
         print(json.dumps(row), flush=True)
     new.load_state_dict(torch.load(store.path / "models" / "best.pt", map_location=device, weights_only=True))
     policy = calibrate_router(router, calibrate, device)
@@ -269,6 +283,7 @@ def main():
                "future_routed_macro_f1": result["all"]["routed"]["macro_f1"]})
     if args.evaluate_drift:
         drift_results = {}
+        drift_decisions = []
         for scenario in SCENARIOS:
             drift_results[scenario] = {}
             for severity, year in enumerate(args.test_years, 1):
@@ -277,12 +292,20 @@ def main():
                 if args.limit_test:
                     indices = indices[:args.limit_test]
                 loader = DataLoader(Subset(subset, indices), batch_size=args.batch_size)
-                scenario_report, _ = evaluate_stream(router, loader, policy, device, year_column)
+                scenario_report, scenario_decisions = evaluate_stream(router, loader, policy, device, year_column)
+                for row in scenario_decisions:
+                    drift_decisions.append({"scenario": scenario,
+                                            "severity": 0 if scenario == "clean" else severity,
+                                            **row})
                 drift_results[scenario][str(year)] = {
                     "severity": 0 if scenario == "clean" else severity,
                     "results": scenario_report}
         store.write_json("metrics/future_drift.json", {
             "combined_held_out": True, "test_years": args.test_years, "scenarios": drift_results})
+        with (store.path / "logs" / "drift_routing_decisions.csv").open("w", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(drift_decisions[0]))
+            writer.writeheader()
+            writer.writerows(drift_decisions)
     print(json.dumps({"run": str(store.path), "future": {
         key: result["all"][key]["macro_f1"] for key in ("old", "new", "routed")}}, indent=2))
 

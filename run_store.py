@@ -19,6 +19,15 @@ class RunStore:
         for folder in ("logs", "metrics", "models", "manual"):
             (self.path / folder).mkdir(parents=True, exist_ok=True)
 
+    @classmethod
+    def from_existing(cls, path):
+        path = Path(path)
+        if not (path / "config.json").is_file():
+            raise FileNotFoundError(f"Existing run is missing config.json: {path}")
+        store = cls.__new__(cls)
+        store.path = path
+        return store
+
     def log(self, event):
         with (self.path / "logs" / "events.jsonl").open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(event, default=str) + "\n")
@@ -32,6 +41,18 @@ class RunStore:
                                                   "selection_metric": metric_name,
                                                   "metric_value": metric_value,
                                                   "saved_utc": datetime.now(timezone.utc).isoformat()})
+        return destination
+
+    def save_training_checkpoint(self, model, optimizer, epoch, best_score):
+        """Atomically save enough state to resume after the latest epoch."""
+        destination = self.path / "models" / "resume.pt"
+        temporary = destination.with_suffix(".tmp")
+        torch.save({"model": model.state_dict(), "optimizer": optimizer.state_dict(),
+                    "epoch": epoch, "best_score": best_score}, temporary)
+        temporary.replace(destination)
+        self.write_json("models/resume.json", {
+            "epoch": epoch, "best_score": best_score,
+            "saved_utc": datetime.now(timezone.utc).isoformat()})
         return destination
 
     def write_json(self, relative, value):
