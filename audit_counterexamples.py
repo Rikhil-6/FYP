@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
 
 from data import MEAN, STD, open_dataset
-from drift import drift_transform
+from drift import SCENARIOS, drift_transform, scenario_components
 from model import TemporalViT
 from siamese import ViTTwinRouter
 from transparent_router import FEATURES, apply_policy
@@ -104,7 +104,10 @@ def save_panel(path, clean_image, drift_image, comparison, new_salient, new_cont
     drift_rgb = rgb(drift_image)
     panels = [rgb(clean_image), drift_rgb, overlay(drift_rgb, comparison["old_map"][0]),
               overlay(drift_rgb, comparison["new_map"][0]), rgb(new_salient), rgb(new_context)]
-    names = ("clean", "combined drift", "old saliency", "new saliency",
+    shifted_name = row["scenario"].replace("_", " ")
+    if row.get("drift_components"):
+        shifted_name += ": " + row["drift_components"].replace("+", ", ")
+    names = ("clean", shifted_name, "old saliency", "new saliency",
              "delete new top 20%", "delete new bottom 20%")
     canvas = Image.new("RGB", (224 * len(panels), 300), "white")
     draw = ImageDraw.Draw(canvas)
@@ -126,7 +129,7 @@ def main():
     parser.add_argument("--data-root", default="data")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--year", type=int, default=2014)
-    parser.add_argument("--scenario", default="combined")
+    parser.add_argument("--scenario", choices=SCENARIOS, default="realistic_mix")
     parser.add_argument("--severity", type=int, default=3)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--top-k", type=int, default=8)
@@ -168,6 +171,8 @@ def main():
                 row = {
                     "dataset_index": int(batch_indices[position]),
                     "year": args.year, "scenario": args.scenario, "severity": args.severity,
+                    "drift_components": "+".join(scenario_components(
+                        args.scenario, int(batch_indices[position]), args.severity, args.seed)),
                     "true_class": int(labels[position]), "old_class": int(old_class[position]),
                     "new_class": int(new_class[position]), "routed_class": int(routed[position]),
                     "old_confidence": float(old_conf[position]), "new_confidence": float(new_conf[position]),
