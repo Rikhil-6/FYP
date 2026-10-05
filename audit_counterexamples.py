@@ -15,7 +15,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
 
@@ -26,7 +26,18 @@ from siamese import ViTTwinRouter
 from transparent_router import FEATURES, apply_policy
 
 
-SALIENCY_OVERLAY_STRENGTH = 0.35
+SALIENCY_OVERLAY_STRENGTH = 0.28
+SALIENCY_COLOR = (213, 94, 0)
+
+
+def figure_font(size=14, bold=False):
+    names = ("timesbd.ttf", "DejaVuSerif-Bold.ttf") if bold else ("times.ttf", "DejaVuSerif.ttf")
+    roots = (Path("C:/Windows/Fonts"), Path("/usr/share/fonts/truetype/dejavu"))
+    for root, name in zip(roots, names):
+        candidate = root / name
+        if candidate.is_file():
+            return ImageFont.truetype(candidate, size)
+    return ImageFont.load_default(size=size)
 
 
 class IndexedDataset(Dataset):
@@ -56,7 +67,7 @@ def overlay(base, weights):
     heat = Image.fromarray((255 * heat / max(float(heat.max()), 1e-8)).astype(np.uint8)).resize(
         base.size, Image.Resampling.BILINEAR)
     return Image.composite(
-        Image.new("RGB", base.size, (255, 20, 20)),
+        Image.new("RGB", base.size, SALIENCY_COLOR),
         base,
         heat.point(lambda value: int(value * SALIENCY_OVERLAY_STRENGTH)),
     )
@@ -113,18 +124,19 @@ def save_panel(path, clean_image, drift_image, comparison, new_salient, new_cont
     shifted_name = row["scenario"].replace("_", " ")
     if row.get("drift_components"):
         shifted_name += ": " + row["drift_components"].replace("+", ", ")
-    names = ("clean", shifted_name, "old saliency", "new saliency",
-             "delete new top 20%", "delete new bottom 20%")
-    canvas = Image.new("RGB", (224 * len(panels), 300), "white")
+    names = ("(a) Clean", f"(b) {shifted_name}", "(c) Historical evidence",
+             "(d) Updated evidence", "(e) Remove top 20%", "(f) Remove bottom 20%")
+    canvas = Image.new("RGB", (224 * len(panels), 316), "white")
     draw = ImageDraw.Draw(canvas)
     for position, (panel, name) in enumerate(zip(panels, names)):
-        canvas.paste(panel, (position * 224, 28))
-        draw.text((position * 224 + 4, 7), name, fill="black")
+        canvas.paste(panel, (position * 224, 30))
+        draw.text((position * 224 + 6, 7), name, font=figure_font(13), fill="black")
     summary = (f"{row['outcome']} | sample {row['dataset_index']} | true {row['true_class']} | "
                f"old {row['old_class']} | new {row['new_class']} | routed {row['routed_class']} | "
                f"p(route) {row['route_probability']:.3f} | JS {row['saliency_js']:.4f} | "
                f"new deletion margin {row['new_faithfulness_margin']:+.3f}")
-    draw.text((4, 258), summary, fill="black")
+    draw.line((0, 258, canvas.width, 258), fill="#BBBBBB", width=1)
+    draw.text((6, 267), summary, font=figure_font(13), fill="black")
     canvas.save(path, optimize=True)
 
 
