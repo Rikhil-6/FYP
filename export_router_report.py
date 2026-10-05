@@ -8,7 +8,8 @@ import torch
 from PIL import Image, ImageDraw
 
 from data import MEAN, STD, open_dataset
-from drift import SCENARIOS, drift_transform
+from drift import (REALISTIC_BENCHMARK_SCENARIOS, SCENARIOS, drift_transform,
+                   scenario_components)
 from model import TemporalViT
 from siamese import ViTTwinRouter
 from transparent_router import apply_policy
@@ -32,6 +33,8 @@ def main():
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=Path("reports/transparent_router"))
     parser.add_argument("--indices", type=int, nargs="+", default=(0, 777, 1777))
+    parser.add_argument("--scenarios", nargs="+", choices=SCENARIOS,
+                        default=list(REALISTIC_BENCHMARK_SCENARIOS))
     parser.add_argument("--long-horizon", action="store_true")
     args = parser.parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -46,7 +49,7 @@ def main():
     records = []
     years = (2012, 2013, 2014) if args.long_horizon else (2014,)
     split = "test_source" if args.long_horizon else "test"
-    for scenario in SCENARIOS:
+    for scenario in args.scenarios:
       for severity, year in enumerate(years, 1):
         clean = dataset.get_subset(split, transform=drift_transform("clean", severity))
         shifted = dataset.get_subset(split, transform=drift_transform(scenario, severity))
@@ -72,6 +75,8 @@ def main():
             canvas.save(path, optimize=True)
             records.append({"scenario": scenario, "year": year, "severity": 0 if scenario == "clean" else severity,
                             "index": index, "image": path.as_posix(),
+                            "drift_components": list(scenario_components(
+                                scenario, index, severity, seed=42)),
                             "true_class": int(label),
                             "old_class": int(comparison["old_logits"].argmax(1)[0]),
                             "new_class": int(comparison["new_logits"].argmax(1)[0]),

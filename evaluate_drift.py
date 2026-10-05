@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from data import open_dataset
-from drift import SCENARIOS, drift_transform
+from drift import REALISTIC_BENCHMARK_SCENARIOS, SCENARIOS, drift_transform
 from evaluate import evaluate
 from model import TemporalViT
 
@@ -22,6 +22,8 @@ def main():
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--scenarios", nargs="+", choices=SCENARIOS,
+                        default=list(REALISTIC_BENCHMARK_SCENARIOS))
     parser.add_argument("--long-horizon", action="store_true",
                         help="Evaluate frozen checkpoints on test-source years 2012-2014")
     args = parser.parse_args()
@@ -37,7 +39,7 @@ def main():
     results = {"protocol": {"training_images_modified": False,
                             "progression": {str(year): severity for year, _, severity in plan}},
                "scenarios": {}}
-    for scenario in SCENARIOS:
+    for scenario in args.scenarios:
         results["scenarios"][scenario] = {}
         for year, split, severity in plan:
             subset = dataset.get_subset(split, transform=drift_transform(scenario, severity, args.seed))

@@ -14,7 +14,9 @@ from torch.utils.data import DataLoader, Subset
 from tqdm.auto import tqdm
 
 from data import open_dataset, year_loader
-from drift import SCENARIOS, drift_transform, mixed_drift_transform
+from drift import (REALISTIC_BENCHMARK_SCENARIOS, SCENARIOS, drift_transform,
+                   mixed_drift_transform, realistic_mixed_drift_transform,
+                   scenario_components)
 from metrics import binary_metrics, classification_metrics, topk_map_agreement
 from model import TemporalViT
 from run_store import RunStore
@@ -137,15 +139,17 @@ def main():
     parser.add_argument("--log-every", type=int, default=25)
     parser.add_argument("--evaluate-drift", action="store_true",
                         help="Opt in to controlled 2014 corruption evaluation")
-    parser.add_argument("--drift-scenarios", nargs="+", choices=SCENARIOS, default=list(SCENARIOS),
+    parser.add_argument("--drift-scenarios", nargs="+", choices=SCENARIOS,
+                        default=list(REALISTIC_BENCHMARK_SCENARIOS),
                         help="Subset of drift conditions to evaluate; useful for controlled ablations")
     parser.add_argument("--adapt-year", type=int, default=2012)
     parser.add_argument("--calibration-year", type=int, default=2013)
     parser.add_argument("--test-years", type=int, nargs="+", default=(2014,))
     parser.add_argument("--long-horizon", action="store_true",
                         help="Use drift-aware 2010 adaptation, 2011 calibration, and frozen 2012-2014 tests")
-    parser.add_argument("--adaptation-profile", choices=("standard", "enhanced"), default="standard",
-                        help="Enhanced uses a broader individual-drift curriculum and stronger ViT adaptation")
+    parser.add_argument("--adaptation-profile", choices=("standard", "enhanced", "realistic"),
+                        default="standard",
+                        help="Realistic uses acquisition, pipeline, viewpoint, and rare occlusion shifts")
     parser.add_argument("--disable-saliency-loss", action="store_true",
                         help="Ablation: retain the enhanced data/capacity but remove both saliency losses")
     parser.add_argument("--resume-run-dir", type=Path,
@@ -162,10 +166,14 @@ def main():
     dataset = open_dataset(args.data_root)
     if args.long_horizon:
         args.adapt_year, args.calibration_year, args.test_years = 2010, 2011, (2012, 2013, 2014)
-        adapt_transform = (mixed_drift_transform((1, 2, 3), args.seed, clean_repeats=1)
-                           if args.adaptation_profile == "enhanced"
-                           else mixed_drift_transform(1, args.seed))
-        calibration_transform = mixed_drift_transform(2, args.seed)
+        if args.adaptation_profile == "realistic":
+            adapt_transform = realistic_mixed_drift_transform((1, 2, 3), args.seed)
+            calibration_transform = realistic_mixed_drift_transform(2, args.seed)
+        else:
+            adapt_transform = (mixed_drift_transform((1, 2, 3), args.seed, clean_repeats=1)
+                               if args.adaptation_profile == "enhanced"
+                               else mixed_drift_transform(1, args.seed))
+            calibration_transform = mixed_drift_transform(2, args.seed)
         adapt_split = calibration_split = "train_source"
         test_split = "test_source"
     else:
@@ -192,7 +200,8 @@ def main():
         parameter.requires_grad = False
     for parameter in new.backbone.parameters():
         parameter.requires_grad = False
-    trainable_blocks = 3 if args.adaptation_profile == "enhanced" else 1
+    strong_profile = args.adaptation_profile in ("enhanced", "realistic")
+    trainable_blocks = 3 if strong_profile else 1
     for block in new.backbone.encoder.layer[-trainable_blocks:]:
         for parameter in block.parameters():
             parameter.requires_grad = True
@@ -201,7 +210,7 @@ def main():
     head_parameters = list(new.saliency_head.parameters()) + list(new.classifier.parameters())
     optimizer = torch.optim.AdamW([
         {"params": backbone_parameters, "lr": 1e-5},
-        {"params": head_parameters, "lr": 5e-5 if args.adaptation_profile == "enhanced" else 1e-5},
+        {"params": head_parameters, "lr": 5e-5 if strong_profile else 1e-5},
     ], weight_decay=0.01)
     start_epoch, best_score = 1, -1.0
     if args.resume_run_dir:
@@ -231,13 +240,13 @@ def main():
             logits = comparison["new_logits"]
             gap = comparison["saliency_gap"]
             old_correct = comparison["old_logits"].argmax(1).eq(labels)
-            margin = 0.08 if args.adaptation_profile == "enhanced" else 0.05
+            margin = 0.08 if strong_profile else 0.05
             pair_loss = torch.where(old_correct, gap, F.relu(margin - gap)).mean()
             true_evidence = (logits.softmax(1) - comparison["new_inverse"].softmax(1)).gather(1, labels[:, None])
             saliency_weight = (0.0 if args.disable_saliency_loss else
-                               (0.25 if args.adaptation_profile == "enhanced" else 0.1))
+                               (0.25 if strong_profile else 0.1))
             loss = (F.cross_entropy(logits, labels,
-                                    label_smoothing=0.05 if args.adaptation_profile == "enhanced" else 0.0)
+                                    label_smoothing=0.05 if strong_profile else 0.0)
                     + saliency_weight * pair_loss
                     + saliency_weight * F.relu(0.03 - true_evidence).mean())
             optimizer.zero_grad()
@@ -295,15 +304,19 @@ def main():
                     indices = indices[:args.limit_test]
                 loader = DataLoader(Subset(subset, indices), batch_size=args.batch_size)
                 scenario_report, scenario_decisions = evaluate_stream(router, loader, policy, device, year_column)
-                for row in scenario_decisions:
+                for dataset_index, row in zip(indices, scenario_decisions):
                     drift_decisions.append({"scenario": scenario,
                                             "severity": 0 if scenario == "clean" else severity,
+                                            "dataset_index": dataset_index,
+                                            "drift_components": "+".join(scenario_components(
+                                                scenario, dataset_index, severity, args.seed)),
                                             **row})
                 drift_results[scenario][str(year)] = {
                     "severity": 0 if scenario == "clean" else severity,
                     "results": scenario_report}
         store.write_json("metrics/future_drift.json", {
-            "combined_held_out": True, "test_years": args.test_years, "scenarios": drift_results})
+            "compound_shift_held_out": True, "test_years": args.test_years,
+            "scenarios": drift_results})
         with (store.path / "logs" / "drift_routing_decisions.csv").open("w", newline="") as handle:
             writer = csv.DictWriter(handle, fieldnames=list(drift_decisions[0]))
             writer.writeheader()
