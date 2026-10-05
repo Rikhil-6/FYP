@@ -133,6 +133,7 @@ def add_table(document: Document, lines: list[str]) -> None:
 
 
 def add_related_work(document: Document) -> None:
+    document.add_page_break()
     document.add_paragraph("2.3 Related work and design rationale", style="Heading 2")
     paragraphs = [
         "The supplied literature supports treating explanations as part of learning rather than as detached illustrations. SGAN constrains self-attention with saliency priors to reduce attention spreading into irrelevant background regions [6]. XGD combines prediction alignment with saliency-based feature refinement and validates the contribution of its losses through ablation [7]. Ismail et al. mask low-saliency features and enforce output consistency, showing how perturbation and predictive faithfulness can be optimized together [11]. These findings motivate the prototype's learned patch gate, complementary low-saliency path, and explicit auxiliary saliency losses.",

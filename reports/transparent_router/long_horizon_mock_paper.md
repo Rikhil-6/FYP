@@ -205,6 +205,8 @@ For the 2014 combined-drift auxiliary-loss control, helpful routes had mean sali
 
 The distributions overlap substantially. Saliency change clearly separates routed from retained examples, because it is an explicit eligibility condition, while it only modestly separates helpful from harmful routes. In the inspected panels, maps often emphasize contextual regions such as a bowling lane, cloud structure, or framed display area. They are evidence gates rather than object masks, so their spatial overlap must not be presented as segmentation IoU.
 
+[PAGEBREAK]
+
 ### 5.2 Counterexample and faithfulness audit
 
 The full 2014 combined-drift stream contains **4,999** images. The enhanced router makes **188 helpful switches** where the historical model is wrong and the newer model is correct, **90 harmful switches** in the opposite direction, and misses **17** available corrections. It therefore produces **98 net corrected predictions**. These counts explain why the overall score changes modestly even though some individual decisions change substantially.
@@ -216,6 +218,8 @@ For every one of the 304 samples where one model is correct and the other is wro
 ![Harmful switch: correct historical class 22 is replaced by class 44](20261005-counterexamples/harmful_routed/sample_11108.png)
 
 The helpful example raises true-class probability from **0.060** in the historical model to **0.403** in the updated model; deleting the newer model's most salient patches causes a **0.372** larger confidence drop than deleting its least salient patches. The harmful example shows why saliency change alone is insufficient: the historical model was already correct and its map had the stronger deletion response. These perturbation results remain observational. Patch deletion introduces an artificial input and does not prove that the highlighted pixels caused adaptation.
+
+[PAGEBREAK]
 
 ### 5.3 Where saliency-guided drift correction is credible
 
@@ -247,6 +251,22 @@ The next defensible step is repeated temporal backtesting with bootstrap confide
 - `20261005-ablation/*/saliency_route_*`: outcome-stratified CSV, JSON, headline JSON, and figure.
 - `20261005-counterexamples/`: all 4,999 decisions, a 304-case deletion audit, 24 bounded counterexample panels, and a compact JSON summary.
 - Source checkpoints remain server-side because each model file is about 85 MB.
+
+[PAGEBREAK]
+
+## Appendix A. Metric and routing glossary
+
+**Macro F1** calculates F1 independently for every class and then gives each class equal weight. It is the principal classification measure because a large class cannot dominate the reported result. **Macro IoU** applies the same equal-class principle to one-versus-rest intersection over union. It remains a classification-set measure in this project and must not be confused with spatial mask IoU.
+
+**Helpful route** means that the historical prediction was wrong, the newer prediction was correct, and the policy selected the newer branch. **Harmful route** means that the historical prediction was correct but the selected newer prediction was wrong. **Missed helpful case** means that a correct newer prediction was available but the policy retained an incorrect historical answer.
+
+**Saliency Jensen–Shannon divergence** measures the bounded difference between the old and new normalized patch-weight distributions. **Confidence gain** compares the selected class probabilities. **Entropy reduction** measures whether the newer predictive distribution is more concentrated. **Class-evidence gain** compares the evidence produced for the candidate class.
+
+**Retained gain** measures how much of the always-new improvement survives routing: `(routed − old) / (new − old)`. A value near one means routing preserves most of the candidate model's benefit. The ratio becomes unstable when the new and old scores are nearly equal, so the underlying scores must always be reported beside it.
+
+These definitions are fixed across the report. They make clear which measures evaluate classification, which evaluate the decision policy, and which describe explanation change. None of the routing features is itself a ground-truth measure of drift.
+
+[PAGEBREAK]
 
 ## References
 
