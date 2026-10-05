@@ -34,6 +34,7 @@ SUMMARY_JSON = REPORTS / "long_horizon_summary.json"
 ABLATION_DIR = REPORTS / "20261005-ablation"
 ABLATION_JSON = ABLATION_DIR / "comparison.json"
 SALIENCY_ANALYSIS_PNG = ABLATION_DIR / "enhanced-nosaliency" / "saliency_route_outcomes.png"
+PRIMARY_PANEL_RUN = ABLATION_DIR / "enhanced-full-panels"
 
 YEARS = [2012, 2013, 2014]
 RESULTS = {
@@ -176,7 +177,7 @@ Against the matched enhanced control, the explicit auxiliary saliency objectives
 
 ## Abstract
 
-This prototype tests whether a fully vision-transformer pipeline can respond to temporal image drift while keeping its update decision inspectable. A historical ViT is trained on 2004–2008 images and selected on 2009. A newer XAI-regularised ViT is adapted on 2010 images with realistic corruptions. An explicit router is calibrated on 2011 and evaluated once on the untouched 2012–2014 horizon. In the completed enhanced run, the newer model reaches **91.99%** macro F1 under 2014 combined drift: **+1.40 points** over the original baseline ViT and **+1.65 points** over historical XAI. Routing reaches **91.85%** and retains **91.5%** of the available update gain. The predeclared 3-point hypothesis was not met.
+This prototype tests whether a fully vision-transformer pipeline can respond to temporal image drift while keeping its update decision inspectable. A historical ViT is trained on 2004–2008 images and selected on 2009. A newer XAI-regularised ViT is adapted on 2010 images with realistic corruptions. An explicit router is calibrated on 2011 and evaluated once on the untouched 2012–2014 horizon. In the completed enhanced run, the newer model reaches **91.99%** macro F1 under 2014 combined drift: **+1.40 points** over the original baseline ViT and **+1.65 points** over historical XAI. Routing reaches **91.85%**. A controlled five-epoch ablation attributes only **+0.13 points** always-new and **+0.23 points** routed to the explicit auxiliary saliency objectives. The predeclared 3-point hypothesis was not met.
 
 ## 1. Research question
 
@@ -241,6 +242,10 @@ The 3-point value is a target fixed before viewing the enhanced results. Failure
 - **H2 met:** routing retained `(91.85−90.34)/(91.99−90.34) = 91.5%` of the newer model's gain over historical XAI.
 - **H3 met:** routed clean 2014 macro F1 was **95.30%**, 0.06 points above historical XAI.
 
+### 3.4 Checkpoint and interruption recovery
+
+Every evaluated epoch atomically replaces `models/resume.pt` and writes a small `resume.json`. The binary checkpoint contains the newer ViT parameters, optimizer state, completed epoch, and best validation score; the separate best-model file remains the checkpoint used for final evaluation. The matched standard run was deliberately stopped after epoch 2 and resumed at epoch 3. It retained the epoch-2 optimizer and best score, later selected epoch 4, and completed the frozen horizon normally. A local round-trip regression test independently reloads and compares weights, optimizer state, epoch, score, and metadata.
+
 ## 4. Main results
 
 Macro F1 is shown as a percentage. Helpful and harmful routes count cases where choosing the newer model corrected or introduced an error, respectively.
@@ -265,15 +270,23 @@ The enhanced curriculum improved the always-new 2014 combined score from **91.75
 
 Each panel places the input beside the historical and updated attention maps, then prints the router features and decision. This makes a route auditable: a reviewer can compare *where* each ViT looked with the numerical evidence used by the logistic rule.
 
-![Combined drift example from 2012](20260928T161159Z-horizon-router/combined/2012/sample_0777.png)
+![Enhanced full model under combined drift in 2012](20261005-ablation/enhanced-full-panels/combined/2012/sample_0777.png)
 
-![Combined drift example from 2014](20260928T161159Z-horizon-router/combined/2014/sample_0777.png)
+![Enhanced full model under combined drift in 2014](20261005-ablation/enhanced-full-panels/combined/2014/sample_0777.png)
+
+### 5.1 Quantitative saliency outcome analysis
+
+For the 2014 combined-drift auxiliary-loss control, helpful routes had mean saliency Jensen-Shannon divergence **0.0607**, compared with **0.0512** for harmful routes and **0.0473** when the historical prediction was retained. Mean route probability was **0.821** for helpful routes, **0.767** for harmful routes, and **0.310** for retained historical predictions. There were **125 helpful versus 43 harmful routes** (ratio 2.91). The matched standard run showed the same within-run ordering for helpful versus harmful divergence (0.00759 versus 0.00651), although raw divergence magnitudes should not be compared across differently adapted models.
+
+![Saliency and route probability by outcome](20261005-ablation/enhanced-nosaliency/saliency_route_outcomes.png)
+
+The distributions overlap substantially. Saliency change clearly separates routed from retained examples, because it is an explicit eligibility condition, while it only modestly separates helpful from harmful routes. In the inspected panels, maps often emphasize contextual regions such as a bowling lane, cloud structure, or framed display area. They are evidence gates rather than object masks, so their spatial overlap must not be presented as segmentation IoU.
 
 ## 6. Interpretation and limits
 
 The longer test horizon exposes a clearer decline under compound drift and a larger benefit from drift-aware updating. The rule remains explainable because its four standardized inputs, coefficients, threshold, and saliency floor are saved in `router_policy.json`. Coefficient signs are empirical correlations from 2011 calibration, not causal explanations.
 
-The evidence is limited to one seed, one temporal dataset stream, synthetic corruptions, and one fitted threshold. No confidence intervals or multi-seed hypothesis tests are reported. The enhanced configuration produced a valid negative result for H1: the gain remained below 3 points. That target must not be presented as achieved.
+The evidence is limited to one seed, one temporal dataset stream, synthetic corruptions, and one fitted threshold. Checkpoint selection and router calibration both reuse 2011 examples. No confidence intervals or multi-seed hypothesis tests are reported. The enhanced configuration produced a valid negative result for H1: the gain remained below 3 points. The auxiliary saliency-loss contribution is positive but small, and the overlapping outcome distributions do not support a strong causal explanation claim.
 
 The next defensible step is repeated temporal backtesting with bootstrap confidence intervals and an untouched external dataset. The router should also be compared with always-old, always-new, confidence-only, and saliency-only ablations. Report macro F1 and macro IoU by year and drift type, helpful and harmful routes, update-trigger precision/recall, throughput, and training time per epoch.
 
@@ -283,6 +296,10 @@ The next defensible step is repeated temporal backtesting with bootstrap confide
 - `router_policy.json`: learned standardized logistic coefficients and thresholds.
 - `20260928T161159Z-horizon-router/`: 45 saved saliency panels plus sample metadata.
 - Enhanced server run: `runs/siamese/20260929-enhanced-3pp/`.
+- Controlled server runs: `runs/siamese/20261005-standard-5ep/` and `runs/siamese/20261005-enhanced-nosaliency/`.
+- `20261005-ablation/comparison.json`: matched-control check, epoch traces, policies, and compact scores.
+- `20261005-ablation/enhanced-full-panels/` and `enhanced-nosaliency-panels/`: 90 bounded saliency panels with sample-level metadata.
+- `20261005-ablation/*/saliency_route_*`: outcome-stratified CSV, JSON, headline JSON, and figure.
 - Source checkpoints remain server-side because each model file is about 85 MB.
 
 ## References
@@ -338,9 +355,9 @@ def build_pdf() -> None:
     doc = SimpleDocTemplate(str(PAPER_PDF), pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=15 * mm, bottomMargin=15 * mm, title="Transparent Saliency Routing for Temporal Image Drift")
     story = [
         Paragraph("Transparent Saliency Routing<br/>for Temporal Image Drift", styles["PaperTitle"]),
-        Paragraph("A compact mock research paper • fixed-horizon prototype run • 29 September 2026", styles["Subtitle"]),
+        Paragraph("A compact mock research paper • fixed-horizon prototype run • 5 October 2026", styles["Subtitle"]),
         Paragraph("Abstract", styles["H1x"]),
-        Paragraph("This prototype evaluates a ViT-only drift correction pipeline whose update decision can be inspected directly. Historical models train on 2004–2008, model selection uses 2009, drift adaptation uses 2010, router calibration uses 2011, and 2012–2014 remain untouched until final evaluation. Under combined drift in 2014, the transparent router improves macro F1 by 1.16 percentage points over the historical XAI model and retains 82.3% of the gain available from always choosing the updated model.", styles["Bodyx"]),
+        Paragraph("This prototype evaluates a ViT-only drift correction pipeline whose update decision can be inspected directly. Historical models train on 2004–2008, model selection uses 2009, drift adaptation uses 2010, router calibration uses 2011, and 2012–2014 remain untouched until final evaluation. The enhanced model reaches 91.99% macro F1 under 2014 combined drift and transparent routing reaches 91.85%. A matched five-epoch ablation attributes +0.13 points always-new and +0.23 points routed to the explicit auxiliary saliency objectives; the predeclared 3-point target remains unmet.", styles["Bodyx"]),
         Paragraph("1. Research question", styles["H1x"]),
         Paragraph("Can visible saliency change and prediction evidence determine when a drift-adapted ViT should replace a historical ViT prediction across a realistic future horizon?", styles["Bodyx"]),
         Paragraph("2. Architecture and transparent routing", styles["H1x"]),
@@ -410,6 +427,8 @@ def build_pdf() -> None:
         Paragraph("H1 not met: enhanced XAI gained 1.40 points over baseline ViT on 2014 combined drift. H2 met: routing retained 91.5% of the newer model's gain over historical XAI. H3 met: routed clean 2014 macro F1 was 0.06 points above historical XAI. Test labels must not be used for another tuning cycle.", styles["Bodyx"]),
         Paragraph("4.3 Evaluation matrix", styles["H1x"]),
         Paragraph("The selected epoch was 4, with 94.39% calibration macro F1; epoch 5 fell to 93.00%. Post-warm-up epochs took about 138 seconds. Final reporting includes accuracy, macro F1, macro IoU, update-trigger metrics, helpful and harmful routes, timing, and saliency-map overlap. Multiple seeds remain necessary before a final claim.", styles["Bodyx"]),
+        Paragraph("4.4 Checkpoint recovery test", styles["H1x"]),
+        Paragraph("Each evaluated epoch atomically writes model parameters, AdamW optimizer state, completed epoch, and best score. The matched standard run was deliberately interrupted after epoch 2 and resumed at epoch 3. Its optimizer state and best score were restored, epoch 4 was later selected, and the frozen evaluation completed. A local round-trip regression test separately verifies the serialized state and metadata.", styles["Bodyx"]),
         PageBreak(),
         Paragraph("5. Completed fixed-horizon results", styles["H1x"]),
         Paragraph("Macro F1 under combined saturation, noise, and occlusion. The widening decline across years makes the temporal effect visible.", styles["Bodyx"]),
@@ -462,16 +481,18 @@ def build_pdf() -> None:
         story += [Paragraph("5.2 Controlled five-epoch ablation", styles["H1x"]), ablation_table,
                   Paragraph(f"The enhanced auxiliary saliency objectives changed 2014 combined macro F1 by {(full['new'] - no_aux['new']) * 100:+.2f} points for always-new inference and {(full['routed'] - no_aux['routed']) * 100:+.2f} points after routing. The control retains the saliency-gated forward pass and removes only the pairwise divergence and complementary-evidence objectives.", styles["Bodyx"])]
 
-    panels = [RUN / "combined" / "2012" / "sample_0777.png", RUN / "combined" / "2014" / "sample_0777.png"]
-    story += [PageBreak(), Paragraph("6. Saliency audit examples", styles["H1x"]), Paragraph("Each panel shows the clean reference, drifted input, historical saliency, and updated saliency. Together with the saved decision log, this lets a reviewer connect the route to visible attention changes and prediction evidence.", styles["Bodyx"])]
+    panel_root = PRIMARY_PANEL_RUN if PRIMARY_PANEL_RUN.is_dir() else RUN
+    panels = [panel_root / "combined" / "2012" / "sample_0777.png", panel_root / "combined" / "2014" / "sample_0777.png"]
+    story += [Paragraph("6. Saliency audit examples", styles["H1x"]), Paragraph("Each panel shows the clean reference, drifted input, historical saliency, and updated saliency. Together with the saved decision log, this lets a reviewer connect the route to visible attention changes and prediction evidence.", styles["Bodyx"])]
     for year, panel in zip((2012, 2014), panels):
         if panel.exists():
             story += [Paragraph(f"Combined drift • {year}", styles["Smallx"]), Image(str(panel), width=155 * mm, height=87 * mm), Spacer(1, 3 * mm)]
     if SALIENCY_ANALYSIS_PNG.exists():
         story += [PageBreak(), Paragraph("6.1 Saliency features by routing outcome", styles["H1x"]),
                   Paragraph("The box plots group the 2014 combined-drift decisions as helpful, harmful, neutral routed, or kept historical. They test whether visible saliency divergence and the explicit route probability separate useful from harmful updates; they do not establish that saliency caused the correction.", styles["Bodyx"]),
-                  Image(str(SALIENCY_ANALYSIS_PNG), width=168 * mm, height=67 * mm)]
-    story += [PageBreak(), Paragraph("7. Interpretation", styles["H1x"]), Paragraph("The completed enhanced run improves both the always-new and routed combined-drift scores, but only modestly. This indicates that broader corruption exposure, three trainable blocks, and stronger saliency losses do not by themselves create the targeted 3-point separation. The routed model preserves most of the newer model's benefit, showing that transparent selection remains viable even though the underlying adaptation gain is limited.", styles["Bodyx"]), Paragraph("8. Limitations and validity threats", styles["H1x"]), Paragraph("Both completed profiles use one seed on one temporal stream with synthetic corruptions and one calibrated threshold. They have no confidence intervals or external validation dataset. H1 is a valid negative result. Increased optimization capacity and the saliency curriculum changed together, so ablations must isolate trainable blocks, corruption curriculum, saliency loss, and router calibration before attributing the incremental gain to saliency.", styles["Bodyx"]), Paragraph("9. Next experimental sequence", styles["H1x"]), Paragraph("Freeze these outputs, compute paired per-sample bootstrap intervals, and repeat both profiles across at least three seeds. Compare always-old, always-new, confidence-only, saliency-only, and full routing. A stronger next method should introduce saliency-guided patch corruption or clean-drift consistency training as a predeclared intervention, then repeat on a second temporal image dataset.", styles["Bodyx"]), Paragraph("10. Reproducibility", styles["H1x"]), Paragraph("The repository includes compact JSON results, learned router policy, 45 saliency panels, report generator, and all training source. Large checkpoints remain server-side. Completed run identifiers include baseline 20260928T152657Z-horizon, standard router 20260928T161159Z-horizon-router, and enhanced router 20260929-enhanced-3pp.", styles["Bodyx"]), Paragraph("References", styles["H1x"]), Paragraph("[1] Dosovitskiy et al., Vision Transformer, 2020. [2] Oquab et al., DINOv2, 2023. [3] Hendrycks & Dietterich, ImageNet-C, 2019. [4] Hendrycks et al., AugMix, 2019. [5] Lin et al., CLEAR, 2021. Full links appear in the Markdown version.", styles["Smallx"])]
+                  Image(str(SALIENCY_ANALYSIS_PNG), width=168 * mm, height=67 * mm),
+                  Paragraph("Helpful routes show mean saliency divergence 0.0607 versus 0.0512 for harmful routes and 0.0473 when the historical model is retained. Mean route probabilities are 0.821, 0.767, and 0.310, respectively. The overlap is substantial: visible change strongly separates routed from retained cases, while separating useful from harmful updates only modestly. Qualitative maps often emphasize contextual regions, so they are evidence gates rather than object masks.", styles["Bodyx"])]
+    story += [PageBreak(), Paragraph("7. Interpretation", styles["H1x"]), Paragraph("Equalizing the five-epoch budget reduces the enhanced advantage over standard to +0.31 points always-new and +0.13 points routed on 2014 combined drift. Within the enhanced profile, explicit auxiliary saliency objectives add +0.13 points always-new and +0.23 points routed over the matched no-auxiliary-loss control. The gain is directionally positive but small. Full enhancement routes 388 samples with 188 helpful and 90 harmful switches; the control routes 245 with 125 helpful and 43 harmful switches.", styles["Bodyx"]), Paragraph("8. Limitations and validity threats", styles["H1x"]), Paragraph("All runs use one seed on one temporal stream with synthetic corruptions. Checkpoint selection and router calibration reuse 2011 examples, and there are no confidence intervals or external validation data. H1 is a valid negative result. The ablation isolates the explicit auxiliary saliency objectives, while the saliency gate remains inside both classifiers. Overlapping helpful and harmful outcome distributions preclude a strong causal explanation claim.", styles["Bodyx"]), Paragraph("9. Next experimental sequence", styles["H1x"]), Paragraph("Split 2011 into disjoint checkpoint-selection and router-calibration subsets, then repeat matched profiles across at least three seeds with paired per-sample bootstrap intervals. Add confidence-only and saliency-only routers. A stronger predeclared intervention should compare saliency-guided patch corruption with random patch corruption, followed by evaluation on a second temporal image dataset.", styles["Bodyx"]), Paragraph("10. Reproducibility", styles["H1x"]), Paragraph("The repository includes compact JSON comparisons, learned router policies, 90 new enhanced/control saliency panels, saliency outcome CSV/JSON/PNG artifacts, a checkpoint round-trip regression test, and the report generator. Large checkpoints remain server-side. New run identifiers are 20261005-standard-5ep and 20261005-enhanced-nosaliency; both select epoch 4.", styles["Bodyx"]), Paragraph("References", styles["H1x"]), Paragraph("[1] Dosovitskiy et al., Vision Transformer, 2020. [2] Oquab et al., DINOv2, 2023. [3] Hendrycks & Dietterich, ImageNet-C, 2019. [4] Hendrycks et al., AugMix, 2019. [5] Lin et al., CLEAR, 2021. Full links appear in the Markdown version.", styles["Smallx"])]
 
     def footer(canvas, document):
         canvas.saveState()

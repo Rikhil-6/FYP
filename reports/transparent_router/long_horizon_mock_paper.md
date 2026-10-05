@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This prototype tests whether a fully vision-transformer pipeline can respond to temporal image drift while keeping its update decision inspectable. A historical ViT is trained on 2004–2008 images and selected on 2009. A newer XAI-regularised ViT is adapted on 2010 images with realistic corruptions. An explicit router is calibrated on 2011 and evaluated once on the untouched 2012–2014 horizon. In the completed enhanced run, the newer model reaches **91.99%** macro F1 under 2014 combined drift: **+1.40 points** over the original baseline ViT and **+1.65 points** over historical XAI. Routing reaches **91.85%** and retains **91.5%** of the available update gain. The predeclared 3-point hypothesis was not met.
+This prototype tests whether a fully vision-transformer pipeline can respond to temporal image drift while keeping its update decision inspectable. A historical ViT is trained on 2004–2008 images and selected on 2009. A newer XAI-regularised ViT is adapted on 2010 images with realistic corruptions. An explicit router is calibrated on 2011 and evaluated once on the untouched 2012–2014 horizon. In the completed enhanced run, the newer model reaches **91.99%** macro F1 under 2014 combined drift: **+1.40 points** over the original baseline ViT and **+1.65 points** over historical XAI. Routing reaches **91.85%**. A controlled five-epoch ablation attributes only **+0.13 points** always-new and **+0.23 points** routed to the explicit auxiliary saliency objectives. The predeclared 3-point hypothesis was not met.
 
 ## 1. Research question
 
@@ -69,6 +69,10 @@ The 3-point value is a target fixed before viewing the enhanced results. Failure
 - **H2 met:** routing retained `(91.85−90.34)/(91.99−90.34) = 91.5%` of the newer model's gain over historical XAI.
 - **H3 met:** routed clean 2014 macro F1 was **95.30%**, 0.06 points above historical XAI.
 
+### 3.4 Checkpoint and interruption recovery
+
+Every evaluated epoch atomically replaces `models/resume.pt` and writes a small `resume.json`. The binary checkpoint contains the newer ViT parameters, optimizer state, completed epoch, and best validation score; the separate best-model file remains the checkpoint used for final evaluation. The matched standard run was deliberately stopped after epoch 2 and resumed at epoch 3. It retained the epoch-2 optimizer and best score, later selected epoch 4, and completed the frozen horizon normally. A local round-trip regression test independently reloads and compares weights, optimizer state, epoch, score, and metadata.
+
 ## 4. Main results
 
 Macro F1 is shown as a percentage. Helpful and harmful routes count cases where choosing the newer model corrected or introduced an error, respectively.
@@ -97,19 +101,41 @@ On 2014 combined drift, the baseline reaches **90.59%**, the historical XAI mode
 
 The enhanced curriculum improved the always-new 2014 combined score from **91.75% to 91.99%**, a further **0.24 points**. The routed score increased from **91.50% to 91.85%**, a further **0.35 points**. The modest change indicates that simply increasing adaptation capacity is insufficient to create a 3-point separation.
 
+
+### 4.2 Controlled five-epoch ablation
+
+The matched run removes the earlier three-versus-five-epoch imbalance. The auxiliary-loss control keeps the enhanced curriculum, trainable blocks, learning rates, and saliency-gated classifier fixed, but sets the pairwise saliency-divergence and complementary-evidence loss weights to zero. It therefore isolates the explicit saliency supervision while retaining saliency inside the forward pass.
+
+| Configuration | 2014 clean routed | Combined old | Combined new | Combined routed | Helpful | Harmful |
+|---|---:|---:|---:|---:|---:|---:|
+| Matched standard (5 epochs) | 95.78 | 90.34 | 91.68 | 91.72 | 144 | 57 |
+| Enhanced with auxiliary saliency losses | 95.30 | 90.34 | 91.99 | 91.85 | 188 | 90 |
+| Enhanced without auxiliary saliency losses | 95.45 | 90.34 | 91.86 | 91.62 | 125 | 43 |
+
+Against the matched enhanced control, the explicit auxiliary saliency objectives changed 2014 combined macro F1 by **+0.13 points** for always-new inference and **+0.23 points** after routing. These are single-run paired differences, not confidence-bounded causal estimates.
+
+
 ## 5. What the saliency panels show
 
 Each panel places the input beside the historical and updated attention maps, then prints the router features and decision. This makes a route auditable: a reviewer can compare *where* each ViT looked with the numerical evidence used by the logistic rule.
 
-![Combined drift example from 2012](20260928T161159Z-horizon-router/combined/2012/sample_0777.png)
+![Enhanced full model under combined drift in 2012](20261005-ablation/enhanced-full-panels/combined/2012/sample_0777.png)
 
-![Combined drift example from 2014](20260928T161159Z-horizon-router/combined/2014/sample_0777.png)
+![Enhanced full model under combined drift in 2014](20261005-ablation/enhanced-full-panels/combined/2014/sample_0777.png)
+
+### 5.1 Quantitative saliency outcome analysis
+
+For the 2014 combined-drift auxiliary-loss control, helpful routes had mean saliency Jensen-Shannon divergence **0.0607**, compared with **0.0512** for harmful routes and **0.0473** when the historical prediction was retained. Mean route probability was **0.821** for helpful routes, **0.767** for harmful routes, and **0.310** for retained historical predictions. There were **125 helpful versus 43 harmful routes** (ratio 2.91). The matched standard run showed the same within-run ordering for helpful versus harmful divergence (0.00759 versus 0.00651), although raw divergence magnitudes should not be compared across differently adapted models.
+
+![Saliency and route probability by outcome](20261005-ablation/enhanced-nosaliency/saliency_route_outcomes.png)
+
+The distributions overlap substantially. Saliency change clearly separates routed from retained examples, because it is an explicit eligibility condition, while it only modestly separates helpful from harmful routes. In the inspected panels, maps often emphasize contextual regions such as a bowling lane, cloud structure, or framed display area. They are evidence gates rather than object masks, so their spatial overlap must not be presented as segmentation IoU.
 
 ## 6. Interpretation and limits
 
 The longer test horizon exposes a clearer decline under compound drift and a larger benefit from drift-aware updating. The rule remains explainable because its four standardized inputs, coefficients, threshold, and saliency floor are saved in `router_policy.json`. Coefficient signs are empirical correlations from 2011 calibration, not causal explanations.
 
-The evidence is limited to one seed, one temporal dataset stream, synthetic corruptions, and one fitted threshold. No confidence intervals or multi-seed hypothesis tests are reported. The enhanced configuration produced a valid negative result for H1: the gain remained below 3 points. That target must not be presented as achieved.
+The evidence is limited to one seed, one temporal dataset stream, synthetic corruptions, and one fitted threshold. Checkpoint selection and router calibration both reuse 2011 examples. No confidence intervals or multi-seed hypothesis tests are reported. The enhanced configuration produced a valid negative result for H1: the gain remained below 3 points. The auxiliary saliency-loss contribution is positive but small, and the overlapping outcome distributions do not support a strong causal explanation claim.
 
 The next defensible step is repeated temporal backtesting with bootstrap confidence intervals and an untouched external dataset. The router should also be compared with always-old, always-new, confidence-only, and saliency-only ablations. Report macro F1 and macro IoU by year and drift type, helpful and harmful routes, update-trigger precision/recall, throughput, and training time per epoch.
 
@@ -119,6 +145,10 @@ The next defensible step is repeated temporal backtesting with bootstrap confide
 - `router_policy.json`: learned standardized logistic coefficients and thresholds.
 - `20260928T161159Z-horizon-router/`: 45 saved saliency panels plus sample metadata.
 - Enhanced server run: `runs/siamese/20260929-enhanced-3pp/`.
+- Controlled server runs: `runs/siamese/20261005-standard-5ep/` and `runs/siamese/20261005-enhanced-nosaliency/`.
+- `20261005-ablation/comparison.json`: matched-control check, epoch traces, policies, and compact scores.
+- `20261005-ablation/enhanced-full-panels/` and `enhanced-nosaliency-panels/`: 90 bounded saliency panels with sample-level metadata.
+- `20261005-ablation/*/saliency_route_*`: outcome-stratified CSV, JSON, headline JSON, and figure.
 - Source checkpoints remain server-side because each model file is about 85 MB.
 
 ## References
