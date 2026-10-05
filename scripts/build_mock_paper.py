@@ -31,6 +31,9 @@ PDF_DIR = ROOT / "output" / "pdf"
 PAPER_MD = REPORTS / "long_horizon_mock_paper.md"
 PAPER_PDF = PDF_DIR / "transparent_router_mock_paper.pdf"
 SUMMARY_JSON = REPORTS / "long_horizon_summary.json"
+ABLATION_DIR = REPORTS / "20261005-ablation"
+ABLATION_JSON = ABLATION_DIR / "comparison.json"
+SALIENCY_ANALYSIS_PNG = ABLATION_DIR / "enhanced-nosaliency" / "saliency_route_outcomes.png"
 
 YEARS = [2012, 2013, 2014]
 RESULTS = {
@@ -74,8 +77,16 @@ def pp(value: float) -> str:
     return f"{value * 100:.2f}"
 
 
+def load_ablation():
+    """Load the compact server comparison after the controlled runs complete."""
+    if not ABLATION_JSON.is_file():
+        return None
+    return json.loads(ABLATION_JSON.read_text(encoding="utf-8"))
+
+
 def build_summary() -> None:
     policy = json.loads((REPORTS / "router_policy.json").read_text(encoding="utf-8"))
+    ablation = load_ablation()
     payload = {
         "experiment": "fixed three-year temporal drift horizon",
         "train_years": [2004, 2005, 2006, 2007, 2008],
@@ -101,10 +112,13 @@ def build_summary() -> None:
             "transparent_router": "20260928T161159Z-horizon-router",
         },
     }
+    if ablation:
+        payload["controlled_ablation_20261005"] = ablation
     SUMMARY_JSON.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def build_markdown() -> None:
+    ablation = load_ablation()
     rows = []
     for scenario in ("clean", "combined"):
         for i, year in enumerate(YEARS):
@@ -122,6 +136,39 @@ def build_markdown() -> None:
                 f"| {scenario.title()} | {year} | {pp(r['old'][i])} | {pp(r['new'][i])} | "
                 f"{pp(r['routed'][i])} | {r['helpful_routes'][i]} | {r['harmful_routes'][i]} |"
             )
+
+    ablation_section = ""
+    if ablation:
+        runs = ablation["runs"]
+        labels = (
+            ("matched_standard", "Matched standard (5 epochs)"),
+            ("enhanced_full", "Enhanced with auxiliary saliency losses"),
+            ("enhanced_no_aux", "Enhanced without auxiliary saliency losses"),
+        )
+        comparison_rows = []
+        for key, label in labels:
+            clean = runs[key]["scenarios"]["clean"]["2014"]
+            combined = runs[key]["scenarios"]["combined"]["2014"]
+            comparison_rows.append(
+                f"| {label} | {pp(clean['routed'])} | {pp(combined['old'])} | "
+                f"{pp(combined['new'])} | {pp(combined['routed'])} | "
+                f"{combined['helpful_routes']} | {combined['harmful_routes']} |"
+            )
+        full = runs["enhanced_full"]["scenarios"]["combined"]["2014"]
+        no_aux = runs["enhanced_no_aux"]["scenarios"]["combined"]["2014"]
+        new_effect = (full["new"] - no_aux["new"]) * 100
+        routed_effect = (full["routed"] - no_aux["routed"]) * 100
+        ablation_section = f"""
+### 4.2 Controlled five-epoch ablation
+
+The matched run removes the earlier three-versus-five-epoch imbalance. The auxiliary-loss control keeps the enhanced curriculum, trainable blocks, learning rates, and saliency-gated classifier fixed, but sets the pairwise saliency-divergence and complementary-evidence loss weights to zero. It therefore isolates the explicit saliency supervision while retaining saliency inside the forward pass.
+
+| Configuration | 2014 clean routed | Combined old | Combined new | Combined routed | Helpful | Harmful |
+|---|---:|---:|---:|---:|---:|---:|
+{chr(10).join(comparison_rows)}
+
+Against the matched enhanced control, the explicit auxiliary saliency objectives changed 2014 combined macro F1 by **{new_effect:+.2f} points** for always-new inference and **{routed_effect:+.2f} points** after routing. These are single-run paired differences, not confidence-bounded causal estimates.
+"""
 
     markdown = f"""# Transparent Saliency Routing for Temporal Image Drift
 
@@ -212,6 +259,8 @@ On 2014 combined drift, the baseline reaches **90.59%**, the historical XAI mode
 
 The enhanced curriculum improved the always-new 2014 combined score from **91.75% to 91.99%**, a further **0.24 points**. The routed score increased from **91.50% to 91.85%**, a further **0.35 points**. The modest change indicates that simply increasing adaptation capacity is insufficient to create a 3-point separation.
 
+{ablation_section}
+
 ## 5. What the saliency panels show
 
 Each panel places the input beside the historical and updated attention maps, then prints the router features and decision. This makes a route auditable: a reviewer can compare *where* each ViT looked with the numerical evidence used by the logistic rule.
@@ -278,6 +327,7 @@ def chart() -> Drawing:
 
 def build_pdf() -> None:
     PDF_DIR.mkdir(parents=True, exist_ok=True)
+    ablation = load_ablation()
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(name="PaperTitle", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=20, leading=24, textColor=colors.HexColor("#13293D"), alignment=TA_CENTER, spaceAfter=8))
     styles.add(ParagraphStyle(name="Subtitle", parent=styles["Normal"], fontSize=10, leading=14, textColor=colors.HexColor("#52616B"), alignment=TA_CENTER, spaceAfter=14))
@@ -387,11 +437,40 @@ def build_pdf() -> None:
               Spacer(1, 3 * mm),
               Paragraph("In 2014, enhanced XAI reaches 91.99%: +1.40 points over baseline ViT and +1.65 over historical XAI. Enhanced routing reaches 91.85%, retaining 91.5% of the available gain. Relative to the standard profile, enhancement adds 0.24 points always-new and 0.35 points routed. H1 fails; H2 and H3 pass.", styles["Bodyx"])]
 
+    if ablation:
+        runs = ablation["runs"]
+        ablation_data = [["Five-epoch configuration", "Clean routed", "Combined new", "Combined routed", "Helpful / harmful"]]
+        for key, label in (("matched_standard", "Matched standard"),
+                           ("enhanced_full", "Enhanced + auxiliary XAI"),
+                           ("enhanced_no_aux", "Enhanced, no auxiliary XAI")):
+            clean = runs[key]["scenarios"]["clean"]["2014"]
+            combined = runs[key]["scenarios"]["combined"]["2014"]
+            ablation_data.append([label, pp(clean["routed"]), pp(combined["new"]), pp(combined["routed"]),
+                                  f"{combined['helpful_routes']} / {combined['harmful_routes']}"])
+        ablation_table = Table(ablation_data, colWidths=[50 * mm, 25 * mm, 28 * mm, 31 * mm, 34 * mm], repeatRows=1)
+        ablation_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#7C3AED")),
+                                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                                            ("ALIGN", (1, 1), (-1, -1), "CENTER"),
+                                            ("FONTSIZE", (0, 0), (-1, -1), 7.4),
+                                            ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#CBD5E1")),
+                                            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F3FF")]),
+                                            ("TOPPADDING", (0, 0), (-1, -1), 5),
+                                            ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
+        full = runs["enhanced_full"]["scenarios"]["combined"]["2014"]
+        no_aux = runs["enhanced_no_aux"]["scenarios"]["combined"]["2014"]
+        story += [Paragraph("5.2 Controlled five-epoch ablation", styles["H1x"]), ablation_table,
+                  Paragraph(f"The enhanced auxiliary saliency objectives changed 2014 combined macro F1 by {(full['new'] - no_aux['new']) * 100:+.2f} points for always-new inference and {(full['routed'] - no_aux['routed']) * 100:+.2f} points after routing. The control retains the saliency-gated forward pass and removes only the pairwise divergence and complementary-evidence objectives.", styles["Bodyx"])]
+
     panels = [RUN / "combined" / "2012" / "sample_0777.png", RUN / "combined" / "2014" / "sample_0777.png"]
     story += [PageBreak(), Paragraph("6. Saliency audit examples", styles["H1x"]), Paragraph("Each panel shows the clean reference, drifted input, historical saliency, and updated saliency. Together with the saved decision log, this lets a reviewer connect the route to visible attention changes and prediction evidence.", styles["Bodyx"])]
     for year, panel in zip((2012, 2014), panels):
         if panel.exists():
             story += [Paragraph(f"Combined drift • {year}", styles["Smallx"]), Image(str(panel), width=155 * mm, height=87 * mm), Spacer(1, 3 * mm)]
+    if SALIENCY_ANALYSIS_PNG.exists():
+        story += [PageBreak(), Paragraph("6.1 Saliency features by routing outcome", styles["H1x"]),
+                  Paragraph("The box plots group the 2014 combined-drift decisions as helpful, harmful, neutral routed, or kept historical. They test whether visible saliency divergence and the explicit route probability separate useful from harmful updates; they do not establish that saliency caused the correction.", styles["Bodyx"]),
+                  Image(str(SALIENCY_ANALYSIS_PNG), width=168 * mm, height=67 * mm)]
     story += [PageBreak(), Paragraph("7. Interpretation", styles["H1x"]), Paragraph("The completed enhanced run improves both the always-new and routed combined-drift scores, but only modestly. This indicates that broader corruption exposure, three trainable blocks, and stronger saliency losses do not by themselves create the targeted 3-point separation. The routed model preserves most of the newer model's benefit, showing that transparent selection remains viable even though the underlying adaptation gain is limited.", styles["Bodyx"]), Paragraph("8. Limitations and validity threats", styles["H1x"]), Paragraph("Both completed profiles use one seed on one temporal stream with synthetic corruptions and one calibrated threshold. They have no confidence intervals or external validation dataset. H1 is a valid negative result. Increased optimization capacity and the saliency curriculum changed together, so ablations must isolate trainable blocks, corruption curriculum, saliency loss, and router calibration before attributing the incremental gain to saliency.", styles["Bodyx"]), Paragraph("9. Next experimental sequence", styles["H1x"]), Paragraph("Freeze these outputs, compute paired per-sample bootstrap intervals, and repeat both profiles across at least three seeds. Compare always-old, always-new, confidence-only, saliency-only, and full routing. A stronger next method should introduce saliency-guided patch corruption or clean-drift consistency training as a predeclared intervention, then repeat on a second temporal image dataset.", styles["Bodyx"]), Paragraph("10. Reproducibility", styles["H1x"]), Paragraph("The repository includes compact JSON results, learned router policy, 45 saliency panels, report generator, and all training source. Large checkpoints remain server-side. Completed run identifiers include baseline 20260928T152657Z-horizon, standard router 20260928T161159Z-horizon-router, and enhanced router 20260929-enhanced-3pp.", styles["Bodyx"]), Paragraph("References", styles["H1x"]), Paragraph("[1] Dosovitskiy et al., Vision Transformer, 2020. [2] Oquab et al., DINOv2, 2023. [3] Hendrycks & Dietterich, ImageNet-C, 2019. [4] Hendrycks et al., AugMix, 2019. [5] Lin et al., CLEAR, 2021. Full links appear in the Markdown version.", styles["Smallx"])]
 
     def footer(canvas, document):
