@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This study tests a transparent update mechanism for image classifiers exposed to temporal drift. A historical Vision Transformer is compared with a newer saliency-guided ViT adapted on later data. A small, explicit router chooses between their predictions using observable changes in confidence, entropy, class evidence, and patch saliency. Evaluation follows a fixed chronology from historical training through a frozen 2012–2014 horizon. The strongest updated model improves 2014 combined-drift macro F1 by 1.65 percentage points over historical XAI; routing retains 91.5% of that gain. The predeclared three-point target is not reached. The result supports inspectable drift correction while showing that the incremental benefit of explicit saliency supervision is modest.
+This study tests a transparent update mechanism for image classifiers exposed to temporal drift. A historical Vision Transformer is compared with a newer saliency-guided ViT adapted on later data. A small, explicit router chooses between their predictions using observable changes in confidence, entropy, class evidence, and patch saliency. Evaluation follows a fixed chronology from historical training through a frozen 2012–2014 horizon. In the expanded, source-separated 2014 evaluation, routing improves macro F1 over the same frozen historical ViT by 3.45 percentage points under motion blur and 2.03 points under a realistic mixture of acquisition changes, while changing clean performance by only 0.12 points. Against a matched control that removes the auxiliary saliency losses but preserves the architecture and training budget, those routing gains are 0.90 and 0.84 points larger, respectively. The original predeclared three-point target remains unmet on the earlier combined condition, so the stronger motion-blur result is reported as a source-specific finding rather than a replacement primary endpoint. The evidence supports inspectable drift correction while showing that explicit saliency supervision helps selectively rather than uniformly.
 
 
 ## 1. Introduction and thesis
@@ -53,7 +53,9 @@ The prepared image is divided into non-overlapping 14 × 14 pixel patches, produ
 
 The baseline classifier gives every patch equal weight. It averages the 256 patch vectors, concatenates that result with the global class token, and applies a linear 100-class head. The XAI variant replaces the uniform average with a learned gate. For patch representation *hᵢ*, a LayerNorm, linear layer, and sigmoid produce a non-negative gate *gᵢ*. Dividing each gate by the sum of all gates produces the normalized saliency weight *sᵢ*. The selected representation *v* is the weighted sum of all patch representations. In compact form, *sᵢ = gᵢ / Σⱼgⱼ* and *v = Σᵢsᵢhᵢ*. The classifier receives the class token and *v* together. Consequently, changing a patch weight changes the feature vector used to calculate the class logits. The displayed 16 × 16 heatmap is a resized view of these same normalized weights, rather than a separate visualization computed after prediction.
 
-![Figure 1. ViT-only historical and saliency-guided update architecture](architecture_overview.png)
+Figure 1 follows the tensors through this computation. The backbone returns one 384-dimensional class token and a matrix of 256 patch tokens. The gate maps each patch vector to one scalar, so the explanation has a direct one-to-one correspondence with the 16 × 16 token grid. Normalisation makes the weights sum to one and prevents the classifier from increasing all gates together merely to scale the representation. The primary head receives the global class token together with the saliency-selected patch sum. The same head is also applied to a separately normalised complementary sum built from *1 − sᵢ*. Sharing the classifier head matters: selected and complementary evidence are compared in the same class-logit space rather than through unrelated decoders.
+
+![Figure 1. Embedded saliency-guided ViT forward computation and training signals](xai_vit_forward.png)
 
 For faithfulness training, the model also classifies the complementary low-saliency patches. The loss rewards greater evidence for the true class in selected patches than in their complement. During update training, a pairwise term keeps the new and historical maps close when the historical prediction is correct and requires a minimum divergence when it is wrong.
 
@@ -64,9 +66,15 @@ The complementary path adds a falsifiable expectation. If the selected patches t
 During paired adaptation, the frozen branch supplies a stable point of comparison. When the historical prediction is correct, unnecessary explanation movement is discouraged. When it is wrong, the newer branch is permitted and encouraged to move its spatial evidence. Correctness still comes from the class label; saliency divergence alone never counts as a successful update.
 
 
-### 2.2 Explicit routing rule
+### 2.2 Asymmetric Siamese comparison and explicit routing rule
 
 For a sample `x`, the old and new ViTs produce predictions and saliency distributions. The policy standardises four observable differences and applies a saved logistic equation. The newer prediction is eligible only when the models disagree, saliency divergence exceeds a calibrated floor, and the logistic probability exceeds its calibrated threshold. All coefficients, means, scales, and thresholds are stored in `router_policy.json`.
+
+The paired architecture in Figure 2 is Siamese in the operational sense that two instances of the same XAI-guided ViT family process the same image and their corresponding outputs are compared. It is deliberately asymmetric rather than a conventional weight-sharing Siamese network. Both branches begin from the same historical checkpoint, but the historical branch is frozen while the updated branch adapts its final three transformer blocks, saliency gate, and classification head on the 2010 stream. This arrangement assigns each branch a clear temporal role: the historical branch represents the behaviour already deployed, while the updated branch represents a bounded candidate correction. At evaluation time both branches are fixed.
+
+The comparison is performed at two observable levels. At the prediction level, the system measures confidence gain, entropy reduction, and whether the predicted classes disagree. At the spatial-evidence level, it compares the two normalised 256-patch distributions through Jensen–Shannon divergence and computes the gain in selected-versus-complement class evidence. These values form a four-dimensional audit record; they are not collapsed into an unlabelled neural embedding. The router then applies the saved logistic coefficients and two explicit eligibility gates. The final output therefore retains a reconstructable chain from image, through old and new predictions and maps, to the route decision.
+
+![Figure 2. Asymmetric Siamese comparison between the frozen historical ViT and drift-adapted ViT](architecture_overview.png)
 
 The policy uses logistic regression because its decision can be reconstructed from a short coefficient vector rather than another opaque neural network. This choice follows the interpretable-model argument that a high-stakes decision should be directly inspectable when a simple model is adequate [15]. On the 2011 calibration set, a positive target is assigned only when the historical branch is wrong and the newer branch is correct. The four features are standardized because their numerical ranges differ, and class-balanced fitting reduces the tendency to ignore the rarer helpful-update class. The fitted score is *p(update | x) = sigmoid(b + wᵀz)*, where *z* contains the four standardized features. The stored intercept *b*, coefficients *w*, feature means, and feature scales are sufficient to reproduce the probability.
 
@@ -180,14 +188,47 @@ Bold type marks the best value in each evaluation column across the three matche
 Against the matched enhanced control, the explicit auxiliary saliency objectives changed 2014 combined macro F1 by **+0.13 points** for always-new inference and **+0.23 points** after routing. These are single-run paired differences, not confidence-bounded causal estimates.
 
 
+### 4.3 Source-separated drift evaluation
+
+The broader protocol evaluates the same saved historical checkpoint, adapted checkpoint, and 2011 routing policy across 11 independently named 2014 conditions. Each row contains the frozen historical score, the always-updated score, the transparent routed score, and the routed change from the historical branch. This separation prevents a favourable occlusion example from standing in for unrelated acquisition changes.
+
+| 2014 condition | Historical | Updated | Routed | Routed change |
+|---|---:|---:|---:|---:|
+| Clean | 95.24 | 95.54 | 95.36 | +0.12 |
+| Illumination | 95.13 | 95.46 | 95.24 | +0.11 |
+| White balance | 95.16 | 95.61 | 95.43 | +0.27 |
+| Sensor noise | 94.20 | 94.72 | 94.44 | +0.24 |
+| Defocus blur | 94.41 | 94.93 | 94.75 | +0.34 |
+| **Motion blur** | **83.17** | **87.13** | **86.62** | **+3.45** |
+| JPEG compression | 93.64 | 94.27 | 94.09 | +0.45 |
+| Resolution loss | 93.69 | 94.26 | 94.10 | +0.41 |
+| Viewpoint shift | 94.32 | 95.09 | 94.91 | +0.59 |
+| Occlusion | 93.93 | 94.74 | 94.68 | +0.75 |
+| **Realistic mixture** | **86.41** | **88.62** | **88.44** | **+2.03** |
+
+The strongest routed separation occurs under motion blur: **+3.45 percentage points**, with 357 helpful and 90 harmful switches. The realistic mixture improves by **+2.03 points**, with 261 helpful and 95 harmful switches. Occlusion improves by **+0.75 points**, which is useful but substantially smaller than motion blur. The new evidence therefore changes the conclusion from “the method mainly handles occlusion” to a narrower, source-dependent result: temporal adaptation and routing help most when motion-related degradation or multiple acquisition effects create a substantial historical failure, while mild colour and illumination changes leave less room for correction.
+
+| Matched 2014 condition | Saliency routed change | No-aux routed change | Auxiliary effect on route |
+|---|---:|---:|---:|
+| Clean | +0.12 | **+0.30** | −0.18 |
+| Motion blur | **+3.45** | +2.55 | **+0.90** |
+| Viewpoint shift | **+0.59** | +0.53 | +0.06 |
+| Occlusion | **+0.75** | +0.69 | +0.06 |
+| Realistic mixture | **+2.03** | +1.19 | **+0.84** |
+
+![Figure 3. Matched 2014 change by drift source](20261006-drift-v2/drift_v2_2014_comparison.png)
+
+The plotted axis is symmetric around zero, and the associated CSV stores the exact values. The saliency-supervised and no-auxiliary profiles use the same seed, historical checkpoint, adaptation years, calibration year, future horizon, batch size, and scenario definitions. This paired design identifies the incremental contribution of the auxiliary saliency objectives without presenting a zoomed plot as a larger effect than the scores support. Under motion blur, the saliency-supervised router gains 3.45 points while the matched no-auxiliary router gains 2.55 points, an auxiliary-loss effect of +0.90 points on the routed output. Under the realistic mixture, the corresponding gains are 2.03 and 1.19 points, an effect of +0.84 points. The always-new models are nearly tied under motion blur (+3.96 versus +3.94), which locates the main difference in how the learned saliency evidence supports conditional routing rather than in a large change to the updated classifier's aggregate score. The auxiliary effect is not uniformly positive: on clean data the saliency-supervised routed score is 0.18 points below the no-auxiliary control, and several mild sources differ by less than one tenth of a point.
+
+
 
 ## 5. What the saliency panels show
 
-Each panel places the input beside the historical and updated attention maps, then prints the router features and decision. This makes a route auditable: a reviewer can compare *where* each ViT looked with the numerical evidence used by the logistic rule.
+Each audit panel places the clean reference beside the drifted input and the historical and updated evidence overlays, then records the true, historical, updated, and routed classes together with the route probability, saliency divergence, and deletion margin. This makes a route auditable: a reviewer can compare *where* each ViT weighted its encoded patches with the numerical evidence and behavioural perturbation result. Overlay opacity is deliberately restrained so the underlying image remains readable.
 
-![Enhanced full model under combined drift in 2012](20261005-ablation/enhanced-full-panels/combined/2012/sample_0777.png)
+Figure 4 shows one deliberately selected helpful route from each of three distinct drift families. These examples demonstrate the decision path; they are not random samples and are not used as performance estimates. The aggregate outcome counts and faithfulness statistics below provide the quantitative evidence.
 
-![Enhanced full model under combined drift in 2014](20261005-ablation/enhanced-full-panels/combined/2014/sample_0777.png)
+![Figure 4. Helpful routed corrections under motion blur, viewpoint shift, and a realistic mixture](20261006-drift-v2/multidrift_helpful_cases.png)
 
 
 ### 5.1 Quantitative saliency outcome analysis
@@ -205,6 +246,16 @@ The maps should consequently be interpreted as **evidence-allocation diagnostics
 
 ### 5.2 Counterexample and faithfulness audit
 
+The source-specific audits apply the same top-versus-bottom 20% patch deletion test to every case where the historical and updated model differ in correctness. A positive margin means deleting the model's most highly weighted patches reduces true-class probability more than deleting the same number of least-weighted patches. The result is behavioural evidence that the map ranks consequential patches, although the intervention remains off-distribution.
+
+| 2014 source | Helpful routed | Harmful routed | Missed helpful | Net corrections | New-map margin, helpful | New-map margin, harmful |
+|---|---:|---:|---:|---:|---:|---:|
+| Motion blur | **357** | 90 | 47 | **267** | 0.147 | 0.031 |
+| Viewpoint shift | 88 | 56 | 17 | 32 | **0.190** | −0.053 |
+| Realistic mixture | 261 | 95 | 30 | 166 | **0.188** | 0.014 |
+
+Under motion blur, 70.0% of helpful routes have a positive updated-model deletion margin, compared with 61.1% of harmful routes. The separation is clearer for viewpoint shift (72.7% versus 44.6%) and remains present for the realistic mixture (76.6% versus 60.0%). The opposite branch also behaves coherently at the group level: historical-map margins are larger on harmful routes, where the historical model was correct, than on helpful routes. For motion blur they rise from 0.041 on helpful routes to 0.241 on harmful routes; for viewpoint shift, from 0.053 to 0.181; and for the realistic mixture, from 0.050 to 0.241. These reversals support using paired explanation behaviour as routing evidence, while the substantial overlap explains why the router still makes errors.
+
 The full 2014 combined-drift stream contains **4,999** images. The enhanced router makes **188 helpful switches** where the historical model is wrong and the newer model is correct, **90 harmful switches** in the opposite direction, and misses **17** available corrections. It therefore produces **98 net corrected predictions**. These counts explain why the overall score changes modestly even though some individual decisions change substantially.
 
 For every one of the 304 samples where one model is correct and the other is wrong, the audit deletes the top 20% and bottom 20% of patches under each model's own saliency map. The faithfulness margin is the drop in true-class probability after high-saliency deletion minus the drop after low-saliency deletion. For helpful routed cases, the newer model has a mean margin of **0.175**, compared with **0.010** on harmful routed cases; **72.3%** of helpful routes have a positive new-model margin, compared with **57.8%** of harmful routes. Conversely, the historical model's mean margin is **0.048** on helpful routes and **0.182** on harmful routes. This reversal is consistent with the intuitive routing goal: the model that is correct tends to have the more behaviourally consequential map.
@@ -220,7 +271,7 @@ The helpful example raises true-class probability from **0.060** in the historic
 
 The most credible deployment setting is class-conditional covariate drift: labels and object identity remain stable while acquisition or context changes. Examples include camera replacement, compression and sensor noise, shifts in white balance or saturation, changing illumination and season, partial occlusion, and background or viewpoint changes that break a historical shortcut. Saliency guidance is useful when stable class evidence remains visible and the newer model can reweight it. It is least credible when corruption destroys the evidence entirely. The present combined condition approximates several changes simultaneously while the CLEAR chronology supplies real temporal variation, but the completed counterexample panels remain occlusion-heavy. They illustrate the masking audit and should not be read as coverage of all operational drift.
 
-The source-separated suite addresses that limitation directly. Performance, helpful routes, harmful routes, and saliency movement must be reported independently for illumination, colour, sensor, blur, compression, resolution, viewpoint, and occlusion conditions before claiming general drift correction. A genuine saliency-guided advantage would appear across multiple families where the object remains recognizable, with explanations shifting away from unstable acquisition artifacts and toward class-relevant evidence. An improvement confined to occlusion would support only an occlusion-specific conclusion.
+The completed source-separated suite addresses that limitation directly. Performance and route outcomes are now reported independently for illumination, colour, sensor noise, defocus and motion blur, compression, resolution, viewpoint, occlusion, and a realistic mixture. The largest gains occur under motion blur and the mixed condition; viewpoint, occlusion, and digital degradation show smaller positive changes, while mild colour and illumination changes leave little room for improvement. This profile rejects an occlusion-only account, but it also rejects a claim of uniform robustness. The method is most useful when drift degrades the historical model enough for adaptation to recover stable class evidence.
 
 The method should not be expected to solve concept drift where the label meaning changes, new-class emergence, extreme occlusion, or systematic dataset errors. In those cases the saliency map may faithfully explain a wrong premise. A stronger next experiment should therefore add a matched random-mask control and an external temporal dataset, then compare confidence-only, saliency-only, and deletion-aware routers without tuning on the final horizon.
 
@@ -229,7 +280,7 @@ The method should not be expected to solve concept drift where the label meaning
 
 The longer test horizon exposes a clearer decline under compound drift and a larger benefit from drift-aware updating. The rule remains explainable because its four standardized inputs, coefficients, threshold, and saliency floor are saved in `router_policy.json`. Coefficient signs are empirical correlations from 2011 calibration, not causal explanations.
 
-The evidence is limited to one seed, one temporal dataset stream, synthetic corruptions, and one fitted threshold. Checkpoint selection and router calibration both reuse 2011 examples. No confidence intervals or multi-seed hypothesis tests are reported. The enhanced configuration produced a valid negative result for H1: the gain remained below 3 points. The auxiliary saliency-loss contribution is positive but small, and the overlapping outcome distributions do not support a strong causal explanation claim.
+The evidence is limited to one seed, one temporal dataset stream, synthetic corruptions, and one fitted threshold. Checkpoint selection and router calibration both reuse 2011 examples. No confidence intervals or multi-seed hypothesis tests are reported. The enhanced configuration produced a valid negative result for the original combined-condition H1 because that gain remained below 3 points. The later source-separated analysis exceeds 3 points only under motion blur. Auxiliary saliency losses add 0.90 routed points there and 0.84 points under the realistic mixture, but their effect is smaller or negative under several mild sources. The overlapping outcome distributions do not support a strong causal explanation claim.
 
 The next defensible step is repeated temporal backtesting with bootstrap confidence intervals and an untouched external dataset. The router should also be compared with always-old, always-new, confidence-only, and saliency-only ablations. Report macro F1 and macro IoU by year and drift type, helpful and harmful routes, update-trigger precision/recall, throughput, and training time per epoch.
 
