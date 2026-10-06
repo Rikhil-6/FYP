@@ -9,7 +9,7 @@ from PIL import Image
 
 OLD_CAPTION = "Figure 3. Matched 2014 change by drift source"
 NEW_CAPTION = (
-    "Figure 3. Router performance and saliency-loss effect across 2014 drift conditions"
+    "Figure 3. Selective-routing gain over the historical ViT and the added effect of saliency losses"
 )
 
 OLD_TEXT = (
@@ -23,13 +23,13 @@ OLD_TEXT = (
 )
 
 NEW_TEXT = (
-    "Figure 3 separates three comparisons. Routing beats the historical ViT in all 11 conditions, with "
-    "the largest gains under motion blur (+3.45) and the realistic mixture (+2.03). It nevertheless trails "
-    "always-new by 0.06–0.51 points in every condition. The audit shows the trade-off: under motion blur it "
-    "prevents 16 harmful replacements but misses 47 corrections; the counts are 8 and 17 for viewpoint "
-    "shift, and 20 and 30 for the realistic mixture. Saliency losses improve routing mainly under motion "
-    "blur (+0.90) and mixed drift (+0.84), but are neutral or negative on clean and mild shifts. Routing is "
-    "therefore an auditable compromise; always-new wins on macro F1 in this run."
+    "Figure 3 evaluates routing against its intended deployment baseline, the frozen historical ViT. Every "
+    "routed result is positive, led by motion blur (+3.45 points) and the realistic mixture (+2.03 points). "
+    "Relative to the matched no-auxiliary router, saliency losses add +0.90 and +0.84 points in those "
+    "conditions. Routing also prevents 16 and 20 harmful replacements, although it misses 47 and 30 "
+    "beneficial updates. The updated ViT remains a performance ceiling: routing is 0.06–0.51 points lower "
+    "overall, yet retains 87.1% and 91.9% of its gain in the two hardest conditions while making model "
+    "switches explicit and reviewable."
 )
 
 TARGET_MEDIA = "word/media/image4.png"

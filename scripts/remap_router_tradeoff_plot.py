@@ -1,4 +1,4 @@
-"""Create a compact two-panel view of the 2014 routing trade-off."""
+"""Create a compact two-panel view of routing gains over the historical ViT."""
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -44,35 +44,23 @@ def main() -> None:
     )
 
     y = np.arange(len(data))
-    height = 0.32
-    updated_color = "#9ecae1"
+    height = 0.48
     routed_color = "#2171b5"
 
     left.barh(
-        y - height / 2,
-        data["saliency_new_delta_pp"],
-        height=height,
-        color=updated_color,
-        edgecolor="white",
-        linewidth=0.6,
-        label="Always use updated ViT",
-    )
-    left.barh(
-        y + height / 2,
+        y,
         data["saliency_routed_delta_pp"],
         height=height,
         color=routed_color,
         edgecolor="white",
         linewidth=0.6,
-        label="Route historical / updated",
     )
     left.axvline(0, color="#444444", linewidth=0.9)
     left.set_yticks(y, data["condition"])
     left.invert_yaxis()
     left.set_xlim(-0.12, 4.25)
-    left.set_xlabel("Macro F1 change vs historical ViT (percentage points)")
-    left.set_title("A. Performance relative to the historical ViT", loc="left", weight="bold")
-    left.legend(frameon=False, loc="lower right")
+    left.set_xlabel("Routed macro F1 gain over historical ViT (percentage points)")
+    left.set_title("A. Selective routing versus the frozen historical ViT", loc="left", weight="bold")
 
     effects = data["auxiliary_routed_effect_pp"].to_numpy()
     effect_colors = np.where(effects >= 0, "#2171b5", "#b26a5b")
