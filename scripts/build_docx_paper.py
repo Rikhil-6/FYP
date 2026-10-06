@@ -18,9 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "reports" / "transparent_router" / "long_horizon_mock_paper.md"
 OUTPUT = ROOT / "output" / "docx" / "transparent_router_mock_paper.docx"
 
-DARK_BLUE = "17324D"
-PALE_BLUE = "EDF4F8"
-LIGHT_BORDER = "D9D9D9"
+HEADER_GRAY = "E7E7E7"
+LIGHT_BORDER = "BFBFBF"
 
 SOURCE_REFERENCES = [
     "[6] Q. Yao and X. Gong, Saliency Guided Self-attention Network for Weakly and Semi-supervised Semantic Segmentation, arXiv:1910.05475, 2020.",
@@ -68,9 +67,12 @@ def set_table_borders(table) -> None:
         if element is None:
             element = OxmlElement(f"w:{edge}")
             borders.append(element)
-        element.set(qn("w:val"), "single")
-        element.set(qn("w:sz"), "4")
-        element.set(qn("w:color"), LIGHT_BORDER)
+        if edge in {"left", "right", "insideV"}:
+            element.set(qn("w:val"), "nil")
+        else:
+            element.set(qn("w:val"), "single")
+            element.set(qn("w:sz"), "6" if edge in {"top", "bottom"} else "3")
+            element.set(qn("w:color"), "666666" if edge in {"top", "bottom"} else LIGHT_BORDER)
 
 
 def add_page_number(paragraph) -> None:
@@ -117,9 +119,7 @@ def add_table(document: Document, lines: list[str]) -> None:
             cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
             set_cell_margins(cell)
             if row_index == 0:
-                set_cell_fill(cell, DARK_BLUE)
-            elif row_index % 2 == 0:
-                set_cell_fill(cell, PALE_BLUE)
+                set_cell_fill(cell, HEADER_GRAY)
             paragraph = cell.paragraphs[0]
             paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT if column_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
             add_inline(paragraph, value)
@@ -127,7 +127,7 @@ def add_table(document: Document, lines: list[str]) -> None:
                 run.font.size = Pt(8.5)
                 if row_index == 0:
                     run.bold = True
-                    run.font.color.rgb = RGBColor(255, 255, 255)
+                    run.font.color.rgb = RGBColor(0, 0, 0)
     table.rows[0]._tr.get_or_add_trPr().append(OxmlElement("w:tblHeader"))
     document.add_paragraph().paragraph_format.space_after = Pt(0)
 
@@ -171,15 +171,15 @@ def build() -> None:
 
     styles = document.styles
     normal = styles["Normal"]
-    normal.font.name = "Aptos"
-    normal.font.size = Pt(11)
+    normal.font.name = "Times New Roman"
+    normal.font.size = Pt(10.5)
     normal.font.color.rgb = RGBColor(0, 0, 0)
     normal.paragraph_format.space_after = Pt(6)
-    normal.paragraph_format.line_spacing = 1.15
+    normal.paragraph_format.line_spacing = 1.08
 
     title = styles["Title"]
-    title.font.name = "Aptos Display"
-    title.font.size = Pt(24)
+    title.font.name = "Times New Roman"
+    title.font.size = Pt(22)
     title.font.bold = True
     title.font.color.rgb = RGBColor(0, 0, 0)
     title.paragraph_format.space_after = Pt(8)
@@ -190,7 +190,7 @@ def build() -> None:
 
     for name, size, before, after in (("Heading 1", 16, 14, 7), ("Heading 2", 13, 11, 5), ("Heading 3", 11.5, 9, 4)):
         style = styles[name]
-        style.font.name = "Aptos Display"
+        style.font.name = "Times New Roman"
         style.font.size = Pt(size)
         style.font.bold = True
         style.font.color.rgb = RGBColor(0, 0, 0)
@@ -201,7 +201,7 @@ def build() -> None:
     footer = section.footer.paragraphs[0]
     footer.alignment = WD_ALIGN_PARAGRAPH.LEFT
     footer.paragraph_format.tab_stops.add_tab_stop(Inches(6.75), WD_TAB_ALIGNMENT.RIGHT)
-    footer.add_run("Rik FYP transparent router prototype")
+    footer.add_run("Saliency-guided routing under temporal drift")
     footer.runs[0].font.size = Pt(8)
     footer.runs[0].font.color.rgb = RGBColor(95, 105, 120)
     footer.add_run("\t")
@@ -236,15 +236,15 @@ def build() -> None:
             if match:
                 caption, relative_path = match.groups()
                 image_path = SOURCE.parent / relative_path
-                caption_paragraph = document.add_paragraph()
-                caption_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                caption_run = caption_paragraph.add_run(caption)
-                caption_run.bold = True
-                caption_run.font.size = Pt(9)
-                caption_paragraph.paragraph_format.keep_with_next = True
                 picture_paragraph = document.add_paragraph()
                 picture_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 picture_paragraph.add_run().add_picture(str(image_path), width=Inches(6.65))
+                picture_paragraph.paragraph_format.keep_with_next = True
+                caption_paragraph = document.add_paragraph()
+                caption_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                caption_run = caption_paragraph.add_run(caption)
+                caption_run.italic = True
+                caption_run.font.size = Pt(9)
             index += 1
             continue
         if stripped.startswith("|") and index + 1 < len(lines) and re.match(r"^\|[\s:|-]+\|$", lines[index + 1].strip()):
@@ -261,12 +261,12 @@ def build() -> None:
             flush_paragraph()
             level = len(heading.group(1))
             text = heading.group(2)
-            if text in {"1. Research question", "1. Introduction and thesis"}:
+            if text in {"1. Research question", "1. Introduction and thesis", "1. Introduction"}:
                 keyword_paragraph = document.add_paragraph()
                 keyword_run = keyword_paragraph.add_run("Keywords  ")
                 keyword_run.bold = True
                 keyword_paragraph.add_run("temporal data drift, vision transformer, explainable artificial intelligence, saliency, Siamese network, transparent routing")
-                text = "1. Introduction and thesis"
+                text = "1. Introduction"
             style = "Title" if level == 1 else f"Heading {level - 1}"
             paragraph = document.add_paragraph(style=style)
             add_inline(paragraph, text)
@@ -319,8 +319,8 @@ def build() -> None:
         for run in paragraph.runs:
             run.font.size = Pt(9)
 
-    document.core_properties.title = "Transparent Saliency Routing for Temporal Image Drift"
-    document.core_properties.subject = "Completed fixed-horizon prototype report"
+    document.core_properties.title = "Using Saliency to Route Between Historical and Updated Vision Transformers"
+    document.core_properties.subject = "Fixed-horizon evaluation under temporal image drift"
     document.core_properties.author = "Rik FYP"
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     document.save(OUTPUT)
