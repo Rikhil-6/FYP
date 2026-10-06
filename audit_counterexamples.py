@@ -26,8 +26,7 @@ from siamese import ViTTwinRouter
 from transparent_router import FEATURES, apply_policy
 
 
-SALIENCY_OVERLAY_STRENGTH = 0.28
-SALIENCY_COLOR = (213, 94, 0)
+SALIENCY_OVERLAY_STRENGTH = 0.58
 
 
 def figure_font(size=14, bold=False):
@@ -61,16 +60,44 @@ def rgb(tensor):
     return Image.fromarray((value.clamp(0, 1).permute(1, 2, 0).numpy() * 255).astype(np.uint8))
 
 
-def overlay(base, weights):
+def normalized_saliency(weights):
     side = round(weights.numel() ** 0.5)
-    heat = weights.detach().cpu().reshape(side, side).numpy()
-    heat = Image.fromarray((255 * heat / max(float(heat.max()), 1e-8)).astype(np.uint8)).resize(
-        base.size, Image.Resampling.BILINEAR)
-    return Image.composite(
-        Image.new("RGB", base.size, SALIENCY_COLOR),
-        base,
-        heat.point(lambda value: int(value * SALIENCY_OVERLAY_STRENGTH)),
-    )
+    heat = weights.detach().cpu().reshape(side, side).numpy().astype(np.float32)
+    low, high = np.quantile(heat, (0.05, 0.95))
+    return np.clip((heat - low) / max(float(high - low), 1e-8), 0, 1)
+
+
+def color_map(values, size, name):
+    if name == "inferno":
+        positions = np.array([0.0, 0.25, 0.50, 0.75, 1.0])
+        colors = np.array([(0, 0, 4), (87, 16, 110), (188, 55, 84),
+                           (249, 142, 8), (252, 255, 164)])
+    elif name == "coolwarm":
+        positions = np.array([0.0, 0.50, 1.0])
+        colors = np.array([(59, 76, 192), (221, 221, 221), (180, 4, 38)])
+    else:
+        raise ValueError(f"Unknown colour map: {name}")
+    rgb_values = np.stack(
+        [np.interp(values, positions, colors[:, channel]) for channel in range(3)], axis=-1
+    ).astype(np.uint8)
+    return Image.fromarray(rgb_values).resize(size, Image.Resampling.BILINEAR)
+
+
+def overlay(base, weights):
+    """Render a robustly normalised heatmap strongly enough to inspect spatial evidence."""
+    heat = color_map(normalized_saliency(weights), base.size, "inferno")
+    return Image.blend(base, heat, SALIENCY_OVERLAY_STRENGTH)
+
+
+def saliency_change(old_weights, new_weights, size):
+    """Show signed patch-evidence redistribution with a symmetric per-sample scale."""
+    side = round(old_weights.numel() ** 0.5)
+    old = old_weights.detach().cpu().reshape(side, side).numpy().astype(np.float32)
+    new = new_weights.detach().cpu().reshape(side, side).numpy().astype(np.float32)
+    difference = new - old
+    scale = max(float(np.quantile(np.abs(difference), 0.95)), 1e-8)
+    signed = np.clip(0.5 + 0.5 * difference / scale, 0, 1)
+    return color_map(signed, size, "coolwarm")
 
 
 def delete_patches(image, saliency, highest=True, fraction=0.20):
@@ -120,12 +147,15 @@ def outcome(row):
 def save_panel(path, clean_image, drift_image, comparison, new_salient, new_context, row):
     drift_rgb = rgb(drift_image)
     panels = [rgb(clean_image), drift_rgb, overlay(drift_rgb, comparison["old_map"][0]),
-              overlay(drift_rgb, comparison["new_map"][0]), rgb(new_salient), rgb(new_context)]
+              overlay(drift_rgb, comparison["new_map"][0]),
+              saliency_change(comparison["old_map"][0], comparison["new_map"][0], drift_rgb.size),
+              rgb(new_salient), rgb(new_context)]
     shifted_name = row["scenario"].replace("_", " ")
     if row.get("drift_components"):
         shifted_name += ": " + row["drift_components"].replace("+", ", ")
-    names = ("(a) Clean", f"(b) {shifted_name}", "(c) Historical evidence",
-             "(d) Updated evidence", "(e) Remove top 20%", "(f) Remove bottom 20%")
+    names = ("(a) Clean", f"(b) {shifted_name}", "(c) Historical saliency",
+             "(d) Updated saliency", "(e) Change: blue old / red new",
+             "(f) Remove top 20%", "(g) Remove bottom 20%")
     canvas = Image.new("RGB", (224 * len(panels), 316), "white")
     draw = ImageDraw.Draw(canvas)
     for position, (panel, name) in enumerate(zip(panels, names)):

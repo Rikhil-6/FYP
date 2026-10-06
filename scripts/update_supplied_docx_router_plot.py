@@ -33,6 +33,30 @@ NEW_TEXT = (
 )
 
 TARGET_MEDIA = "word/media/image4.png"
+TARGET_SALIENCY_MEDIA = "word/media/image6.png"
+
+OLD_SALIENCY_TEXT = (
+    "Each audit panel shows the clean image, the drifted input, and the historical and updated evidence "
+    "maps. The label line records the true class, both predictions, the routed prediction, route probability, "
+    "saliency divergence, and deletion margin. The overlays are kept faint enough for the image to remain visible."
+)
+
+NEW_SALIENCY_TEXT = (
+    "Each audit row now separates the clean reference, drifted input, historical saliency, updated saliency, "
+    "and signed saliency change. The two overlays use the same robust 5th–95th percentile normalisation and "
+    "a stronger heatmap blend so spatial evidence remains visible. In the change map, red marks patches that "
+    "gain weight in the updated ViT and blue marks patches that lose weight. Because each row is scaled for "
+    "display, colour shows location and direction rather than absolute effect size; the reported Jensen–Shannon "
+    "divergence and deletion margin quantify magnitude and behavioural relevance."
+)
+
+OLD_FIGURE4_CAPTION = (
+    "Figure 4. Helpful routed corrections under motion blur, viewpoint shift, and a realistic mixture"
+)
+
+NEW_FIGURE4_CAPTION = (
+    "Figure 4. Helpful routed corrections with historical, updated, and signed saliency-change maps"
+)
 
 
 def replace_once(payload: bytes, old: str, new: str, label: str) -> bytes:
@@ -50,6 +74,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--plot", required=True, type=Path)
+    parser.add_argument("--saliency-figure", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
 
@@ -58,6 +83,7 @@ def main() -> None:
             raise ValueError(f"Replacement plot must be 1800x913, found {image.size}")
 
     plot_bytes = args.plot.read_bytes()
+    saliency_bytes = args.saliency_figure.read_bytes()
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
     with ZipFile(args.input, "r") as source:
@@ -67,11 +93,15 @@ def main() -> None:
         old_media = {
             name: digest(source.read(name))
             for name in names
-            if name.startswith("word/media/") and name != TARGET_MEDIA
+            if name.startswith("word/media/") and name not in {TARGET_MEDIA, TARGET_SALIENCY_MEDIA}
         }
         document_xml = source.read("word/document.xml")
         document_xml = replace_once(document_xml, OLD_CAPTION, NEW_CAPTION, "caption")
         document_xml = replace_once(document_xml, OLD_TEXT, NEW_TEXT, "interpretation paragraph")
+        document_xml = replace_once(document_xml, OLD_SALIENCY_TEXT, NEW_SALIENCY_TEXT,
+                                    "saliency explanation paragraph")
+        document_xml = replace_once(document_xml, OLD_FIGURE4_CAPTION, NEW_FIGURE4_CAPTION,
+                                    "Figure 4 caption")
 
         with ZipFile(args.output, "w", compression=ZIP_DEFLATED) as target:
             for info in source.infolist():
@@ -79,6 +109,8 @@ def main() -> None:
                     data = document_xml
                 elif info.filename == TARGET_MEDIA:
                     data = plot_bytes
+                elif info.filename == TARGET_SALIENCY_MEDIA:
+                    data = saliency_bytes
                 else:
                     data = source.read(info.filename)
                 target.writestr(info, data)
@@ -90,6 +122,8 @@ def main() -> None:
                 raise RuntimeError(f"Unexpected change to {name}")
         if digest(revised.read(TARGET_MEDIA)) != digest(plot_bytes):
             raise RuntimeError("Replacement plot was not written correctly")
+        if digest(revised.read(TARGET_SALIENCY_MEDIA)) != digest(saliency_bytes):
+            raise RuntimeError("Replacement saliency figure was not written correctly")
 
     print(args.output)
 
