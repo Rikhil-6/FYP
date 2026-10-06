@@ -43,19 +43,23 @@ def main():
     width, row_height = 920, 292
     canvas = Image.new("RGB", (width, 44 + len(entries) * row_height), "white")
     draw = ImageDraw.Draw(canvas)
-    headers = ("Clean reference", "Drifted input", "Historical evidence", "Updated evidence")
+    headers = ("Clean reference", "Drifted input", "Historical saliency",
+               "Updated saliency", "Saliency change")
     for index, header in enumerate(headers):
-        draw.text((18 + index * 224, 12), header, font=font(14, True), fill="#202020")
+        draw.text((14 + index * 180, 12), header, font=font(12, True), fill="#202020")
 
     for row_index, (label, audit_dir, row) in enumerate(entries):
         top = 44 + row_index * row_height
-        source = Image.open(audit_dir / row["panel"]).convert("RGB").crop((0, 30, 896, 254))
-        canvas.paste(source, (12, top + 28))
+        source = Image.open(audit_dir / row["panel"]).convert("RGB")
+        for panel_index in range(5):
+            panel = source.crop((panel_index * 224, 30, (panel_index + 1) * 224, 254))
+            panel = panel.resize((176, 176), Image.Resampling.LANCZOS)
+            canvas.paste(panel, (12 + panel_index * 180, top + 28))
         draw.text((12, top + 3), label, font=font(17, True), fill="#202020")
         summary = (f"true {row['true_class']}   historical {row['old_class']}   updated {row['new_class']}   "
                    f"route p={float(row['route_probability']):.3f}   JS={float(row['saliency_js']):.4f}   "
                    f"deletion margin={float(row['new_faithfulness_margin']):+.3f}")
-        draw.text((12, top + 258), summary, font=font(13), fill="#303030")
+        draw.text((12, top + 214), summary, font=font(13), fill="#303030")
         if row_index + 1 < len(entries):
             draw.line((12, top + row_height - 4, 908, top + row_height - 4),
                       fill="#B0B0B0", width=1)
