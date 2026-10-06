@@ -9,7 +9,7 @@ INK = "#202020"
 MID = "#626262"
 LINE = "#4A4A4A"
 LANE = "#F3F3F3"
-XAI = "#E7F0F5"
+XAI = "#E9E9E9"
 
 
 def font(size, bold=False, italic=False):
@@ -67,7 +67,7 @@ def main():
     box(draw, (1015, 135, 1360, 300), "Historical XAI ViT",
         ("frozen transformer", "frozen saliency gate", "old logits + patch map"))
 
-    draw.rectangle((980, 410, 1395, 700), fill="#F4F7F8", outline="#9AAAB4", width=2)
+    draw.rectangle((980, 410, 1395, 700), fill="#F5F5F5", outline="#A5A5A5", width=2)
     draw.text((1000, 424), "Adapted path", font=font(23, True), fill=INK)
     box(draw, (1015, 475, 1360, 640), "Updated XAI ViT",
         ("last 3 blocks adapted", "learned saliency gate", "new logits + patch map"), fill=XAI)

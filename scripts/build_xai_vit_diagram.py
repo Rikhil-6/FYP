@@ -8,7 +8,7 @@ OUTPUT = Path(__file__).resolve().parents[1] / "reports" / "transparent_router" 
 INK = "#202020"
 MID = "#606060"
 LINE = "#4A4A4A"
-PALE = "#E7F0F5"
+PALE = "#E9E9E9"
 LIGHT = "#F3F3F3"
 
 
@@ -48,9 +48,6 @@ def arrow(draw, start, end, label=None):
 def main():
     canvas = Image.new("RGB", (1900, 930), "white")
     draw = ImageDraw.Draw(canvas)
-    draw.text((45, 25), "Embedded saliency-guided ViT: forward computation and training signals",
-              font=font(28, bold=True), fill=INK)
-
     box(draw, (45, 120, 225, 250), "Image", ("RGB, 224 × 224",))
     box(draw, (275, 120, 515, 250), "Patch tokens", ("16 × 16 grid", "256 × 384"))
     box(draw, (565, 120, 855, 250), "DINOv2-small", ("class token h_cls", "patch tokens h_i"), fill=LIGHT)
@@ -91,7 +88,7 @@ def main():
     arrow(draw, (1755, 385), (950, 550), "predictions, labels, and paired historical map")
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    canvas.save(OUTPUT, optimize=True)
+    canvas.crop((0, 70, 1900, 930)).save(OUTPUT, optimize=True)
     print(OUTPUT)
 
 
