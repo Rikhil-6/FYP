@@ -5,7 +5,7 @@ from pathlib import Path
 
 import torch
 
-from run_store import RunStore
+from fyp_drift.artifacts.run_store import RunStore
 
 
 class RunStoreCheckpointTest(unittest.TestCase):
@@ -19,10 +19,15 @@ class RunStoreCheckpointTest(unittest.TestCase):
             loss = model(torch.ones(1, 3)).sum()
             loss.backward()
             optimizer.step()
-            expected = {name: value.detach().clone() for name, value in model.state_dict().items()}
+            expected = {
+                name: value.detach().clone()
+                for name, value in model.state_dict().items()
+            }
 
             store.save_training_checkpoint(model, optimizer, epoch=2, best_score=0.75)
-            payload = torch.load(store.path / "models" / "resume.pt", weights_only=False)
+            payload = torch.load(
+                store.path / "models" / "resume.pt", weights_only=False
+            )
             metadata = json.loads((store.path / "models" / "resume.json").read_text())
 
             self.assertEqual(payload["epoch"], 2)

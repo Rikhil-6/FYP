@@ -4,19 +4,26 @@ import numpy as np
 import torch
 from PIL import Image
 
-from drift import (REALISTIC_BENCHMARK_SCENARIOS, drift_transform,
-                   realistic_mixed_drift_transform, scenario_components)
+from fyp_drift.data.corruptions import (
+    REALISTIC_BENCHMARK_SCENARIOS,
+    drift_transform,
+    realistic_mixed_drift_transform,
+    scenario_components,
+)
 
 
 class RealisticDriftTest(unittest.TestCase):
     def setUp(self):
         horizontal = np.linspace(20, 235, 224, dtype=np.uint8)[None, :, None]
         vertical = np.linspace(235, 20, 224, dtype=np.uint8)[:, None, None]
-        image = np.concatenate((
-            np.broadcast_to(horizontal, (224, 224, 1)),
-            np.broadcast_to(vertical, (224, 224, 1)),
-            np.full((224, 224, 1), 128, dtype=np.uint8),
-        ), axis=2)
+        image = np.concatenate(
+            (
+                np.broadcast_to(horizontal, (224, 224, 1)),
+                np.broadcast_to(vertical, (224, 224, 1)),
+                np.full((224, 224, 1), 128, dtype=np.uint8),
+            ),
+            axis=2,
+        )
         self.image = Image.fromarray(image, "RGB")
 
     def test_every_benchmark_source_is_finite_and_deterministic(self):
@@ -30,8 +37,9 @@ class RealisticDriftTest(unittest.TestCase):
                 self.assertTrue(torch.equal(first, second))
 
     def test_realistic_mix_varies_by_sample_and_occlusion_is_minor(self):
-        compositions = [scenario_components("realistic_mix", index, 3, 42)
-                        for index in range(1000)]
+        compositions = [
+            scenario_components("realistic_mix", index, 3, 42) for index in range(1000)
+        ]
         self.assertGreater(len(set(compositions)), 20)
         occluded = sum("occlusion" in composition for composition in compositions)
         self.assertGreaterEqual(occluded, 70)

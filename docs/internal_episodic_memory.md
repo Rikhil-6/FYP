@@ -193,7 +193,7 @@ Commit history milestones:
 - The supplied Word draft was expanded with numbered introduction subsections, a standalone literature review, quantitative prior-effect comparisons, and a design-decision matrix.
 - The Siamese claim is now bounded precisely: this is an asymmetric Siamese evaluation architecture with two same-family ViTs and an explicit logistic comparison layer, not a hidden end-to-end metric network.
 - Prior results remain labelled exploratory because adapted-checkpoint selection and router fitting shared the 2011 labels.
-- `train_siamese.py` now defaults to deterministic, class-stratified, disjoint selection and router-calibration partitions. A legacy flag exists only to reproduce the archived runs, and resume operations reject protocol mismatches.
+- `fyp-train-router` now defaults to deterministic, class-stratified, disjoint selection and router-calibration partitions. A legacy flag exists only to reproduce the archived runs, and resume operations reject protocol mismatches.
 - The completed source-separated results are interpreted against prior reported effect sizes rather than against a universal three-point threshold. The document now explains that task and metric differences prevent direct cross-paper ranking.
 - Final editable review artifact: `output/docx/updated_ViT_router_mock_paper_2_literature_revision.docx`.
 6. Record Git commit SHA and full method hyperparameters in every run config, including default profile names rather than `null`.
@@ -213,12 +213,12 @@ Commit history milestones:
 Implementation additions:
 
 - `RunStore.save_training_checkpoint` atomically writes `models/resume.pt` after every evaluated epoch and records `resume.json` metadata. The checkpoint contains the newer ViT, AdamW optimizer, completed epoch, and best score.
-- `train_siamese.py --resume-run-dir` restores the next epoch from that state. A deliberate stop after standard epoch 2 resumed at epoch 3 and later selected epoch 4.
+- `fyp-train-router --resume-run-dir` restores the next epoch from that state. A deliberate stop after standard epoch 2 resumed at epoch 3 and later selected epoch 4.
 - `--disable-saliency-loss` sets the pairwise divergence and complementary-evidence auxiliary weights to zero. It does not remove the learned saliency gate from the classifier forward pass.
 - `--drift-scenarios clean combined` supports focused final ablations.
 - Per-sample drift routing decisions are now written to `logs/drift_routing_decisions.csv`.
-- `analyze_saliency.py` emits outcome-stratified CSV/JSON, a compact headline JSON, and a box-plot PNG.
-- `compare_runs.py` reports scores, policies, epoch traces, and explicit equality checks for the fixed protocol controls.
+- `fyp-analyze-saliency` emits outcome-stratified CSV/JSON, a compact headline JSON, and a box-plot PNG.
+- `fyp-compare-runs` reports scores, policies, epoch traces, and explicit equality checks for the fixed protocol controls.
 - `tests/test_run_store.py` verifies model weights, optimizer state, epoch, score, and metadata survive a checkpoint round trip.
 
 All three comparison runs match on five epochs, batch size 8, seed 42, adaptation year 2010, calibration year 2011, test years 2012–2014, and long-horizon mode. All selected epoch 4.
@@ -241,7 +241,7 @@ New Git-friendly artifacts are under `reports/transparent_router/20261005-ablati
 
 ## 2026-10-05 counterexample audit
 
-`audit_counterexamples.py` now evaluates the complete 4,999-image 2014 combined-drift stream while retaining manifest indices. The enhanced run contains 188 helpful routes, 90 harmful routes, 17 missed helpful switches, and 9 cases where retaining the historical model prevents a newer-model error. The router therefore makes 98 net corrections.
+`fyp-audit-router` now evaluates the complete 4,999-image 2014 combined-drift stream while retaining manifest indices. The enhanced run contains 188 helpful routes, 90 harmful routes, 17 missed helpful switches, and 9 cases where retaining the historical model prevents a newer-model error. The router therefore makes 98 net corrections.
 
 For all 304 cases where one model is correct and the other is wrong, an equal-area deletion test removes either the top or bottom 20% of patches under each model's own saliency map. The new-model mean faithfulness margin is 0.175 on helpful routes and 0.010 on harmful routes; its positive-margin fractions are 72.3% and 57.8%. The historical-model mean margin reverses from 0.048 on helpful routes to 0.182 on harmful routes. This supports an outcome-level association between correct predictions and behaviourally consequential saliency, but it does not establish object localization or causal attribution.
 

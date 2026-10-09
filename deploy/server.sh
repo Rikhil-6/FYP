@@ -40,7 +40,7 @@ latest_best() {
 
 check_training_device() {
   if [[ "${FYP_ALLOW_CPU_TRAIN:-0}" != "1" ]]; then
-    if ! "$uv" run --no-sync hardware.py --require-gpu; then
+    if ! "$uv" run --no-sync fyp-hardware --require-gpu; then
       echo "Full training requires an accessible GPU by default. Set FYP_ALLOW_CPU_TRAIN=1 to run on CPU." >&2
       exit 2
     fi
@@ -50,40 +50,40 @@ check_training_device() {
 train_method() {
   local method="$1"
   shift
-  "$uv" run --no-sync train.py --method "$method" "$@"
+  "$uv" run --no-sync fyp-train --method "$method" "$@"
 }
 
 train_twin() {
   local base
   base="$(latest_best xai)"
-  "$uv" run --no-sync train_siamese.py --base-checkpoint "$base" "$@"
+  "$uv" run --no-sync fyp-train-router --base-checkpoint "$base" "$@"
 }
 
 case "$action" in
   status)
     git status --short --branch
-    "$uv" run --no-sync hardware.py
+    "$uv" run --no-sync fyp-hardware
     for name in data runs tools .venv cache; do
       printf '%s -> %s\n' "$name" "$(readlink -f "$name")"
     done
     ;;
-  smoke) "$uv" run --no-sync smoke.py "$@" ;;
-  ingest) "$uv" run --no-sync ingest.py "$@" ;;
-  experiment) check_training_device; "$uv" run --no-sync experiment.py "$@" ;;
+  smoke) "$uv" run --no-sync fyp-smoke "$@" ;;
+  ingest) "$uv" run --no-sync fyp-ingest "$@" ;;
+  experiment) check_training_device; "$uv" run --no-sync fyp-experiment "$@" ;;
   baseline) check_training_device; train_method baseline "$@" ;;
   xai) check_training_device; train_method xai "$@" ;;
   siamese) check_training_device; train_twin "$@" ;;
   evaluate)
     for method in baseline xai; do
       checkpoint="$(latest_best "$method")"
-      "$uv" run --no-sync evaluate.py --method "$method" --checkpoint "$checkpoint" --output "$(dirname "$(dirname "$checkpoint")")/metrics/recheck" "$@"
+      "$uv" run --no-sync fyp-evaluate --method "$method" --checkpoint "$checkpoint" --output "$(dirname "$(dirname "$checkpoint")")/metrics/recheck" "$@"
     done
     ;;
   drift)
     for method in baseline xai; do
       checkpoint="$(latest_best "$method")"
       run_root="$(dirname "$(dirname "$checkpoint")")"
-      "$uv" run --no-sync evaluate_drift.py --method "$method" --checkpoint "$checkpoint" \
+      "$uv" run --no-sync fyp-evaluate-drift --method "$method" --checkpoint "$checkpoint" \
         --output "${run_root}/metrics/drift" "$@"
     done
     ;;

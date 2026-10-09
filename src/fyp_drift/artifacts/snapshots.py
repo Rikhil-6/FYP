@@ -1,8 +1,9 @@
 """Manually preserve a selected run checkpoint with its selection metadata."""
+
 import argparse
 from pathlib import Path
 
-from run_store import manual_snapshot
+from fyp_drift.artifacts.run_store import manual_snapshot
 
 
 def main():
