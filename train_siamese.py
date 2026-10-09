@@ -13,7 +13,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, Subset
 from tqdm.auto import tqdm
 
-from data import open_dataset, year_loader
+from data import open_dataset, stratified_year_partition_loaders, year_loader
 from drift import (REALISTIC_BENCHMARK_SCENARIOS, SCENARIOS, drift_transform,
                    mixed_drift_transform, realistic_mixed_drift_transform,
                    scenario_components)
@@ -144,9 +144,13 @@ def main():
                         help="Subset of drift conditions to evaluate; useful for controlled ablations")
     parser.add_argument("--adapt-year", type=int, default=2012)
     parser.add_argument("--calibration-year", type=int, default=2013)
+    parser.add_argument("--selection-fraction", type=float, default=0.5,
+                        help="Class-stratified share of the calibration year reserved for checkpoint selection")
+    parser.add_argument("--reuse-calibration-for-selection", action="store_true",
+                        help="Legacy reproduction only: select checkpoints and fit the router on the same examples")
     parser.add_argument("--test-years", type=int, nargs="+", default=(2014,))
     parser.add_argument("--long-horizon", action="store_true",
-                        help="Use drift-aware 2010 adaptation, 2011 calibration, and frozen 2012-2014 tests")
+                        help="Use 2010 adaptation, disjoint 2011 selection/calibration, and frozen 2012-2014 tests")
     parser.add_argument("--adaptation-profile", choices=("standard", "enhanced", "realistic"),
                         default="standard",
                         help="Realistic uses acquisition, pipeline, viewpoint, and rare occlusion shifts")
@@ -159,6 +163,8 @@ def main():
         parser.error("--epochs must be at least 1")
     if args.log_every < 1:
         parser.error("--log-every must be at least 1")
+    if not 0 < args.selection_fraction < 1:
+        parser.error("--selection-fraction must be strictly between 0 and 1")
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -182,13 +188,33 @@ def main():
     adapt, _ = year_loader(dataset, adapt_split, (args.adapt_year,), args.batch_size,
                            shuffle=True, limit=args.limit_adapt, seed=args.seed,
                            image_transform=adapt_transform or drift_transform("clean", 1, args.seed))
-    calibrate, _ = year_loader(dataset, calibration_split, (args.calibration_year,), args.batch_size,
-                               limit=args.limit_calibrate,
-                               image_transform=calibration_transform or drift_transform("clean", 1, args.seed))
+    calibration_image_transform = calibration_transform or drift_transform("clean", 1, args.seed)
+    if args.reuse_calibration_for_selection:
+        calibrate, _ = year_loader(dataset, calibration_split, (args.calibration_year,), args.batch_size,
+                                   limit=args.limit_calibrate,
+                                   image_transform=calibration_image_transform)
+        selection = calibrate
+        calibration_protocol = "shared_legacy"
+    else:
+        selection, calibrate, _ = stratified_year_partition_loaders(
+            dataset, calibration_split, args.calibration_year, args.batch_size,
+            fraction=args.selection_fraction, limit=args.limit_calibrate, seed=args.seed,
+            image_transform=calibration_image_transform)
+        calibration_protocol = "disjoint_class_stratified"
+    if args.resume_run_dir:
+        prior_config_path = args.resume_run_dir / "config.json"
+        if prior_config_path.is_file():
+            prior_config = json.loads(prior_config_path.read_text(encoding="utf-8"))
+            prior_protocol = prior_config.get("calibration_protocol", "shared_legacy")
+            if prior_protocol != calibration_protocol:
+                raise ValueError(
+                    f"Resume protocol mismatch: run uses {prior_protocol}, requested {calibration_protocol}. "
+                    "Use --reuse-calibration-for-selection only for an archived shared-calibration run."
+                )
     future, year_column = year_loader(dataset, test_split, args.test_years, args.batch_size,
                                       limit=args.limit_test,
                                       image_transform=drift_transform("clean", 1, args.seed))
-    if not len(adapt.dataset) or not len(calibrate.dataset) or not len(future.dataset):
+    if not len(adapt.dataset) or not len(selection.dataset) or not len(calibrate.dataset) or not len(future.dataset):
         raise ValueError("One year split is empty; check the CLEAR-100 manifest")
     checkpoint = torch.load(args.base_checkpoint, map_location="cpu", weights_only=True)
     classes = checkpoint["classifier.weight"].shape[0]
@@ -224,7 +250,10 @@ def main():
         store = RunStore(args.output, "siamese", args.run_id)
         store.write_json("config.json", vars(args) | {"dataset": "CLEAR-100", "num_classes": classes,
                                                       "device": device, "torch_version": torch.__version__,
-                                                      "cuda_build": torch.version.cuda})
+                                                      "cuda_build": torch.version.cuda,
+                                                      "calibration_protocol": calibration_protocol,
+                                                      "selection_samples": len(selection.dataset),
+                                                      "router_calibration_samples": len(calibrate.dataset)})
     for epoch in range(start_epoch, args.epochs + 1):
         new.train()
         total = 0.0
@@ -264,12 +293,12 @@ def main():
         else:
             gpu_seconds = None
         wall_seconds = time.perf_counter() - wall_start
-        validation = model_metrics(new, calibrate, device)
+        validation = model_metrics(new, selection, device)
         score = validation["macro_f1"]
-        metric_name = f"calibration_{args.calibration_year}_macro_f1"
+        metric_name = f"selection_{args.calibration_year}_macro_f1"
         row = {"epoch": epoch, "adapt_loss": round(total / len(adapt.dataset), 4),
                metric_name: score,
-               f"calibration_{args.calibration_year}_macro_iou": validation["macro_iou"]}
+               f"selection_{args.calibration_year}_macro_iou": validation["macro_iou"]}
         row["timing"] = {"adapt_wall_seconds": round(wall_seconds, 4),
                          "adapt_gpu_seconds": round(gpu_seconds, 4) if gpu_seconds is not None else None,
                          "adapt_images_per_second": round(len(adapt.dataset) / wall_seconds, 2)}
@@ -290,7 +319,8 @@ def main():
         writer.writeheader()
         writer.writerows(decisions)
     store.log({"event": "final", "selected_checkpoint": "models/best.pt",
-               "selection_metric": f"calibration_{args.calibration_year}_macro_f1", "best_score": best_score,
+               "selection_metric": f"selection_{args.calibration_year}_macro_f1", "best_score": best_score,
+               "calibration_protocol": calibration_protocol,
                "future_routed_macro_f1": result["all"]["routed"]["macro_f1"]})
     if args.evaluate_drift:
         drift_results = {}

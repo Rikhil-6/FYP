@@ -41,7 +41,8 @@ The `realistic` adaptation profile retains the established chronology:
 1. Historical model training: 2004–2008.
 2. Historical checkpoint selection: 2009.
 3. Newer-model adaptation: 2010.
-4. Router calibration: 2011.
+4. Adapted-checkpoint selection and router calibration: disjoint, deterministic,
+   class-stratified partitions of 2011 (50/50 by default).
 5. Frozen evaluation: 2012–2014.
 
 The 2010 and 2011 streams contain 25% clean examples and 75% examples with one
@@ -49,6 +50,11 @@ individual source. Each of the nine individual sources occupies 1/12 of the
 stream, so occlusion is 8.3% rather than being present in every image. Compound
 mixtures remain held out until final evaluation. The 2012, 2013, and 2014 tests
 use severity levels one, two, and three respectively.
+
+This partition prevents the same labels from selecting the adapted checkpoint
+and fitting the route coefficients and thresholds. Earlier reported runs predate
+this correction and must be identified as exploratory shared-calibration results.
+Use `--reuse-calibration-for-selection` only to reproduce those archived runs.
 
 ## When saliency guidance is expected to help
 

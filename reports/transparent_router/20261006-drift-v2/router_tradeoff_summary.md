@@ -35,3 +35,7 @@ tools/uv run --with pillow scripts/update_supplied_docx_router_plot.py \
 ```
 
 The plotted values come from `drift_v2_2014_metrics.csv`; the scripts do not recompute model results.
+
+## Saliency figure display
+
+Figure 4 uses the saved patch saliency tensors from the same audit runs. Historical and updated maps are robustly normalised within each map and blended at higher opacity with the drifted image. A fifth panel shows the signed patch-wise change: red indicates increased updated-model weight and blue indicates reduced weight. This display scaling makes spatial redistribution legible but does not imply a larger numerical effect; the printed Jensen–Shannon divergence and deletion margin retain that role.

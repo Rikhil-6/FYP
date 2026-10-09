@@ -1,5 +1,6 @@
 """CLEAR-100 images with chronological splits defined in the ingestion manifest."""
 import csv
+import random
 from pathlib import Path
 
 import torch
@@ -112,3 +113,50 @@ def year_loader(dataset, split, years, batch_size=8, shuffle=False, limit=None, 
     generator = torch.Generator().manual_seed(seed)
     return DataLoader(selected, batch_size=batch_size, shuffle=shuffle,
                       generator=generator if shuffle else None), year_column
+
+
+def stratified_year_partition_loaders(dataset, split, year, batch_size=8, fraction=0.5,
+                                      limit=None, seed=42, image_transform=transform):
+    """Create disjoint, class-stratified selection and calibration loaders.
+
+    The first loader is used for checkpoint selection and the second for fitting
+    the routing policy. Keeping their examples disjoint prevents the router from
+    being calibrated on the same labels that selected the adapted checkpoint.
+    """
+    if not 0 < fraction < 1:
+        raise ValueError("fraction must be strictly between 0 and 1")
+    subset = dataset.get_subset(split, transform=image_transform)
+    year_column = dataset.metadata_fields.index("year")
+    year_id = year - 2002
+    candidates = torch.where(subset.metadata_array[:, year_column] == year_id)[0].tolist()
+    by_class = {}
+    for index in candidates:
+        label = int(subset.rows[index]["label"])
+        by_class.setdefault(label, []).append(index)
+
+    selection_indices, calibration_indices = [], []
+    for label, indices in sorted(by_class.items()):
+        shuffled = list(indices)
+        random.Random(seed + 1009 * label).shuffle(shuffled)
+        if len(shuffled) == 1:
+            # Alternate singleton classes deterministically. CLEAR-100 normally
+            # has multiple samples per class, but this keeps debug subsets valid.
+            (selection_indices if label % 2 == 0 else calibration_indices).extend(shuffled)
+            continue
+        cut = max(1, min(len(shuffled) - 1, round(len(shuffled) * fraction)))
+        selection_indices.extend(shuffled[:cut])
+        calibration_indices.extend(shuffled[cut:])
+
+    selection_indices.sort()
+    calibration_indices.sort()
+    if limit:
+        selection_indices = selection_indices[:limit]
+        calibration_indices = calibration_indices[:limit]
+    if not selection_indices or not calibration_indices:
+        raise ValueError(f"Year {year} cannot be split into non-empty selection and calibration sets")
+
+    return (
+        DataLoader(Subset(subset, selection_indices), batch_size=batch_size),
+        DataLoader(Subset(subset, calibration_indices), batch_size=batch_size),
+        year_column,
+    )
