@@ -9,15 +9,13 @@ This project asks when an image classifier should be updated after its input dis
 
 ## 1. Introduction
 
+### 1.1 Operational problem and thesis claim
+
 Image classifiers are usually trained as if future images will resemble the training set. In practice, cameras are replaced, compression settings change, lighting and weather vary, and objects are photographed from new viewpoints. ImageNet-C shows how common noise, blur, weather, and digital degradation can reduce classification accuracy [1]. CLEAR records a different problem: the visual appearance of classes changes naturally over a decade [2]. WILDS reports related shifts across locations, institutions, and time [3]. These changes can leave a deployed classifier working well on average while failing on particular classes or acquisition conditions.
 
-Updating the model is an obvious response, but an update can fix some images and break others. This work therefore keeps the historical model as a frozen reference. A second model is adapted on a later time window, and the two predictions are compared for each image. The final decision is made by a small logistic router whose inputs can be inspected directly. This separates three questions that are often blurred together: whether the new model is better overall, whether a particular prediction should be replaced, and whether the model's explanation changed in a meaningful way.
+This thesis investigates a controlled alternative to wholesale model replacement. A frozen historical Vision Transformer (ViT) is retained as a behavioural reference, a second ViT is adapted on a later time window, and a transparent router decides which prediction to use for each image. The central claim is deliberately narrow: when covariate drift changes where a ViT finds class evidence, an explanation-aware comparison may preserve much of the adapted model's benefit while making harmful replacements visible. The claim is tested through chronological holdouts, source-separated stress tests, matched ablations, and per-image route audits.
 
-The saliency map is part of the model rather than a picture added after inference. Yao and Gong use saliency priors to limit attention spreading into irrelevant regions [4]. XGD combines prediction alignment with saliency-based feature refinement and tests those losses through ablation [5]. Work on explanation-guided distillation likewise treats explanations as information that can be transferred between models [6]. Ismail et al. connect saliency to behaviour by perturbing low-saliency features while preserving the prediction [7], while Saliency Guided Image Warping shows how domain adaptation can become dominated by background change [8]. These studies informed two design choices here: patch weights contribute directly to the class prediction, and their usefulness is checked through patch deletion rather than visual appearance alone.
-
-The paired comparison follows the broad idea of a Siamese network. Siamese-ViT uses transformer branches to compare changed views [9], while asymmetric Siamese networks give the two observations different roles [10]. The same distinction is useful for temporal drift. Both branches use the same ViT architecture and start from the same checkpoint, but only the newer branch is adapted. The historical branch records established behaviour; the newer branch is a candidate replacement. No convolutional branch is used.
-
-This project tests the claim that a drift-adapted ViT can be introduced more cautiously when it is compared with a frozen historical ViT before each prediction is replaced. Saliency is treated as one routing signal, alongside confidence and predictive uncertainty. It is not assumed to prove that the updated model is correct.
+### 1.2 Research questions and measurable objectives
 
 This thesis is examined through three research questions:
 
@@ -27,8 +25,58 @@ This thesis is examined through three research questions:
 
 The experiments use only ViT models, preserve the temporal order of the data, log every routing input, and report helpful, harmful, and missed switches. The aim is to test a traceable update procedure rather than claim state-of-the-art classification accuracy.
 
+### 1.3 Contributions and scope
 
-## 2. System design
+The work contributes a ViT-only temporal prototype with an embedded patch-evidence gate, an asymmetric historical-versus-adapted comparison, an explicit four-feature routing policy, and a logged audit of route outcomes and saliency deletion behaviour. It does not claim that saliency proves causality, that one CLEAR-100 stream establishes generalisation, or that routing is universally preferable to always using the updated model.
+
+
+## 2. Literature review and design rationale
+
+### 2.1 Responses to distribution shift
+
+Research on distribution shift spans several intervention levels. Robust training and corruption augmentation attempt to make the original model less sensitive before deployment [1, 17]. Test-time adaptation instead changes the deployed model using target batches: Tent minimises prediction entropy through normalization parameters [20], CoTTA uses averaged predictions and partial source-weight restoration to reduce error accumulation in changing environments [21], and EATA filters uninformative samples while regularising important weights to limit forgetting [22]. These methods suit source-free online adaptation but require optimisation during inference and can degrade in-distribution behaviour. This project studies a labelled update window in which the historical model must remain recoverable and each switch must be auditable.
+
+Continual-learning work uses replay, regularisation, parameter-efficient updates, and representation correction. Wu et al. combine LoRA with mean-shift compensation, covariance calibration, and patch-token distillation to reduce semantic drift in class-incremental ViTs [24]. That setting preserves old classes in a continuing learner. Here class definitions remain fixed and two time-indexed models are compared at inference. SelectiveNet's risk-coverage formulation is closer to this decision problem [23], although the present router defers to another classifier rather than abstaining.
+
+### 2.2 From post-hoc maps to saliency-guided learning
+
+A post-hoc heatmap can describe a prediction without changing it. SGAN constrains self-attention with saliency priors [4]. XGD transfers prediction and saliency-refined feature information, with ablations separating the saliency contribution [5]. Ismail et al. preserve predictions after masking low-saliency features [7]. Saliency Guided Image Warping controls which regions dominate domain alignment [8], while SGT removes low-saliency ViT patches to reduce background shortcuts [25]. These studies motivate using patch weights in the forward computation and checking them by deletion, while warning that a cleaner map does not guarantee higher accuracy.
+
+### 2.3 Why an asymmetric Siamese ViT comparison
+
+Siamese architectures are useful when the decision depends on a relation between observations. Siamese-ViT shows that paired transformer branches can compare local and global evidence across views [9]. Yang et al. show why strict weight symmetry can be inappropriate when temporal inputs have different roles or distributions [10]. In this project both branches share the DINOv2-small architecture and initialization, but the historical branch is frozen while the candidate branch is adapted. This holds backbone family constant and makes model age, training window, and evidence movement the variables under study.
+
+The implementation is an asymmetric Siamese evaluation architecture, rather than a fully end-to-end Siamese metric network. It does not learn a hidden pair embedding. Both ViTs expose predictions and normalized patch weights, and a logistic policy combines four named differences. This sacrifices routing capacity compared with a learned mixture-of-experts gate but makes each switch reconstructable. Always-new inference remains the performance ceiling; routing is justified when update safety and auditability are requirements.
+
+### 2.4 Quantitative context for expected improvements
+
+| Study | Setting | Reported absolute change | Interpretation here |
+|---|---|---:|---|
+| SGAN [4] | Weakly supervised segmentation | 55.0→64.2 mIoU (+9.2) | Strong saliency prior; different task |
+| XGD [5] | Teacher-student segmentation | 65.25→69.82 mIoU (+4.57); saliency-only +3.52 | Supports explicit saliency ablation |
+| Saliency warping [8] | Unsupervised domain adaptation | +3.0 to +6.3 on several shifts; +0.6 on DarkZurich | Effect depends on target domain |
+| SGT [25] | ViT shortcut reduction | INbreast +2.41 accuracy and +3.06 F1; FIGRIM −0.32 accuracy | Interpretability can improve without accuracy gain |
+| Semantic-drift ViT [24] | Class-incremental learning | 79.36→81.88 accuracy (+2.52) | Patch distillation contributes a further +0.28 |
+| Siamese-ViT [9] | Cross-view retrieval | +2.33 Recall@1 and +1.38 AP vs TransGeo | Supports paired ViTs, not temporal routing |
+| This project | Temporal classification | +3.45 routed under motion blur; +2.03 under mixed drift | Single seed; auxiliary saliency effect +0.90/+0.84 |
+
+These metrics are not directly interchangeable. They show that a three-point target is a plausible stretch goal when drift creates substantial headroom, while individual components often contribute from a few tenths to a few points. This paper therefore reports percentage-point changes beside raw scores, separates updated-model gain from routed retention, and treats sub-point effects as evidence requiring repeated seeds.
+
+### 2.5 Design decisions derived from the literature
+
+| Choice | Literature rationale | Project implementation | Required evidence |
+|---|---|---|---|
+| DINOv2-small ViT | Pretrained patch and class tokens [13, 14] | Same backbone in both branches; final three blocks adapted | Future-year macro F1 and training cost |
+| Embedded saliency gate | Trainable saliency and perturbation evidence [4, 5, 7, 25] | Patch weights form the classified representation | Ablation gain and deletion margin |
+| Asymmetric pair | Paired ViTs and unequal temporal roles [9, 10] | Frozen historical reference versus adapted candidate | Helpful, harmful, and missed switches |
+| Explicit logistic router | Interpretable policies and selective risk [15, 23] | Four stored features plus thresholds | Retained gain and harmful-route count |
+| Frozen future horizon | Temporal benchmarks and anti-forgetting concerns [2, 21, 22] | No updates on 2012–2014 | Year-specific clean and drift scores |
+| Source-separated stressors | Corruption and natural-shift evidence [1, 3, 8, 19] | Optical, sensor, digital, geometric, and mixed shifts | Effect size by source |
+
+These choices keep the prototype feasible on a modest GPU and the decision trail compact. They do not establish superiority over end-to-end selective networks or continual test-time adaptation. The comparison is strongest when the requirement is a reviewable transition between two versioned ViTs with labelled update data.
+
+
+## 3. System design
 
 The prototype contains three ViT-only variants:
 
@@ -45,7 +93,7 @@ The baseline and historical XAI models are trained once on the historical period
 The three classifier views serve different analytical roles. Baseline ViT measures a conventional transformer pipeline without the saliency-gated head. Historical XAI controls for the embedded explanation architecture. Updated XAI measures the maximum benefit available from adaptation when it is always selected. Routed XAI then measures how much of that benefit survives a conditional, inspectable decision policy.
 
 
-### 2.1 ViT classifier and embedded explanation
+### 3.1 ViT classifier and embedded explanation
 
 DINOv2-small follows the Vision Transformer representation introduced by Dosovitskiy et al. [13] and the self-supervised DINOv2 pretraining procedure [14]. The local data pipeline first converts every image to RGB, resizes it deterministically to 224 × 224 pixels, converts channel values to the zero-to-one range, and normalizes them with ImageNet channel means `(0.485, 0.456, 0.406)` and standard deviations `(0.229, 0.224, 0.225)`. A direct square resize was chosen to keep the prototype deterministic and inexpensive, although its possible aspect-ratio distortion is a limitation that should be tested against resize-and-crop preprocessing in later work.
 
@@ -66,7 +114,7 @@ The complementary path provides a simple testable expectation: the selected patc
 During adaptation, the frozen branch provides the reference map. If its prediction is correct, the new map is discouraged from moving unnecessarily. If it is wrong, the pairwise loss allows a larger change. The class label still determines whether an update succeeds; map divergence alone does not.
 
 
-### 2.2 Asymmetric Siamese comparison and explicit routing rule
+### 3.2 Asymmetric Siamese comparison and explicit routing rule
 
 For each image, the old and new ViTs return a class distribution and a patch-weight distribution. Four differences are standardised and passed to a saved logistic equation. The new prediction can be selected only when the models disagree, saliency divergence exceeds a calibrated floor, and the logistic probability exceeds its threshold. The coefficients and thresholds are stored in `router_policy.json`.
 
@@ -84,14 +132,14 @@ Saliency divergence measures how much the spatial evidence distribution changed.
 
 Coefficient signs describe associations in the 2011 calibration sample. A positive confidence coefficient means that confidence gain was associated with useful updates after the other features were considered. It does not prove that increasing confidence would cause correctness. The router is transparent as a policy, while its statistical relationships remain empirical.
 
-## 3. Temporal protocol
+## 4. Temporal protocol
 
 | Stage | Years | Role |
 |---|---:|---|
 | Historical training | 2004–2008 | Fit the original ViT models |
 | Model selection | 2009 | Choose checkpoints without touching future years |
 | Drift adaptation | 2010 | Update the newer XAI ViT with a balanced clean/corrupted stream |
-| Router calibration | 2011 | Fit the explicit routing rule and threshold |
+| Adapted checkpoint selection and router calibration | 2011 | Archived results share labels; corrected code uses disjoint class-stratified partitions |
 | Frozen evaluation | 2012–2014 | Test clean and drifted data once across a future horizon |
 
 The original comparison uses a frozen `combined` condition: modest saturation change, Gaussian sensor noise, and partial occlusion. Individual corruptions appear during adaptation and calibration, while their composition is withheld until final testing. The later source-separated evaluation keeps the same chronology and checkpoint but reports each acquisition change separately.
@@ -102,12 +150,12 @@ Acquisition drift arises when the image-forming process changes while the class 
 
 Within the original stress test, saturation represents illumination or camera colour processing, Gaussian noise approximates sensor and transmission degradation, and partial occlusion represents obstruction, cropping, dirt, or an intervening object. Severity is bounded and logged so that the stress test remains interpretable rather than making the original image unrecognizable. These perturbations are controlled proxies for acquisition mechanisms, not proof that a specific physical camera was replaced. Occlusion is only one possible acquisition shift and should not dominate the scientific claim.
 
-The source-separated protocol covers illumination, white-balance change, sensor noise, defocus blur, motion blur, JPEG compression, resolution loss, mild viewpoint shift, and localized occlusion. A separate realistic mixture combines a small number of these changes at bounded severity, with occlusion limited to a minority of images. This makes optical, sensor, digital, geometric, and obstruction-related shifts visible in separate rows instead of allowing one dramatic corruption to represent the whole problem. The protocol was run only after the checkpoints and routing rule had been fixed; its results appear in Section 4.3. Natural distribution-shift benchmarks also show that conclusions can differ across acquisition sources [19].
+The source-separated protocol covers illumination, white-balance change, sensor noise, defocus blur, motion blur, JPEG compression, resolution loss, mild viewpoint shift, and localized occlusion. A separate realistic mixture combines a small number of these changes at bounded severity, with occlusion limited to a minority of images. This makes optical, sensor, digital, geometric, and obstruction-related shifts visible in separate rows instead of allowing one dramatic corruption to represent the whole problem. The protocol was run only after the checkpoints and routing rule had been fixed; its results appear in Section 5.3. Natural distribution-shift benchmarks also show that conclusions can differ across acquisition sources [19].
 
 The combined condition is reserved for final evaluation. Adaptation and calibration use individual corruption families, so success on the composition measures limited generalization beyond the exact perturbation pattern seen during updating.
 
 
-### 3.1 Enhanced correction experiment
+### 4.1 Enhanced correction experiment
 
 The newly added `--adaptation-profile enhanced` mode is a predeclared attempt to increase the separation between the historical ViT and the saliency-responsive correction model without changing the test set. It changes only the 2010 adaptation procedure:
 
@@ -118,10 +166,14 @@ The newly added `--adaptation-profile enhanced` mode is a predeclared attempt to
 - the saliency divergence margin increases from `0.05` to `0.08`;
 - router calibration jointly selects a saliency-floor quantile and probability threshold on 2011 only.
 
-The completed enhanced run reused the same historical checkpoint, seed 42, 2011 calibration set, and frozen 2012–2014 evaluation streams. Combined corruption remained unavailable during adaptation and calibration. Epoch 4 was selected by 2011 macro F1 (**94.39%**); epoch 5 declined to **93.00%**, indicating overfitting after the selected checkpoint. Training took approximately **138 seconds per epoch** after warm-up.
+The completed enhanced run used the same historical checkpoint, seed 42, and frozen 2012–2014 evaluation streams as its controls. Its adapted checkpoint and routing policy were both chosen using the 2011 sample. Epoch 4 was selected by 2011 macro F1 (**94.39%**); epoch 5 declined to **93.00%**, indicating overfitting after the selected checkpoint. Combined corruption remained unavailable during adaptation and calibration. Because checkpoint selection and policy fitting share labels, the reported numerical results are exploratory.
+
+#### 4.1.1 Protocol correction for future runs
+
+The code now divides 2011 deterministically within each class. One partition selects the adapted checkpoint; the other fits the logistic coefficients, saliency floor, and route threshold. The default split is 50/50 and both sample counts are logged. `--reuse-calibration-for-selection` reproduces the archived shared protocol only. Existing tables were not recomputed after this correction, so the distinction remains explicit.
 
 
-### 3.2 Hypotheses and success criteria
+### 4.2 Hypotheses and success criteria
 
 - **H1:** enhanced saliency adaptation improves 2014 combined-drift macro F1 by at least **3.00 percentage points** over the original baseline ViT.
 - **H2:** transparent routing retains at least 75% of the gain achieved by always using the updated model.
@@ -130,19 +182,19 @@ The completed enhanced run reused the same historical checkpoint, seed 42, 2011 
 The 3-point value is a target fixed before viewing the enhanced results. Failure to reach it must be reported as a negative result rather than addressed by tuning on 2012–2014 labels.
 
 
-### 3.3 Enhanced result against the hypotheses
+### 4.3 Enhanced result against the hypotheses
 
 - **H1 not met:** the updated model improved by **1.40 points** over baseline ViT, below the 3.00-point target.
 - **H2 met:** routing retained `(91.85−90.34)/(91.99−90.34) = 91.5%` of the newer model's gain over historical XAI.
 - **H3 met:** routed clean 2014 macro F1 was **95.30%**, 0.06 points above historical XAI.
 
 
-### 3.4 Checkpoint and interruption recovery
+### 4.4 Checkpoint and interruption recovery
 
 Every evaluated epoch atomically replaces `models/resume.pt` and writes a small `resume.json`. The binary checkpoint contains the newer ViT parameters, optimizer state, completed epoch, and best validation score; the separate best-model file remains the checkpoint used for final evaluation. The matched standard run was deliberately stopped after epoch 2 and resumed at epoch 3. It retained the epoch-2 optimizer and best score, later selected epoch 4, and completed the frozen horizon normally. A local round-trip regression test independently reloads and compares weights, optimizer state, epoch, score, and metadata.
 
 
-## 4. Main results
+## 5. Main results
 
 Macro F1 is shown as a percentage. Helpful and harmful routes count cases where choosing the newer model corrected or introduced an error, respectively.
 
@@ -158,7 +210,7 @@ Macro F1 is shown as a percentage. Helpful and harmful routes count cases where 
 On 2014 combined drift, the baseline reaches **90.59%**, the historical XAI model **90.34%**, the updated XAI model **91.75%**, and the transparent router **91.50%** macro F1. The router captures `(91.50−90.34)/(91.75−90.34) = 82.3%` of the available update gain. The updated model also remains stronger on clean images, although the router becomes more conservative and records 18 harmful routes against 30 helpful routes in 2014.
 
 
-### 4.1 Enhanced profile results
+### 5.1 Enhanced profile results
 
 | Scenario | Year | Historical XAI | Enhanced XAI | Enhanced routed | Helpful | Harmful |
 |---|---:|---:|---:|---:|---:|---:|
@@ -173,7 +225,7 @@ The enhanced curriculum improved the always-new 2014 combined score from **91.75
 
 
 
-### 4.2 Controlled five-epoch ablation
+### 5.2 Controlled five-epoch ablation
 
 The matched run removes the earlier three-versus-five-epoch imbalance. The auxiliary-loss control keeps the enhanced curriculum, trainable blocks, learning rates, and saliency-gated classifier fixed, but sets the pairwise saliency-divergence and complementary-evidence loss weights to zero. It therefore isolates the explicit saliency supervision while retaining saliency inside the forward pass.
 
@@ -188,7 +240,7 @@ Bold type marks the best value in each evaluation column across the three matche
 Against the matched enhanced control, the explicit auxiliary saliency objectives changed 2014 combined macro F1 by **+0.13 points** for always-new inference and **+0.23 points** after routing. These are single-run paired differences, not confidence-bounded causal estimates.
 
 
-### 4.3 Source-separated drift evaluation
+### 5.3 Source-separated drift evaluation
 
 The broader protocol evaluates the same saved historical checkpoint, adapted checkpoint, and 2011 routing policy across 11 independently named 2014 conditions. Each row contains the frozen historical score, the always-updated score, the transparent routed score, and the routed change from the historical branch. This separation prevents a favourable occlusion example from standing in for unrelated acquisition changes.
 
@@ -222,16 +274,16 @@ The saliency and no-auxiliary runs use the same seed, historical checkpoint, tem
 
 
 
-## 5. Saliency and routing analysis
+## 6. Saliency and routing analysis
 
-Each audit panel shows the clean image, the drifted input, and the historical and updated evidence maps. The label line records the true class, both predictions, the routed prediction, route probability, saliency divergence, and deletion margin. The overlays are kept faint enough for the image to remain visible.
+Each audit row shows the clean reference, drifted input, historical and updated saliency overlays, and signed map change. Robust 5th–95th percentile scaling and a stronger blend make spatial evidence visible. Red indicates gained updated-model weight and blue lost weight; Jensen–Shannon divergence and the deletion margin quantify magnitude and behavioural relevance.
 
 Figure 4 contains one helpful route from each of three drift families. The examples were selected for inspection and are not used to estimate performance; the aggregate counts below provide that evidence.
 
-![Figure 4. Helpful routed corrections under motion blur, viewpoint shift, and a realistic mixture](20261006-drift-v2/multidrift_helpful_cases.png)
+![Figure 4. Helpful routed corrections with historical, updated, and signed saliency-change maps](20261006-drift-v2/multidrift_helpful_cases.png)
 
 
-### 5.1 Quantitative saliency outcome analysis
+### 6.1 Quantitative saliency outcome analysis
 
 For the 2014 combined-drift auxiliary-loss control, helpful routes had mean saliency Jensen-Shannon divergence **0.0607**, compared with **0.0512** for harmful routes and **0.0473** when the historical prediction was retained. Mean route probability was **0.821** for helpful routes, **0.767** for harmful routes, and **0.310** for retained historical predictions. There were **125 helpful versus 43 harmful routes** (ratio 2.91). The matched standard run showed the same within-run ordering for helpful versus harmful divergence (0.00759 versus 0.00651), although raw divergence magnitudes should not be compared across differently adapted models.
 
@@ -244,7 +296,7 @@ Map change measures difference, not improvement. A new model can move its attent
 The maps are best read as **evidence-allocation diagnostics**: they show which encoded patches received weight in the classifier. They are not object masks and do not establish that the map change caused a correction. The deletion audit adds a behavioural check by comparing the effect of removing highly weighted and weakly weighted patches. Even this test is limited because the deleted image is outside the original data distribution.
 
 
-### 5.2 Counterexample and faithfulness audit
+### 6.2 Counterexample and faithfulness audit
 
 The source-specific audit applies the same top-versus-bottom 20% deletion test whenever one model is correct and the other is wrong. A positive margin means that removing the most highly weighted patches reduces true-class probability more than removing the least-weighted patches.
 
@@ -265,7 +317,7 @@ For every one of the 304 samples where one model is correct and the other is wro
 The harmful example shows why saliency change alone is insufficient: the historical model was already correct and its map had the stronger deletion response. Patch deletion is still an artificial intervention, so this result does not prove that the highlighted pixels caused the model update.
 
 
-### 5.3 Scope of the method
+### 6.3 Scope of the method
 
 The intended setting is covariate drift: the label keeps the same meaning while the image-forming process or context changes. Examples include camera replacement, compression, sensor noise, white balance, illumination, viewpoint, and partial obstruction. Saliency can help only when useful class evidence remains visible and the updated model learns to weight it differently.
 
@@ -274,13 +326,27 @@ The source-separated results show the largest gains under motion blur and mixed 
 The method should not be expected to solve concept drift where the label meaning changes, new-class emergence, extreme occlusion, or systematic dataset errors. In those cases the saliency map may faithfully explain a wrong premise. A stronger next experiment should therefore add a matched random-mask control and an external temporal dataset, then compare confidence-only, saliency-only, and deletion-aware routers without tuning on the final horizon.
 
 
-## 6. Discussion and limitations
+## 7. Discussion, limitations, and conclusion
 
-The longer horizon makes the decline under difficult drift easier to see. It also shows why the historical model should not be replaced blindly: the updated model corrects many cases but still introduces errors. The routing rule can be reconstructed from the four stored inputs, coefficients, threshold, and saliency floor in `router_policy.json`. Its coefficients describe relationships in the 2011 calibration set; they are not causal explanations.
+### 7.1 What the experiment establishes
 
-The main limitations are one random seed, one temporal dataset, synthetic stress tests, and one fitted threshold. Checkpoint selection and router calibration also reuse 2011 examples. No confidence intervals or multi-seed hypothesis tests are reported. The original combined test did not reach the three-point target; only the later motion-blur test exceeded it. Saliency losses add 0.90 routed points under motion blur and 0.84 under mixed drift, but their effect is small or negative elsewhere. These results do not support a broad causal claim about saliency.
+Routing improves over the frozen historical ViT in all eleven 2014 conditions, but the magnitude ranges from +0.11 points under illumination to +3.45 under motion blur. Under motion blur and the realistic mixture it retains 87.1% and 91.9% of the always-updated gain. This supports the feasibility of transparent branch selection when the historical model has degraded. It does not show that routing beats always using the updated model, which remains 0.06–0.51 points higher across these tests.
 
-The next experiment should repeat the temporal backtest across several seeds, add paired bootstrap confidence intervals, and reserve an external temporal dataset for final evaluation. Confidence-only, saliency-only, and deletion-aware routers should be compared against always-old and always-new baselines under the same tuning budget.
+### 7.2 Negative results and failure modes
+
+The predeclared three-point target was not met on the original combined condition. In the matched ablation, the explicit auxiliary saliency objectives add only +0.23 routed points on combined drift and reduce clean routed performance by 0.18 points. Helpful and harmful decisions overlap in saliency divergence and route probability, so the four features do not cleanly identify correctness. A more expressive gate may model these interactions better but would weaken the coefficient-level explanation.
+
+### 7.3 Validity threats and implemented correction
+
+The evidence is limited by one random seed, one temporal dataset, synthetic stressors layered over natural chronology, and one fitted policy. The reported runs reuse 2011 labels for adapted-checkpoint selection and router calibration. That material selection-bias risk is corrected in code through disjoint class-stratified partitions, but the existing figures are not relabelled as corrected results. No confidence intervals or external validation dataset are available, and deletion creates out-of-distribution images. Saliency is therefore an evidence-allocation diagnostic, not causal or spatial ground truth.
+
+### 7.4 Feasible next evaluation
+
+A confirmatory run should use the corrected 2011 split, at least three matched seeds, and paired per-image bootstrap intervals. It should compare confidence-only, saliency-only, combined, and end-to-end selective gates at matched route coverage, while retaining always-historical and always-updated baselines. A random-patch intervention should accompany saliency-guided deletion, and a second temporal image dataset should test transfer.
+
+### 7.5 Conclusion
+
+An asymmetric historical-versus-adapted ViT pair is a useful way to frame model updates when traceability matters, and embedded saliency supplies inspectable evidence that can influence learning and routing. The current router improves over the historical model most clearly under motion and mixed acquisition drift, but its saliency-specific contribution is modest and source dependent. The method is therefore an auditable prototype pending corrected multi-seed validation.
 
 
 ## Appendix A. Metric and routing glossary
@@ -317,3 +383,9 @@ These definitions are fixed across the report. They make clear which measures ev
 17. Hendrycks et al. (2019), *AugMix: A Simple Data Processing Method to Improve Robustness and Uncertainty*. https://arxiv.org/abs/1912.02781
 18. Beery, Van Horn, and Perona (2018), *Recognition in Terra Incognita*. Proceedings of the European Conference on Computer Vision. https://doi.org/10.1007/978-3-030-01270-0_28
 19. Taori et al. (2020), *Measuring Robustness to Natural Distribution Shifts in Image Classification*. Advances in Neural Information Processing Systems, 33.
+20. Wang et al. (2021), *Tent: Fully Test-Time Adaptation by Entropy Minimization*. International Conference on Learning Representations. https://openreview.net/forum?id=uXl3bZLkr3c
+21. Wang et al. (2022), *Continual Test-Time Domain Adaptation*. Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, 7201–7211. https://openaccess.thecvf.com/content/CVPR2022/html/Wang_Continual_Test-Time_Domain_Adaptation_CVPR_2022_paper.html
+22. Niu et al. (2022), *Efficient Test-Time Model Adaptation without Forgetting*. Proceedings of the 39th International Conference on Machine Learning, 16888–16905. https://proceedings.mlr.press/v162/niu22a.html
+23. Geifman and El-Yaniv (2019), *SelectiveNet: A Deep Neural Network with an Integrated Reject Option*. Proceedings of the 36th International Conference on Machine Learning, 2151–2159. https://proceedings.mlr.press/v97/geifman19a.html
+24. Wu et al. (2025), *Navigating Semantic Drift in Task-Agnostic Class-Incremental Learning*. https://arxiv.org/abs/2503.11756
+25. Ma et al. (2022), *Rectify ViT Shortcut Learning by Visual Saliency*. https://arxiv.org/abs/2206.08567

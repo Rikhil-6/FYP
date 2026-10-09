@@ -42,12 +42,10 @@ OLD_SALIENCY_TEXT = (
 )
 
 NEW_SALIENCY_TEXT = (
-    "Each audit row now separates the clean reference, drifted input, historical saliency, updated saliency, "
-    "and signed saliency change. The two overlays use the same robust 5th–95th percentile normalisation and "
-    "a stronger heatmap blend so spatial evidence remains visible. In the change map, red marks patches that "
-    "gain weight in the updated ViT and blue marks patches that lose weight. Because each row is scaled for "
-    "display, colour shows location and direction rather than absolute effect size; the reported Jensen–Shannon "
-    "divergence and deletion margin quantify magnitude and behavioural relevance."
+    "Each audit row shows the clean reference, drifted input, historical and updated saliency overlays, and "
+    "signed map change. Robust 5th–95th percentile scaling and a stronger blend make spatial evidence visible. "
+    "Red indicates gained updated-model weight and blue lost weight; Jensen–Shannon divergence and the "
+    "deletion margin quantify magnitude and behavioural relevance."
 )
 
 OLD_FIGURE4_CAPTION = (

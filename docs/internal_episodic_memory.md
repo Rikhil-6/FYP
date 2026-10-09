@@ -172,7 +172,7 @@ Commit history milestones:
 ## Highest-priority scientific improvements
 
 1. **Make the profile comparison budget-matched.** The standard run requested three epochs and the enhanced run five. Re-run both with the same maximum epoch budget and identical early-stopping/checkpoint-selection rules. The current enhanced comparison is informative but not a clean controlled ablation.
-2. **Separate checkpoint selection from router calibration.** Both currently use 2011 labels. Split 2011 deterministically by class or use nested calibration so checkpoint choice and route-threshold tuning do not reuse the same examples.
+2. **Separate checkpoint selection from router calibration.** Implemented on 2026-10-09: future runs now use deterministic, class-stratified, disjoint 2011 partitions by default. `--reuse-calibration-for-selection` is retained only for reproducing archived exploratory runs.
 3. **Run multiple seeds and uncertainty estimates.** At least three seeds, paired per-sample bootstrap confidence intervals, and year-level effect sizes are needed before claiming improvement.
 4. **Use a factorial ablation.** Independently toggle corruption curriculum, number of trainable blocks, saliency loss, and adaptive routing. The enhanced profile changes all four, preventing causal attribution.
 5. **Introduce a stronger saliency-specific intervention.** The capacity increase barely changed results. The next predeclared method should test saliency-guided patch corruption/masking or clean-versus-drift saliency consistency, with a matched non-saliency masking control.
@@ -187,6 +187,15 @@ Commit history milestones:
 3. Prevent noisy progress-bar control characters in persistent logs. Keep tqdm for the attached terminal while writing structured JSONL events or a line-oriented non-interactive log.
 4. Add a comparison command that validates equal seed, epoch budget, batch size, temporal splits, and checkpoint rule before producing a standard-versus-enhanced table.
 5. Add deterministic stratified splitting for the 2011 checkpoint-selection and router-calibration subsets.
+
+## 2026-10-09 literature and protocol revision
+
+- The supplied Word draft was expanded with numbered introduction subsections, a standalone literature review, quantitative prior-effect comparisons, and a design-decision matrix.
+- The Siamese claim is now bounded precisely: this is an asymmetric Siamese evaluation architecture with two same-family ViTs and an explicit logistic comparison layer, not a hidden end-to-end metric network.
+- Prior results remain labelled exploratory because adapted-checkpoint selection and router fitting shared the 2011 labels.
+- `train_siamese.py` now defaults to deterministic, class-stratified, disjoint selection and router-calibration partitions. A legacy flag exists only to reproduce the archived runs, and resume operations reject protocol mismatches.
+- The completed source-separated results are interpreted against prior reported effect sizes rather than against a universal three-point threshold. The document now explains that task and metric differences prevent direct cross-paper ranking.
+- Final editable review artifact: `output/docx/updated_ViT_router_mock_paper_2_literature_revision.docx`.
 6. Record Git commit SHA and full method hyperparameters in every run config, including default profile names rather than `null`.
 7. Add automatic compact summaries and bounded report export at run completion.
 
@@ -261,3 +270,9 @@ The user-supplied `updated_ViT_router_mock_paper_2.docx` is the canonical format
 The replacement figure separates two questions. The first panel shows the routed macro F1 gain over the frozen historical ViT, which is the intended deployment baseline. The second isolates the effect of auxiliary saliency supervision by comparing the saliency router with the matched no-auxiliary control. The evidence supports a qualified conclusion: routed inference beats the historical ViT in all 11 conditions, with gains of +3.45 points under motion blur and +2.03 points under the realistic mixture. It retains 87.1% and 91.9% of the unconditional updated model's gains in those two conditions, but trails always-new inference by 0.06–0.51 points across the full table. Auxiliary saliency losses add +0.90 routed points for motion blur and +0.84 for the realistic mixture, while clean and mild-shift effects are small or negative.
 
 The paper therefore presents routing as a conservative and auditable deployment policy rather than the universal accuracy winner. Helpful/harmful/missed switch counts remain visible in the prose so the selective-update cost is explicit. The concise GitHub-facing record is `reports/transparent_router/20261006-drift-v2/router_tradeoff_summary.md`.
+
+## 2026-10-06 saliency visualisation correction
+
+The earlier Figure 4 overlays used a 0.28 single-colour blend and made the historical and updated evidence maps almost indistinguishable on the printed page. The audit renderer now applies robust within-map 5th–95th percentile normalisation, an inferno-style 0.58 image blend, and a separate signed difference map. Red in the difference panel denotes increased updated-model patch weight; blue denotes reduced weight. The display scaling reveals spatial redistribution without changing predictions, routes, or metrics. Absolute change remains represented by Jensen–Shannon divergence, and behavioural relevance by the top-versus-bottom deletion margin.
+
+All three 2014 source audits were regenerated from the saved checkpoint on the server. The selected sample identities and aggregate counts remain unchanged. Nineteen bounded PNG artifacts—the six selected panels for each source plus the three-source composite—were refreshed for Git review; full decision tables remain server-side.
