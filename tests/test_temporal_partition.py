@@ -1,10 +1,11 @@
 import unittest
+from typing import ClassVar
 
-from data import ClearSubset, stratified_year_partition_loaders
+from fyp_drift.data.clear100 import ClearSubset, stratified_year_partition_loaders
 
 
 class _Dataset:
-    metadata_fields = ["year"]
+    metadata_fields: ClassVar = ["year"]
 
     def __init__(self, rows):
         self.rows = rows
@@ -21,8 +22,12 @@ class TemporalPartitionTests(unittest.TestCase):
             for item in range(7)
         ]
         dataset = _Dataset(rows)
-        first = stratified_year_partition_loaders(dataset, "train_source", 2011, seed=17)
-        second = stratified_year_partition_loaders(dataset, "train_source", 2011, seed=17)
+        first = stratified_year_partition_loaders(
+            dataset, "train_source", 2011, seed=17
+        )
+        second = stratified_year_partition_loaders(
+            dataset, "train_source", 2011, seed=17
+        )
         selection = first[0].dataset.indices
         calibration = first[1].dataset.indices
 
@@ -32,7 +37,9 @@ class TemporalPartitionTests(unittest.TestCase):
         self.assertEqual(set(selection) | set(calibration), set(range(len(rows))))
         for label in range(4):
             selected = sum(int(rows[index]["label"]) == label for index in selection)
-            calibrated = sum(int(rows[index]["label"]) == label for index in calibration)
+            calibrated = sum(
+                int(rows[index]["label"]) == label for index in calibration
+            )
             self.assertLessEqual(abs(selected - calibrated), 1)
 
 

@@ -1,4 +1,5 @@
 """Save a source-labelled grid of the v2 drift transforms before model runs."""
+
 import argparse
 import json
 import math
@@ -8,13 +9,22 @@ import numpy as np
 import torch
 from PIL import Image, ImageDraw
 
-from data import MEAN, STD, open_dataset
-from drift import REALISTIC_BENCHMARK_SCENARIOS, drift_transform, scenario_components
+from fyp_drift.data.clear100 import MEAN, STD, open_dataset
+from fyp_drift.data.corruptions import (
+    REALISTIC_BENCHMARK_SCENARIOS,
+    drift_transform,
+    scenario_components,
+)
 
 
 def rgb(tensor):
-    value = tensor.cpu() * torch.tensor(STD)[:, None, None] + torch.tensor(MEAN)[:, None, None]
-    return Image.fromarray((value.clamp(0, 1).permute(1, 2, 0).numpy() * 255).astype(np.uint8))
+    value = (
+        tensor.cpu() * torch.tensor(STD)[:, None, None]
+        + torch.tensor(MEAN)[:, None, None]
+    )
+    return Image.fromarray(
+        (value.clamp(0, 1).permute(1, 2, 0).numpy() * 255).astype(np.uint8)
+    )
 
 
 def main():
@@ -28,13 +38,18 @@ def main():
     args = parser.parse_args()
 
     dataset = open_dataset(args.data_root)
-    reference = dataset.get_subset("test_source", transform=drift_transform("clean", 1, args.seed))
-    year_indices = torch.where(reference.metadata_array[:, 0] == args.year - 2002)[0].tolist()
+    reference = dataset.get_subset(
+        "test_source", transform=drift_transform("clean", 1, args.seed)
+    )
+    year_indices = torch.where(reference.metadata_array[:, 0] == args.year - 2002)[
+        0
+    ].tolist()
     index = year_indices[args.offset % len(year_indices)]
     panels, records = [], []
     for scenario in REALISTIC_BENCHMARK_SCENARIOS:
         subset = dataset.get_subset(
-            "test_source", transform=drift_transform(scenario, args.severity, args.seed))
+            "test_source", transform=drift_transform(scenario, args.severity, args.seed)
+        )
         image, label, _ = subset[index]
         components = scenario_components(scenario, index, args.severity, args.seed)
         title = scenario.replace("_", " ")
@@ -53,9 +68,16 @@ def main():
         draw.multiline_text((left + 4, top + 4), title, fill="black", spacing=2)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(args.output, optimize=True)
-    metadata = {"dataset_index": index, "year": args.year, "severity": args.severity,
-                "true_class": int(label), "panels": records}
-    args.output.with_suffix(".json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    metadata = {
+        "dataset_index": index,
+        "year": args.year,
+        "severity": args.severity,
+        "true_class": int(label),
+        "panels": records,
+    }
+    args.output.with_suffix(".json").write_text(
+        json.dumps(metadata, indent=2), encoding="utf-8"
+    )
     print(json.dumps(metadata, indent=2))
     print(f"Saved: {args.output}")
 

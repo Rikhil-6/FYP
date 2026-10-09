@@ -10,7 +10,7 @@ output_root="${3:-reports/transparent_router/20261006-drift-v2}"
 mkdir -p "$output_root"
 for scenario in motion_blur viewpoint_shift realistic_mix; do
   echo "START ${scenario}"
-  tools/uv run --no-sync audit_counterexamples.py \
+  tools/uv run --no-sync fyp-audit-router \
     --base-checkpoint "$base_checkpoint" \
     --run-dir "$run_dir" \
     --output "$output_root/audit-${scenario}" \

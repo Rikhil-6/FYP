@@ -26,7 +26,7 @@ mkdir -p "$HF_HOME" "${project_dir}/runs/experiments/drift-v2-${stamp}"
 log="${project_dir}/runs/experiments/drift-v2-${stamp}/console.log"
 
 cd "$project_dir"
-"$uv" run --no-sync hardware.py --require-gpu
+"$uv" run --no-sync fyp-hardware --require-gpu
 
 run_profile() {
   local suffix="$1"
@@ -37,7 +37,7 @@ run_profile() {
     echo "Resuming ${suffix} from ${run_dir}/models/resume.pt"
     resume_args=(--resume-run-dir "$run_dir")
   fi
-  "$uv" run --no-sync train_siamese.py \
+  "$uv" run --no-sync fyp-train-router \
     --base-checkpoint "$base_checkpoint" \
     --run-id "${stamp}-realistic-${suffix}" \
     "${resume_args[@]}" \

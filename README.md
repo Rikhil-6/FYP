@@ -15,13 +15,13 @@ cd C:\Users\JSW_User\FYP
 
 `Setup` installs uv if needed and creates `.venv`. `Ingest` downloads the two CLEAR-100 image archives, about **4.6 GB combined**, and prepares a local manifest. A CUDA GPU is strongly recommended. `All` trains the baseline, XAI, and twin-ViT runs after the data is present. Individual actions are `Baseline`, `Xai`, `Siamese`, and `Evaluate`. DINOv2 weights download on first model use.
 
-For a **runtime smoke test without CLEAR-100**, run `.\tools\uv.exe run smoke.py` after setup. It exercises ViT forward/backward passes, metric calculation, saliency routing, and checkpoint/manual snapshot storage using two synthetic images. Its scores are only software checks.
+For a **runtime smoke test without CLEAR-100**, run `.\tools\uv.exe run fyp-smoke` after setup. It exercises ViT forward/backward passes, metric calculation, saliency routing, and checkpoint/manual snapshot storage using two synthetic images. Its scores are only software checks.
 
 After ingestion, a small code-path run is:
 
 ```powershell
-uv run train.py --method baseline --epochs 1 --batch-size 2 --limit-train 32 --limit-eval 32
-uv run train.py --method xai --epochs 1 --batch-size 2 --limit-train 32 --limit-eval 32
+uv run fyp-train --method baseline --epochs 1 --batch-size 2 --limit-train 32 --limit-eval 32
+uv run fyp-train --method xai --epochs 1 --batch-size 2 --limit-train 32 --limit-eval 32
 ```
 
 These limits are only for debugging. Do not interpret their scores as research results.
@@ -50,13 +50,13 @@ The baseline and XAI runs choose `best.pt` by **macro F1 on `id_val`** (2011), w
 To manually preserve a selected checkpoint and its metadata in the run's `manual/` folder:
 
 ```powershell
-uv run save_model.py --run-dir runs/xai/<run-id> --name thesis_candidate --which best
+uv run fyp-save-model --run-dir runs/xai/<run-id> --name thesis_candidate --which best
 ```
 
 Use the actual run ID printed by training. Manual snapshots do not overwrite an existing name. A standalone evaluation can be written to a separate destination:
 
 ```powershell
-uv run evaluate.py --method xai --checkpoint runs/xai/<run-id>/models/best.pt --output runs/xai/<run-id>/metrics/recheck
+uv run fyp-evaluate --method xai --checkpoint runs/xai/<run-id>/models/best.pt --output runs/xai/<run-id>/metrics/recheck
 ```
 
 ## Metrics and interpretation
@@ -71,7 +71,7 @@ The routing rule is explicit: `D = JS(old_map, new_map)` and `E = P(predicted_cl
 
 Epoch records now include wall time, CUDA event time, training images/second, and validation inference latency. Every evaluated split also stores wall time, CUDA time, images/second, and milliseconds/image under `_timing`. Wall time is the operational measurement because it includes image loading and preprocessing; CUDA time isolates work queued on the GPU.
 
-Controlled drift is opt in and disabled during ordinary training. `evaluate_drift.py` applies deterministic, evaluation-only covariate shifts to the later timeline: severity 1 in 2012, severity 2 in 2013, and severity 3 in 2014. The default suite now separates illumination, white balance, signal-dependent sensor noise, defocus, motion blur, JPEG compression, resolution loss, viewpoint change, and occlusion. Its held-out `realistic_mix` applies one to three non-occlusion sources as the horizon advances and adds occlusion to only 10% of samples. Training labels are never modified.
+Controlled drift is opt in and disabled during ordinary training. `fyp-evaluate-drift` applies deterministic, evaluation-only covariate shifts to the later timeline: severity 1 in 2012, severity 2 in 2013, and severity 3 in 2014. The default suite now separates illumination, white balance, signal-dependent sensor noise, defocus, motion blur, JPEG compression, resolution loss, viewpoint change, and occlusion. Its held-out `realistic_mix` applies one to three non-occlusion sources as the horizon advances and adds occlusion to only 10% of samples. Training labels are never modified.
 
 These choices draw on the noise, blur, weather, and digital categories in [ImageNet-C](https://arxiv.org/abs/1903.12261), natural temporal evolution in [CLEAR](https://arxiv.org/abs/2201.06289), camera/location shifts in [WILDS](https://arxiv.org/abs/2012.07421), and physically captured environment/sensor changes in [ImageNet-ES](https://openaccess.thecvf.com/content/CVPR2024/html/Baek_Unexplored_Faces_of_Robustness_and_Out-of-Distribution_Covariate_Shifts_in_Environment_CVPR_2024_paper.html). The synthetic suite measures source-specific sensitivity; it does not claim to reproduce deployment frequencies. The frozen saturation/noise/occlusion `combined` transform remains available for exact reproduction. The complete rationale and severity table are in [`docs/drift_protocol_v2.md`](docs/drift_protocol_v2.md).
 
@@ -86,11 +86,15 @@ Results are saved beside each run at `metrics/drift/drift_evaluation.json`. Use 
 To export overlays, provide explicit run paths:
 
 ```powershell
-uv run show_saliency.py --checkpoint runs/xai/<run-id>/models/best.pt
-uv run show_siamese.py --base-checkpoint runs/xai/<run-id>/models/best.pt --run-dir runs/siamese/<run-id> --index 0
+uv run fyp-show-saliency --checkpoint runs/xai/<run-id>/models/best.pt
+uv run fyp-show-router --base-checkpoint runs/xai/<run-id>/models/best.pt --run-dir runs/siamese/<run-id> --index 0
 ```
 
-The modules stay separate: `ingest.py` downloads, `data.py` loads chronological splits, `model.py` builds ViTs, `train.py` trains baseline/XAI, `siamese.py` defines routing, `train_siamese.py` adapts and tests the twin, `metrics.py` scores, `evaluate.py` evaluates, and `run_store.py` handles run folders and checkpoints.
+## Code layout
+
+The installable package lives under `src/fyp_drift/`. Data ingestion and temporal splits are in `data/`; ViT and routing definitions are in `models/`; fitting code is in `training/`; metrics and audits are in `evaluation/`; generated evidence belongs to `artifacts/` and `visualization/`; orchestration and hardware checks are in `workflows/` and `system/`. Shell entry points under `deploy/` call the same `fyp-*` commands exposed by `pyproject.toml`.
+
+See [`docs/code_structure.md`](docs/code_structure.md) for the full map and the command used for each stage.
 
 ## Ubuntu server layout
 
@@ -134,11 +138,11 @@ The setup and runner derive their project path from their own file location. A s
 
 Branch `Rik/transparent-router` keeps combined corruption entirely held out until the 2014 test. The router is calibrated only on 2013 labels using four logged features: saliency Jensen-Shannon divergence, confidence gain, entropy reduction, and counterfactual evidence gain. A standardized logistic rule and an explicit saliency floor choose whether to use the updated ViT. `metrics/router_policy.json` records every coefficient, scale, and threshold.
 
-`export_router_report.py` writes three bounded four-panel examples for every condition (clean, saturation, Gaussian noise, occlusion, and combined) plus `samples.json`. Store these under `reports/transparent_router/<run-id>/` so the visual evidence can be committed without adding the full dataset or thousands of generated images.
+`fyp-export-router-report` writes three bounded four-panel examples for every condition (clean, saturation, Gaussian noise, occlusion, and combined) plus `samples.json`. Store these under `reports/transparent_router/<run-id>/` so the visual evidence can be committed without adding the full dataset or thousands of generated images.
 
 ### Long-horizon protocol
 
-Pass `--long-horizon` to freeze the chronology as follows: historical fit 2004-2008, historical checkpoint selection 2009, drift-aware adaptation 2010, class-stratified adapted-checkpoint selection and router calibration on disjoint halves of 2011, and untouched test-source evaluation in 2012-2014. Adaptation and calibration use deterministic single-corruption mixtures; combined corruption is excluded until the future test. The model is not updated between test years. `--selection-fraction` changes the 2011 selection share; `--reuse-calibration-for-selection` exists only to reproduce the earlier exploratory runs. `evaluate_drift.py --long-horizon` and `export_router_report.py --long-horizon` use the same three-year horizon.
+Pass `--long-horizon` to freeze the chronology as follows: historical fit 2004-2008, historical checkpoint selection 2009, drift-aware adaptation 2010, class-stratified adapted-checkpoint selection and router calibration on disjoint halves of 2011, and untouched test-source evaluation in 2012-2014. Adaptation and calibration use deterministic single-corruption mixtures; combined corruption is excluded until the future test. The model is not updated between test years. `--selection-fraction` changes the 2011 selection share; `--reuse-calibration-for-selection` exists only to reproduce the earlier exploratory runs. `fyp-evaluate-drift --long-horizon` and `fyp-export-router-report --long-horizon` use the same three-year horizon.
 
 Add `--adaptation-profile enhanced` to test a predeclared stronger correction policy. It exposes the newer ViT to a deterministic 25% clean / 75% individual-corruption curriculum spanning severities 1-3, trains its final three transformer blocks, uses separate conservative backbone and head learning rates, and increases the saliency faithfulness loss. Combined corruption remains unseen until the frozen future test. Checkpoint selection uses one class-stratified 2011 partition; router fitting and threshold selection use the other. Compare this run against `standard` with the same historical checkpoint, seed, epoch count, selection fraction, and 2012-2014 test horizon.
 
@@ -158,14 +162,14 @@ held-out mixture, and writes a combined console log under
 Every twin-ViT epoch now atomically updates `models/resume.pt` and `models/resume.json` with model, optimizer, epoch, and best-score state. Resume an interrupted run without overwriting its earlier events:
 
 ```bash
-uv run train_siamese.py --base-checkpoint runs/xai/<run>/models/best.pt \
+uv run fyp-train-router --base-checkpoint runs/xai/<run>/models/best.pt \
   --resume-run-dir runs/siamese/<interrupted-run> --long-horizon --epochs 5
 ```
 
 For a matched capacity/data control, add `--disable-saliency-loss`. Use `--drift-scenarios clean combined` for a focused ablation while retaining all five conditions in the main run. New drift evaluations save `logs/drift_routing_decisions.csv`. Summarize helpful/harmful route saliency and generate a 2014 combined-drift outcome figure with:
 
 ```bash
-uv run --with matplotlib analyze_saliency.py \
+uv run fyp-analyze-saliency \
   --run-dir runs/siamese/<run> --output reports/saliency/<run>
 ```
 
@@ -173,7 +177,7 @@ Audit the complete 2014 compound-drift stream for corrections, regressions, miss
 updates, and saliency deletion faithfulness with:
 
 ```bash
-uv run --no-sync audit_counterexamples.py \
+uv run --no-sync fyp-audit-router \
   --base-checkpoint runs/xai/<historical-run>/models/best.pt \
   --run-dir runs/siamese/<enhanced-run> \
   --data-root data \

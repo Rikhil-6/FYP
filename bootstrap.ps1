@@ -43,11 +43,11 @@ if ($LASTEXITCODE -ne 0) {
 
 function Invoke-DataIngest {
     Write-Host 'Downloading CLEAR-100 image archives (about 4.6 GB total; resumable).'
-    & $uv run ingest.py
+    & $uv run fyp-ingest
     if ($LASTEXITCODE -ne 0) { throw "Dataset ingestion failed: $LASTEXITCODE" }
 }
 function Invoke-Train([string]$method) {
-    & $uv run train.py --method $method --epochs $Epochs --batch-size $BatchSize
+    & $uv run fyp-train --method $method --epochs $Epochs --batch-size $BatchSize
     if ($LASTEXITCODE -ne 0) { throw "Training failed for ${method}: $LASTEXITCODE" }
 }
 function Get-LatestRun([string]$method) {
@@ -62,13 +62,13 @@ function Get-LatestRun([string]$method) {
 function Invoke-Eval([string]$method) {
     $run = Get-LatestRun $method
     $checkpoint = Join-Path $run 'models\best.pt'
-    & $uv run evaluate.py --method $method --checkpoint $checkpoint --batch-size $BatchSize --output (Join-Path $run 'metrics\recheck')
+    & $uv run fyp-evaluate --method $method --checkpoint $checkpoint --batch-size $BatchSize --output (Join-Path $run 'metrics\recheck')
     if ($LASTEXITCODE -ne 0) { throw "Evaluation failed for ${method}: $LASTEXITCODE" }
 }
 function Invoke-Drift([string]$method) {
     $run = Get-LatestRun $method
     $checkpoint = Join-Path $run 'models\best.pt'
-    & $uv run evaluate_drift.py --method $method --checkpoint $checkpoint --batch-size $BatchSize --output (Join-Path $run 'metrics\drift')
+    & $uv run fyp-evaluate-drift --method $method --checkpoint $checkpoint --batch-size $BatchSize --output (Join-Path $run 'metrics\drift')
     if ($LASTEXITCODE -ne 0) { throw "Drift evaluation failed for ${method}: $LASTEXITCODE" }
 }
 
@@ -79,7 +79,7 @@ switch ($Action) {
     'Xai' { Invoke-Train 'xai' }
     'Siamese' {
         $baseRun = Get-LatestRun 'xai'
-        & $uv run train_siamese.py --base-checkpoint (Join-Path $baseRun 'models\best.pt') --epochs $Epochs --batch-size $BatchSize
+        & $uv run fyp-train-router --base-checkpoint (Join-Path $baseRun 'models\best.pt') --epochs $Epochs --batch-size $BatchSize
         if ($LASTEXITCODE -ne 0) { throw "Siamese adaptation failed: $LASTEXITCODE" }
     }
     'Evaluate' { Invoke-Eval 'baseline'; Invoke-Eval 'xai' }
@@ -90,7 +90,7 @@ switch ($Action) {
         Invoke-Eval 'baseline'
         Invoke-Eval 'xai'
         $baseRun = Get-LatestRun 'xai'
-        & $uv run train_siamese.py --base-checkpoint (Join-Path $baseRun 'models\best.pt') --epochs $Epochs --batch-size $BatchSize
+        & $uv run fyp-train-router --base-checkpoint (Join-Path $baseRun 'models\best.pt') --epochs $Epochs --batch-size $BatchSize
         if ($LASTEXITCODE -ne 0) { throw "Siamese adaptation failed: $LASTEXITCODE" }
     }
 }
