@@ -11,3 +11,4 @@ tools/
 /tools
 /cache
 /tmp
+reports/**/all_decisions.csv
