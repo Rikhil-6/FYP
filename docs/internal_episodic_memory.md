@@ -282,3 +282,11 @@ All three 2014 source audits were regenerated from the saved checkpoint on the s
 The prototype now uses an installable `src/fyp_drift` package with separate data, model, training, evaluation, artefact, visualisation, workflow, and system modules. User-facing operations are exposed through `fyp-*` console commands in `pyproject.toml`; deployment scripts invoke those commands through uv. The final local and server checks passed all six tests. Local, GitHub, and `/home/ubuntu/FYP-fork` were synchronised at commit `6f2cd1b` before the document-only revision, and no training or tmux process was started.
 
 The editable thesis draft `output/docx/updated_ViT_router_mock_paper_2_literature_revision_uk.docx` uses UK spelling in the authored prose, Times New Roman 12 point throughout, 1.5 line spacing, and justified body text. The revision adds explicit rationales for DINOv2-small, retaining historical and adapted branches, and every enhanced-adaptation setting. It preserves all eight embedded figures byte for byte. A 30-page LibreOffice render was checked page by page; the architecture diagrams, result plot, saliency panels, tables, references, and pagination are intact.
+
+## 2026-10-11 citation, caption, and pagination audit
+
+The editable thesis was revised as `output/docx/updated_ViT_router_mock_paper_3.docx`. Numeric references now follow first appearance from `[1]` to `[24]`, and each citation bracket contains one number. The previously uncited, tangential language-model reference was removed from the bibliography. All nine tables and six numbered figures have explicit captions, including the harmful-switch counterexample.
+
+The OOXML audit checks every body, table, header, and footer paragraph. It confirms Times New Roman 12 point, 1.5 line spacing, justified body prose, disabled automatic hyphenation, no em dashes, eight retained drawings, and eight retained media files. The remaining en dashes occur in numeric ranges, Jensen–Shannon, or official publication titles. A 30-page LibreOffice render was inspected after moving the controlled ablation to a fresh page and shortening one protocol cell so no table row is split into a detached fragment.
+
+The server preflight still reports PyTorch 2.14.0 with a CUDA 13.0 build and one available Tesla T4. No tmux or training process was started for this document-only revision.
