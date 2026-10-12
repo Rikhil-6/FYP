@@ -64,7 +64,7 @@ def main():
     parser.add_argument("--base-checkpoint", type=Path, required=True)
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument(
-        "--output", type=Path, default=Path("reports/transparent_router")
+        "--output", type=Path, default=Path("runs/reports/router")
     )
     parser.add_argument("--indices", type=int, nargs="+", default=(0, 777, 1777))
     parser.add_argument(

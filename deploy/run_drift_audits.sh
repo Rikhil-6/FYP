@@ -3,9 +3,14 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-run_dir="${1:-runs/siamese/20261005-drift-v2-r2-realistic-saliency}"
-base_checkpoint="${2:-/mnt/sdd/FYP-fork/runs/xai/20260928T161159Z-horizon-xai/models/best.pt}"
-output_root="${3:-reports/transparent_router/20261006-drift-v2}"
+if [[ $# -lt 2 ]]; then
+  echo "Usage: $0 <router-run-dir> <historical-checkpoint> [output-dir]" >&2
+  exit 2
+fi
+
+run_dir="$1"
+base_checkpoint="$2"
+output_root="${3:-runs/audits/drift}"
 
 mkdir -p "$output_root"
 for scenario in motion_blur viewpoint_shift realistic_mix; do

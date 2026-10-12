@@ -1,0 +1,4 @@
+configuration,clean_routed_macro_f1,combined_historical_macro_f1,combined_updated_macro_f1,combined_routed_macro_f1,helpful_routes,harmful_routes
+matched_standard,95.78,90.34,91.68,91.72,144,57
+enhanced_with_saliency_losses,95.3,90.34,91.99,91.85,188,90
+enhanced_without_saliency_losses,95.45,90.34,91.86,91.62,125,43

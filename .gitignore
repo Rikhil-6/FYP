@@ -1,11 +1,15 @@
 .venv/
+/.venv
 __pycache__/
 *.pyc
 /runs
 /data
 /tools
 *.pem
-/.venv
 /cache
 /tmp
-reports/**/all_decisions.csv
+/.pytest_cache
+/.ruff_cache
+/.uv-cache
+/output
+/reports
