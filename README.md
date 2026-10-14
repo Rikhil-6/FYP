@@ -121,6 +121,40 @@ The synthetic conditions are controlled sensitivity tests rather than estimates
 of deployment frequency. Full definitions and limitations are in
 [`docs/experiment_protocol.md`](docs/experiment_protocol.md).
 
+Verify that the declared conditions produce measurable distribution shift in
+frozen DINOv2 features before interpreting classification changes:
+
+```bash
+tools/uv run fyp-verify-drift \
+  --data-root data \
+  --output runs/drift-verification \
+  --limit 500 \
+  --permutations 199
+```
+
+The command reports RBF maximum mean discrepancy with a permutation p-value and
+cross-validated domain-classifier ROC AUC. It includes a clean split-half
+control, natural 2009-to-future comparisons, and paired 2014 clean-versus-shift
+comparisons for every declared source.
+
+The same checks can be combined with a frozen-feature linear probe on an
+official WILDS split. FMoW is the primary replication dataset because its
+out-of-distribution split contains satellite images separated by time and
+geography. iWildCam and Camelyon17 are available as non-temporal checks of
+camera-location and hospital shift respectively.
+
+```bash
+tools/uv run fyp-replicate-wilds \
+  --dataset fmow \
+  --data-root data/wilds \
+  --output runs/wilds/fmow \
+  --download
+```
+
+This is a repeatability screen: it tests whether measurable feature drift and
+an ID-to-OOD performance change occur on another public dataset. It does not
+claim that the full CLEAR-trained router transfers without retraining.
+
 ## Auditing a route
 
 Classification results include macro F1, macro IoU, accuracy, per-class scores,
