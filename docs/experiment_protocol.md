@@ -121,6 +121,8 @@ tools/uv run fyp-verify-drift \
 
 No single value proves harmful drift. MMD tests distribution equality and the
 domain classifier measures how reliably held-out features reveal their source.
+The reported AUC is symmetrised around 0.5 so its value does not depend on which
+domain was assigned label zero.
 Performance loss and routing outcomes determine whether an observed shift
 matters to the task.
 

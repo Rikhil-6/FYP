@@ -11,8 +11,10 @@ two tests whose outputs can be checked independently:
    separation at least this large if the samples were exchangeable.
 2. **Classifier two-sample test.** A balanced logistic classifier is trained and
    evaluated by five-fold cross-validation to distinguish reference from target
-   features. ROC AUC near 0.5 is chance performance; a value towards 1.0 means
-   the domains are readily separable.
+   features. The reported AUC is symmetrised around 0.5 so that reversing the
+   arbitrary domain labels does not change the result. A value near 0.5 is
+   chance performance; a value towards 1.0 means the domains are readily
+   separable.
 
 The code is intentionally limited to these two measures. Gretton et al. define
 the kernel two-sample test, while Lopez-Paz and Oquab describe the classifier
@@ -29,7 +31,8 @@ implementations against which the methodology can be inspected.
 Three comparisons prevent a significant result from being treated as sufficient
 evidence on its own:
 
-- the clean split-half control estimates within-distribution variation;
+- a seeded random clean split-half control estimates within-distribution
+  variation without retaining dataset order;
 - clean historical and future years measure natural temporal separation;
 - clean and shifted versions of the same 2014 images isolate each controlled
   corruption from image identity and class composition.
