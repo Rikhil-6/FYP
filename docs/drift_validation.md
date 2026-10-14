@@ -78,3 +78,23 @@ larger WILDS archives are unavailable. It trains on 1930-1989, evaluates an ID
 window from 1980-1989, and evaluates a later window from 2004-2013. Its binary,
 32-pixel portrait task is useful for checking temporal reproducibility but does
 not offer the visual complexity or operational setting of FMoW.
+
+## CIFAR-10.1 replication
+
+CIFAR-10.1 is a separately collected replacement test set for CIFAR-10. It
+provides a small natural-shift check when large WILDS archives are unavailable.
+It is not a temporal dataset, so its results are described as cross-collection
+reproduction shift.
+
+```bash
+uv run fyp-replicate-cifar \
+  --data-root data/cifar \
+  --output runs/cifar/cifar10-1-screen \
+  --train-limit 5000 \
+  --eval-limit 1000 \
+  --epochs 2
+```
+
+The command compares the original CIFAR-10 test set with CIFAR-10.1 v6 using
+the same frozen-feature probe, MMD test, domain classifier, and matched baseline
+and saliency-gated ViT heads used by the other replication scripts.

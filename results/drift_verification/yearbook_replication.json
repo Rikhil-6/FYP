@@ -1,0 +1,82 @@
+{
+  "dataset": "Wild-Time Yearbook",
+  "feature_extractor": "facebook/dinov2-small",
+  "seed": 42,
+  "periods": {
+    "training": [
+      1930,
+      1989
+    ],
+    "in_distribution_test": [
+      1980,
+      1989
+    ],
+    "later_test": [
+      2004,
+      2013
+    ]
+  },
+  "linear_probe": {
+    "in_distribution": {
+      "accuracy": 0.894,
+      "macro_f1": 0.8939893989398939,
+      "samples": 500
+    },
+    "later_period": {
+      "accuracy": 0.9253731343283582,
+      "macro_f1": 0.9253491875317544,
+      "samples": 335
+    },
+    "macro_f1_change_percentage_points": 3.1359788591860505
+  },
+  "drift_detection": {
+    "mmd_squared": 0.039391076147002435,
+    "mmd_bandwidth": 42.996781091998315,
+    "mmd_permutation_p": 0.005,
+    "mmd_permutations": 199,
+    "mmd_permutation_samples_per_group": 200,
+    "domain_classifier_roc_auc": 0.9536895522388058
+  },
+  "architecture_screen": {
+    "baseline": {
+      "method": "baseline",
+      "training_scope": "classifier head",
+      "epoch_losses": [
+        0.7340067586898804,
+        0.4081118659178416
+      ],
+      "in_distribution": {
+        "accuracy": 0.852,
+        "macro_f1": 0.8519976319621114,
+        "samples": 500
+      },
+      "out_of_distribution": {
+        "accuracy": 0.7820895522388059,
+        "macro_f1": 0.7813100827185335,
+        "samples": 335
+      },
+      "ood_macro_f1_change_from_id_points": -7.06875492435779
+    },
+    "xai": {
+      "method": "xai",
+      "training_scope": "classifier and saliency head",
+      "epoch_losses": [
+        0.7479092117945353,
+        0.4116771025657654
+      ],
+      "in_distribution": {
+        "accuracy": 0.852,
+        "macro_f1": 0.8519976319621114,
+        "samples": 500
+      },
+      "out_of_distribution": {
+        "accuracy": 0.7791044776119403,
+        "macro_f1": 0.7780583011029938,
+        "samples": 335
+      },
+      "ood_macro_f1_change_from_id_points": -7.393933085911764
+    },
+    "xai_minus_baseline_ood_macro_f1_points": -0.32517816155397394
+  },
+  "scope": "This low-resolution binary task checks temporal reproducibility and the evaluation path. It does not replace a complex-image FMoW run."
+}
