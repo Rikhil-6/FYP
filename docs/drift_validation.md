@@ -48,6 +48,12 @@ WILDS splits. It fits a linear classifier to frozen DINOv2 training features and
 reports accuracy and macro F1 on in-distribution and out-of-distribution
 validation data.
 
+The optional `--architecture-screen` adds a matched comparison between the
+uniform-patch baseline and the learned saliency gate. It trains the task heads
+over the same frozen backbone, images, seed, epochs, and optimiser. This provides
+a direct, affordable test of the modified classifier across datasets while
+avoiding the false claim that a CLEAR-calibrated router transfers unchanged.
+
 FMoW is the first choice because it is an image classification dataset with
 time and geography in its distribution shift. iWildCam is a useful secondary
 test of camera-location shift. Camelyon17 tests hospital acquisition shift, but
