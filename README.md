@@ -148,12 +148,15 @@ tools/uv run fyp-replicate-wilds \
   --dataset fmow \
   --data-root data/wilds \
   --output runs/wilds/fmow \
+  --architecture-screen \
   --download
 ```
 
-This is a repeatability screen: it tests whether measurable feature drift and
-an ID-to-OOD performance change occur on another public dataset. It does not
-claim that the full CLEAR-trained router transfers without retraining.
+The default linear probe is a quick repeatability check. `--architecture-screen`
+also trains matched frozen-backbone baseline and saliency-gated ViTs and reports
+their ID and OOD scores. This tests the modified classifier on the native WILDS
+shift; it does not claim that the full CLEAR-trained router transfers without
+dataset-specific updating and calibration.
 
 ## Auditing a route
 

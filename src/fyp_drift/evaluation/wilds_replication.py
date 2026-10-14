@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from torch.nn import functional as F
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.pipeline import make_pipeline
@@ -21,7 +22,7 @@ from wilds import get_dataset
 
 from fyp_drift.data.clear100 import MEAN, STD
 from fyp_drift.evaluation.drift_metrics import distribution_shift_metrics
-from fyp_drift.models.vision_transformer import BACKBONE
+from fyp_drift.models.vision_transformer import BACKBONE, TemporalViT
 
 
 DATASET_SPLITS = {
@@ -49,6 +50,14 @@ def parse_args(argv=None):
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--permutations", type=int, default=199)
     parser.add_argument("--permutation-limit", type=int, default=200)
+    parser.add_argument(
+        "--architecture-screen",
+        action="store_true",
+        help="also train matched frozen-backbone baseline and saliency ViTs",
+    )
+    parser.add_argument("--epochs", type=int, default=2)
+    parser.add_argument("--learning-rate", type=float, default=5e-5)
+    parser.add_argument("--faithfulness-weight", type=float, default=0.1)
     return parser.parse_args(argv)
 
 
@@ -131,6 +140,94 @@ def classification_scores(probe, features, labels):
         "macro_f1": float(f1_score(labels, predictions, average="macro", zero_division=0)),
         "samples": int(len(labels)),
     }
+
+
+@torch.inference_mode()
+def evaluate_architecture(model, data_loader, device, label):
+    model.eval()
+    predictions = []
+    targets = []
+    for images, labels, _ in tqdm(data_loader, desc=label, unit="batch"):
+        logits, _, _ = model(images.to(device))
+        predictions.append(logits.argmax(1).cpu().numpy())
+        targets.append(labels.cpu().numpy())
+    predictions = np.concatenate(predictions)
+    targets = np.concatenate(targets)
+    return {
+        "accuracy": float(accuracy_score(targets, predictions)),
+        "macro_f1": float(
+            f1_score(targets, predictions, average="macro", zero_division=0)
+        ),
+        "samples": int(len(targets)),
+    }
+
+
+def train_architecture(method, num_classes, loaders, args, device):
+    """Train only the task heads so dataset comparisons remain affordable."""
+    torch.manual_seed(args.seed)
+    model = TemporalViT(method=method, num_classes=num_classes).to(device)
+    for parameter in model.backbone.parameters():
+        parameter.requires_grad = False
+    if method == "baseline":
+        for parameter in model.saliency_head.parameters():
+            parameter.requires_grad = False
+    optimiser = torch.optim.AdamW(
+        (parameter for parameter in model.parameters() if parameter.requires_grad),
+        lr=args.learning_rate,
+    )
+
+    epoch_losses = []
+    for epoch in range(1, args.epochs + 1):
+        model.train()
+        model.backbone.eval()
+        total_loss = 0.0
+        progress = tqdm(
+            loaders["train"],
+            desc=f"{method} epoch {epoch}/{args.epochs}",
+            unit="batch",
+        )
+        for images, labels, _ in progress:
+            images = images.to(device)
+            labels = labels.to(device)
+            logits, _, inverse_logits = model(
+                images,
+                return_counterfactual=method == "xai",
+            )
+            loss = F.cross_entropy(logits, labels)
+            if inverse_logits is not None:
+                selected = logits.gather(1, labels[:, None])
+                inverse = inverse_logits.gather(1, labels[:, None])
+                loss += args.faithfulness_weight * F.relu(
+                    0.2 - (selected - inverse)
+                ).mean()
+            optimiser.zero_grad()
+            loss.backward()
+            optimiser.step()
+            total_loss += loss.item() * len(labels)
+            progress.set_postfix(loss=f"{loss.item():.4f}")
+        epoch_losses.append(total_loss / len(loaders["train"].dataset))
+
+    scores = {
+        "method": method,
+        "training_scope": (
+            "classifier and saliency head" if method == "xai" else "classifier head"
+        ),
+        "epoch_losses": epoch_losses,
+        "in_distribution": evaluate_architecture(
+            model, loaders["id"], device, f"{method} ID"
+        ),
+        "out_of_distribution": evaluate_architecture(
+            model, loaders["ood"], device, f"{method} OOD"
+        ),
+    }
+    scores["ood_macro_f1_change_from_id_points"] = 100 * (
+        scores["out_of_distribution"]["macro_f1"]
+        - scores["in_distribution"]["macro_f1"]
+    )
+    del model
+    if device == "cuda":
+        torch.cuda.empty_cache()
+    return scores
 
 
 def main(argv=None):
@@ -223,6 +320,22 @@ def main(argv=None):
             "to this frozen-feature classifier."
         ),
     }
+    if args.architecture_screen:
+        architecture = {
+            method: train_architecture(
+                method,
+                dataset.n_classes,
+                loaders,
+                args,
+                device,
+            )
+            for method in ("baseline", "xai")
+        }
+        architecture["xai_minus_baseline_ood_macro_f1_points"] = 100 * (
+            architecture["xai"]["out_of_distribution"]["macro_f1"]
+            - architecture["baseline"]["out_of_distribution"]["macro_f1"]
+        )
+        payload["architecture_screen"] = architecture
     args.output.mkdir(parents=True, exist_ok=True)
     output_path = args.output / f"{args.dataset}_replication.json"
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")

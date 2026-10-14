@@ -143,6 +143,7 @@ tools/uv run fyp-replicate-wilds \
   --dataset fmow \
   --data-root data/wilds \
   --output runs/wilds/fmow \
+  --architecture-screen \
   --download
 ```
 
@@ -152,6 +153,14 @@ measured on `id_val`, and then measured on the out-of-distribution `val` split.
 MMD and domain-classifier ROC AUC compare the two validation feature samples.
 The change in accuracy and macro F1 determines whether the detected shift is
 harmful to the probe.
+
+With `--architecture-screen`, the command also trains the baseline and
+saliency-gated classifier heads over the same frozen DINOv2 backbone. Both see
+the same sampled training images, epochs, seed, and optimiser settings. Their
+ID and OOD macro F1 scores test whether the modified classifier changes
+generalisation under the dataset's native shift. The screen freezes the
+backbone to keep multi-dataset runs practical, so its result must be kept
+separate from the partially fine-tuned CLEAR experiment.
 
 iWildCam can test camera-location shift and Camelyon17 can test hospital shift
 with the same command. They broaden the evidence but do not verify temporal
