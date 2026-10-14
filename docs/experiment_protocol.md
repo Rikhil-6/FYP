@@ -91,6 +91,75 @@ Prediction-only calibration omits the saliency eligibility floor. Saliency-only
 and combined calibration retain it, and every saved policy records the features
 used to fit its coefficients.
 
+## Independent drift verification
+
+Classification loss does not establish that two input distributions differ.
+The drift verification command therefore embeds images with the frozen
+DINOv2-small backbone and compares distributions before using model accuracy to
+judge harm. It reports two complementary quantities:
+
+- RBF maximum mean discrepancy squared, with a permutation p-value;
+- cross-validated domain-classifier ROC AUC.
+
+The 2014 source tests pair every shifted image with its clean counterpart. This
+controls image identity and class composition when verifying motion blur,
+occlusion, and the other acquisition changes. A clean 2014 split-half comparison
+provides a within-distribution reference. Natural temporal comparisons use clean
+2009 images as the historical reference and clean 2012-2014 images as future
+samples. Those comparisons capture temporal change but may also reflect changes
+in class frequency and image composition, so they are reported separately.
+
+Run the verification before the model comparison:
+
+```bash
+tools/uv run fyp-verify-drift \
+  --data-root data \
+  --output runs/drift-verification \
+  --limit 500 \
+  --permutations 199
+```
+
+No single value proves harmful drift. MMD tests distribution equality and the
+domain classifier measures how reliably held-out features reveal their source.
+Performance loss and routing outcomes determine whether an observed shift
+matters to the task.
+
+MMD follows the kernel two-sample test of Gretton et al. The domain detector
+follows the classifier two-sample test of Lopez-Paz and Oquab. Both methods have
+independent open-source implementations in Alibi Detect as `MMDDrift` and
+`ClassifierDrift`, which provides a public reference for the test design:
+
+- <https://www.jmlr.org/papers/v13/gretton12a.html>
+- <https://arxiv.org/abs/1610.06545>
+- <https://github.com/SeldonIO/alibi-detect>
+
+## Cross-dataset replication screen
+
+Run the same feature-space tests and a frozen-DINOv2 linear probe on official
+WILDS splits:
+
+```bash
+tools/uv run fyp-replicate-wilds \
+  --dataset fmow \
+  --data-root data/wilds \
+  --output runs/wilds/fmow \
+  --download
+```
+
+FMoW is the primary external dataset because its satellite imagery includes
+explicit temporal and geographical shift. The probe is fitted on `train`,
+measured on `id_val`, and then measured on the out-of-distribution `val` split.
+MMD and domain-classifier ROC AUC compare the two validation feature samples.
+The change in accuracy and macro F1 determines whether the detected shift is
+harmful to the probe.
+
+iWildCam can test camera-location shift and Camelyon17 can test hospital shift
+with the same command. They broaden the evidence but do not verify temporal
+replication. A full claim about router transfer requires matched training,
+calibration, seeds, and saliency audits on the chosen dataset; this lightweight
+screen deliberately makes the narrower claim that the detection and
+performance-evaluation protocol can be repeated.
+
 ## Evidence base
 
 - Hendrycks and Dietterich group common corruptions into noise, blur, weather,
