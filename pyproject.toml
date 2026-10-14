@@ -17,6 +17,7 @@ dependencies = [
     "filelock>=3",
     "scikit-learn>=1.5",
     "matplotlib>=3.9",
+    "wild-time-data>=0.1.1",
 ]
 
 [project.scripts]
@@ -27,6 +28,7 @@ fyp-evaluate = "fyp_drift.evaluation.classifier:main"
 fyp-evaluate-drift = "fyp_drift.evaluation.drift:main"
 fyp-verify-drift = "fyp_drift.evaluation.drift_verification:main"
 fyp-replicate-wilds = "fyp_drift.evaluation.wilds_replication:main"
+fyp-replicate-yearbook = "fyp_drift.evaluation.yearbook_replication:main"
 fyp-experiment = "fyp_drift.workflows.experiment:main"
 fyp-export-router-report = "fyp_drift.artifacts.router_report:main"
 fyp-hardware = "fyp_drift.system.hardware:main"

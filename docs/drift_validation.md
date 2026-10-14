@@ -72,3 +72,9 @@ The resulting JSON separates two claims:
 This screen does not by itself reproduce the saliency-guided router. A full
 architecture replication must retrain and calibrate the historical model,
 updated model, and router on each dataset with matched seeds and budgets.
+
+Wild-Time Yearbook is included as a small, downloadable temporal check when the
+larger WILDS archives are unavailable. It trains on 1930-1989, evaluates an ID
+window from 1980-1989, and evaluates a later window from 2004-2013. Its binary,
+32-pixel portrait task is useful for checking temporal reproducibility but does
+not offer the visual complexity or operational setting of FMoW.
