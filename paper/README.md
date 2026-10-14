@@ -1,6 +1,6 @@
-# Thesis draft and figures
+# Paper draft and figures
 
-`explainable_vit_drift_routing.docx` is the current editable thesis draft. It is
+`explainable_vit_drift_routing.docx` is the current editable paper draft. It is
 formatted in Times New Roman 12 point with 1.5 line spacing and uses numbered
 citations in order of first appearance.
 

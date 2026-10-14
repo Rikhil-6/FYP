@@ -34,7 +34,13 @@ from fyp_drift.evaluation.metrics import (
     classification_metrics,
     topk_map_agreement,
 )
-from fyp_drift.models.routing import FEATURES, apply_policy, feature_tensor, fit_policy
+from fyp_drift.models.routing import (
+    FEATURES,
+    FEATURE_SETS,
+    apply_policy,
+    feature_tensor,
+    fit_policy,
+)
 from fyp_drift.models.siamese import ViTTwinRouter
 from fyp_drift.models.vision_transformer import TemporalViT
 
@@ -108,6 +114,12 @@ def parse_args(argv=None):
         "--disable-saliency-loss",
         action="store_true",
         help="Ablate the pairwise and counterfactual saliency losses.",
+    )
+    parser.add_argument(
+        "--router-features",
+        choices=tuple(FEATURE_SETS),
+        default="combined",
+        help="Fit the route policy with prediction, explanation, or combined evidence.",
     )
     parser.add_argument(
         "--resume-run-dir",
@@ -305,7 +317,7 @@ def model_metrics(model, loader, device):
 
 
 @torch.no_grad()
-def calibrate_router(router, loader, device):
+def calibrate_router(router, loader, device, feature_set="combined"):
     """Fit the transparent policy to beneficial model switches."""
     router.eval()
     feature_rows = []
@@ -333,6 +345,7 @@ def calibrate_router(router, loader, device):
         np.asarray(historical_predictions),
         np.asarray(updated_predictions),
         np.asarray(truth),
+        feature_names=FEATURE_SETS[feature_set],
     )
 
 
@@ -704,7 +717,9 @@ def main(argv=None):
         weights_only=True,
     )
     router.new.load_state_dict(best_state)
-    policy = calibrate_router(router, loaders.calibration, device)
+    policy = calibrate_router(
+        router, loaders.calibration, device, feature_set=args.router_features
+    )
     store.write_json("metrics/router_policy.json", policy)
     result, decisions = evaluate_stream(
         router, loaders.future, policy, device, loaders.year_column
