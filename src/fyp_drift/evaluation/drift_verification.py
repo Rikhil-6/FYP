@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 from transformers import Dinov2Model
@@ -189,14 +190,24 @@ def main(argv=None):
         model, clean_loader, device, f"clean {evaluation_year} reference"
     )
 
-    midpoint = len(clean_features) // 2
+    evaluation_labels = np.asarray(
+        [int(evaluation_subset.rows[index]["label"]) for index in evaluation_indices]
+    )
+    first_indices, second_indices = train_test_split(
+        np.arange(len(clean_features)),
+        test_size=0.5,
+        random_state=args.seed,
+        stratify=evaluation_labels,
+    )
+    first_half = clean_features[first_indices]
+    second_half = clean_features[second_indices]
     rows.append(
         comparison_row(
             "null_control",
             f"clean_{evaluation_year}_half_a",
             f"clean_{evaluation_year}_half_b",
-            clean_features[:midpoint],
-            clean_features[midpoint : midpoint * 2],
+            first_half,
+            second_half,
             args,
             paired=False,
         )

@@ -124,7 +124,8 @@ def domain_classifier_auc(first, second, seed=42, folds=5):
         cv=splitter,
         method="predict_proba",
     )[:, 1]
-    return float(roc_auc_score(labels, probabilities))
+    auc = float(roc_auc_score(labels, probabilities))
+    return max(auc, 1.0 - auc)
 
 
 def distribution_shift_metrics(
