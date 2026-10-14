@@ -31,6 +31,10 @@ CIFAR101_BASE_URL = (
     "https://raw.githubusercontent.com/modestyachts/CIFAR-10.1/"
     "master/datasets"
 )
+CIFAR10_MIRROR_URL = (
+    "https://huggingface.co/datasets/MIT-OL-AI-D/cifar-10-python/"
+    "resolve/main/cifar-10-python.tar.gz"
+)
 
 
 class WithMetadata(Dataset):
@@ -125,6 +129,9 @@ def main(argv=None):
     np.random.seed(args.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     transform = image_transform()
+    # The original Toronto host is rate-limited on the project server. This
+    # mirror serves the unmodified archive; torchvision still checks its MD5.
+    CIFAR10.url = CIFAR10_MIRROR_URL
     datasets = {
         "train": WithMetadata(
             CIFAR10(args.data_root, train=True, download=True, transform=transform)
