@@ -158,6 +158,19 @@ their ID and OOD scores. This tests the modified classifier on the native WILDS
 shift; it does not claim that the full CLEAR-trained router transfers without
 dataset-specific updating and calibration.
 
+If the large WILDS downloads are unavailable, the smaller Wild-Time Yearbook
+dataset provides an immediate temporal reproducibility check:
+
+```bash
+tools/uv run fyp-replicate-yearbook \
+  --data-root data/wild-time \
+  --output runs/wild-time/yearbook
+```
+
+Yearbook is a low-resolution binary task. It verifies the temporal evaluation
+and matched architecture comparison, but it is not a substitute for FMoW's
+complex satellite imagery.
+
 ## Auditing a route
 
 Classification results include macro F1, macro IoU, accuracy, per-class scores,
