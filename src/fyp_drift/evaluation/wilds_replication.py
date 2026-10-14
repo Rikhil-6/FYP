@@ -188,7 +188,7 @@ def train_architecture(method, num_classes, loaders, args, device):
         )
         for images, labels, _ in progress:
             images = images.to(device)
-            labels = labels.to(device)
+            labels = labels.to(device, dtype=torch.long)
             logits, _, inverse_logits = model(
                 images,
                 return_counterfactual=method == "xai",
