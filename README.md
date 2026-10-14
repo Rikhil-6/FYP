@@ -171,6 +171,19 @@ Yearbook is a low-resolution binary task. It verifies the temporal evaluation
 and matched architecture comparison, but it is not a substitute for FMoW's
 complex satellite imagery.
 
+CIFAR-10.1 provides a second small external screen based on a naturally
+recollected test set:
+
+```bash
+tools/uv run fyp-replicate-cifar \
+  --data-root data/cifar \
+  --output runs/cifar/cifar10-1-screen
+```
+
+This is a cross-collection reproduction shift rather than a temporal benchmark.
+The script reports the same drift tests and matched architecture comparison so
+the distinction between measurable shift and predictive harm remains explicit.
+
 ## Auditing a route
 
 Classification results include macro F1, macro IoU, accuracy, per-class scores,
