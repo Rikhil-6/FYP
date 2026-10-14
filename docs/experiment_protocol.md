@@ -75,6 +75,22 @@ The method is not intended to solve label-definition drift, new classes, severe
 object disappearance, or annotation errors. A faithful saliency map can still
 explain a prediction made under the wrong task definition.
 
+## Router evidence ablation
+
+The router can be calibrated with prediction evidence, explanation evidence, or
+both. This supports a matched test of whether saliency contributes beyond changes
+in confidence and predictive entropy:
+
+```bash
+tools/uv run fyp-train-router ... --router-features confidence_only
+tools/uv run fyp-train-router ... --router-features saliency_only
+tools/uv run fyp-train-router ... --router-features combined
+```
+
+Prediction-only calibration omits the saliency eligibility floor. Saliency-only
+and combined calibration retain it, and every saved policy records the features
+used to fit its coefficients.
+
 ## Evidence base
 
 - Hendrycks and Dietterich group common corruptions into noise, blur, weather,

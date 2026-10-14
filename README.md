@@ -99,6 +99,10 @@ tools/uv run fyp-train-router \
 The historical model, updated model, and router are frozen before the future
 years are scored. No test-year label is used for model selection.
 
+Use `--router-features confidence_only`, `saliency_only`, or `combined` to run
+the matched routing-evidence ablation. Each saved policy records the features,
+coefficients, scaling values, and thresholds used for its decisions.
+
 ## Drift evaluation
 
 The main evaluation reports the natural CLEAR chronology and a controlled suite
@@ -145,7 +149,7 @@ The compact result set is under [`results/`](results/). It includes the matched
 saliency panels. Large checkpoints and complete decision logs remain outside
 Git.
 
-The editable thesis is
+The editable paper is
 [`paper/explainable_vit_drift_routing.docx`](paper/explainable_vit_drift_routing.docx).
 The main architecture and result figures are also stored separately under
 [`paper/figures/`](paper/figures/).
