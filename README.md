@@ -183,6 +183,18 @@ tools/uv run fyp-replicate-cifar \
 This is a cross-collection reproduction shift rather than a temporal benchmark.
 The script reports the same drift tests and matched architecture comparison so
 the distinction between measurable shift and predictive harm remains explicit.
+Across seeds 42-44, the saliency head improved CIFAR-10.1 OOD macro F1 by a
+mean 0.30 points (sample standard deviation 0.11). Yearbook remained negative
+by 0.33 points in its single-seed screen, so the external evidence is mixed.
+
+Summarise completed external screens without pooling unlike datasets:
+
+```bash
+tools/uv run fyp-summarise-replications \
+  results/drift_verification/yearbook_replication.json \
+  results/drift_verification/cifar10_1_seed*.json \
+  --output results/drift_verification
+```
 
 ## Auditing a route
 

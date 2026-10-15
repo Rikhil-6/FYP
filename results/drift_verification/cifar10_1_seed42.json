@@ -1,0 +1,74 @@
+{
+  "dataset": "CIFAR-10.1 v6",
+  "source_dataset": "CIFAR-10",
+  "feature_extractor": "facebook/dinov2-small",
+  "seed": 42,
+  "limits": {
+    "training": 5000,
+    "in_distribution_test": 1000,
+    "recollected_test": 1000
+  },
+  "linear_probe": {
+    "in_distribution": {
+      "accuracy": 0.938,
+      "macro_f1": 0.9383748405360823,
+      "samples": 1000
+    },
+    "recollected": {
+      "accuracy": 0.885,
+      "macro_f1": 0.8848359178593579,
+      "samples": 1000
+    },
+    "macro_f1_change_percentage_points": -5.353892267672444
+  },
+  "drift_detection": {
+    "mmd_squared": 0.0027508005060121743,
+    "mmd_bandwidth": 59.54593211500419,
+    "mmd_permutation_p": 0.005,
+    "mmd_permutations": 199,
+    "mmd_permutation_samples_per_group": 200,
+    "domain_classifier_roc_auc": 0.606242
+  },
+  "architecture_screen": {
+    "baseline": {
+      "method": "baseline",
+      "training_scope": "classifier head",
+      "epoch_losses": [
+        1.9216532428741455,
+        0.8727066868782043
+      ],
+      "in_distribution": {
+        "accuracy": 0.83,
+        "macro_f1": 0.8309086392701268,
+        "samples": 1000
+      },
+      "out_of_distribution": {
+        "accuracy": 0.734,
+        "macro_f1": 0.7334834771274823,
+        "samples": 1000
+      },
+      "ood_macro_f1_change_from_id_points": -9.742516214264452
+    },
+    "xai": {
+      "method": "xai",
+      "training_scope": "classifier and saliency head",
+      "epoch_losses": [
+        1.9415687920570373,
+        0.8769266164779663
+      ],
+      "in_distribution": {
+        "accuracy": 0.831,
+        "macro_f1": 0.8318263886259871,
+        "samples": 1000
+      },
+      "out_of_distribution": {
+        "accuracy": 0.737,
+        "macro_f1": 0.736464552147128,
+        "samples": 1000
+      },
+      "ood_macro_f1_change_from_id_points": -9.53618364788591
+    },
+    "xai_minus_baseline_ood_macro_f1_points": 0.2981075019645729
+  },
+  "scope": "CIFAR-10.1 is a naturally recollected reproduction test. It tests dataset shift across collections, not temporal adaptation within a deployment and not complex industrial imagery."
+}
