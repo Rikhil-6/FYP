@@ -105,3 +105,33 @@ baseline and 74.27% for the saliency head. The mean difference was +0.30 points
 with a sample standard deviation of 0.11 points; all three seed differences were
 positive. This is a small, repeatable benefit on a natural recollection shift,
 not evidence of a large or universal improvement.
+
+## Camelyon17 replication
+
+Camelyon17-WILDS tests hospital acquisition shift in histopathology patches. A
+public Hugging Face mirror is used because the official CodaLab certificate has
+expired. The mirror groups the source hospitals in one training split, so the
+screen creates a class-balanced, patient-disjoint source holdout for ID
+evaluation and uses the validation hospital as the OOD sample.
+
+```bash
+uv run fyp-replicate-camelyon \
+  --output runs/wilds/camelyon17/seed42 \
+  --train-limit 5000 \
+  --eval-limit 1000 \
+  --epochs 2 \
+  --seed 42
+```
+
+The experiment is a non-standard WILDS screen. It uses an externally pretrained
+DINOv2 backbone and three seeds rather than the ten Camelyon17 replicates
+requested for a standard leaderboard submission. Both compared heads share
+those deviations, so the within-run architecture contrast remains controlled.
+
+Across seeds 42-44, MMD squared ranged from 0.0237 to 0.0566 with permutation
+p = 0.005 in every run. Domain ROC AUC ranged from 0.941 to 0.995. Mean OOD
+macro F1 was 77.31% for the uniform baseline and 77.24% for the saliency head.
+The mean difference was -0.07 points with a sample standard deviation of 0.12.
+One run tied and two were slightly negative. Camelyon17 verifies a large
+acquisition shift but does not verify an accuracy benefit from the current
+saliency head.

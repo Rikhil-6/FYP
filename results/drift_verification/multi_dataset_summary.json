@@ -47,6 +47,42 @@
       "xai_id_macro_f1": 0.8295096824788812,
       "xai_ood_macro_f1": 0.7553885062383194,
       "xai_minus_baseline_ood_points": 0.4142120837942409
+    },
+    {
+      "dataset": "Camelyon17-WILDS",
+      "seed": 42,
+      "mmd_squared": 0.023691061005851166,
+      "mmd_p": 0.005,
+      "domain_auc": 0.94954,
+      "baseline_id_macro_f1": 0.7839423054277583,
+      "baseline_ood_macro_f1": 0.7155061645541523,
+      "xai_id_macro_f1": 0.7781785170001521,
+      "xai_ood_macro_f1": 0.7155061645541523,
+      "xai_minus_baseline_ood_points": 0.0
+    },
+    {
+      "dataset": "Camelyon17-WILDS",
+      "seed": 43,
+      "mmd_squared": 0.03281314623824794,
+      "mmd_p": 0.005,
+      "domain_auc": 0.9414835,
+      "baseline_id_macro_f1": 0.8917607690447938,
+      "baseline_ood_macro_f1": 0.7582144387113733,
+      "xai_id_macro_f1": 0.8907254213142088,
+      "xai_ood_macro_f1": 0.7561511621956029,
+      "xai_minus_baseline_ood_points": -0.20632765157704291
+    },
+    {
+      "dataset": "Camelyon17-WILDS",
+      "seed": 44,
+      "mmd_squared": 0.056563150274421936,
+      "mmd_p": 0.005,
+      "domain_auc": 0.9951639999999999,
+      "baseline_id_macro_f1": 0.940999468995221,
+      "baseline_ood_macro_f1": 0.8456140350877193,
+      "xai_id_macro_f1": 0.941999767999072,
+      "xai_ood_macro_f1": 0.8455824549582069,
+      "xai_minus_baseline_ood_points": -0.003158012951232081
     }
   ],
   "dataset_summaries": [
@@ -57,6 +93,14 @@
       "xai_ood_macro_f1_mean": 0.742721112367042,
       "xai_minus_baseline_ood_points_mean": 0.3028053614965572,
       "xai_minus_baseline_ood_points_std": 0.10913365441064536
+    },
+    {
+      "dataset": "Camelyon17-WILDS",
+      "runs": 3,
+      "baseline_ood_macro_f1_mean": 0.7731115461177483,
+      "xai_ood_macro_f1_mean": 0.7724132605693207,
+      "xai_minus_baseline_ood_points_mean": -0.06982855484275834,
+      "xai_minus_baseline_ood_points_std": 0.11822223064384602
     },
     {
       "dataset": "Wild-Time Yearbook",

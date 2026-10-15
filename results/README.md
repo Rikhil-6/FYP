@@ -32,6 +32,15 @@ The clean routed score is 0.18 points lower than the no-auxiliary control. Mild
 conditions also show small or mixed effects, so the saliency contribution is
 reported as source dependent.
 
+## External screens
+
+`drift_verification/` contains the Yearbook, CIFAR-10.1 and Camelyon17 run
+records plus a combined CSV and JSON summary. The matched saliency head changes
+OOD macro F1 by -0.33 points on Yearbook, +0.30 +/- 0.11 points across three
+CIFAR-10.1 seeds, and -0.07 +/- 0.12 points across three Camelyon17 seeds.
+Camelyon17 shows strong hospital separation in frozen DINOv2 features, with
+domain AUC from 0.941 to 0.995, but no corresponding saliency-head benefit.
+
 ## Route audits
 
 The `audits/` folders retain aggregate JSON, selected-case CSV files, and two
