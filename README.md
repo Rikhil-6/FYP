@@ -219,6 +219,23 @@ tools/uv run fyp-summarise-replications \
   --output results/drift_verification
 ```
 
+ACDC provides a further, more realistic adverse-driving check based on paired
+normal, fog, night, rain and snow scenes. It is a semantic segmentation dataset,
+so it is not treated as a drop-in classification replacement for CLEAR. After
+registering with the official site and extracting the two archives, validate
+the pairs with:
+
+```bash
+tools/uv run fyp-ingest-acdc --data-root data/ACDC
+```
+
+The paired-condition audit reports whether adaptation reduces MMD, domain
+separability, matched-scene feature distance and prediction divergence while
+checking feature variance and effective rank for collapse. It also records
+layer-wise checkpoint movement. See
+[`docs/acdc_adaptation_protocol.md`](docs/acdc_adaptation_protocol.md) for the
+required evidence and the command format.
+
 ## Auditing a route
 
 Classification results include macro F1, macro IoU, accuracy, per-class scores,

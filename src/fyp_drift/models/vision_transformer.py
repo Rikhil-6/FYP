@@ -24,7 +24,8 @@ class TemporalViT(nn.Module):
         self.saliency_head = nn.Sequential(nn.LayerNorm(width), nn.Linear(width, 1))
         self.classifier = nn.Linear(width * 2, num_classes)
 
-    def forward(self, images, return_counterfactual=False):
+    def encode(self, images):
+        """Return the classified representation and its patch weights."""
         tokens = self.backbone(pixel_values=images).last_hidden_state
         class_token = tokens[:, 0]
         patch_tokens = tokens[:, 1:]
@@ -35,11 +36,17 @@ class TemporalViT(nn.Module):
                 1e-8
             )
         else:
+            patch_gates = patch_tokens.new_ones((patch_tokens.size(0), patch_count))
             saliency = patch_tokens.new_full(
                 (patch_tokens.size(0), patch_count), 1 / patch_count
             )
         selected_patches = torch.sum(patch_tokens * saliency.unsqueeze(-1), dim=1)
-        logits = self.classifier(torch.cat((class_token, selected_patches), dim=1))
+        representation = torch.cat((class_token, selected_patches), dim=1)
+        return representation, saliency, patch_tokens, patch_gates
+
+    def forward(self, images, return_counterfactual=False):
+        representation, saliency, patch_tokens, patch_gates = self.encode(images)
+        logits = self.classifier(representation)
         counterfactual = None
         if return_counterfactual and self.method == "xai":
             inverse_gates = 1 - patch_gates
@@ -49,6 +56,7 @@ class TemporalViT(nn.Module):
             complementary_patches = torch.sum(
                 patch_tokens * inverse_saliency.unsqueeze(-1), dim=1
             )
+            class_token = representation[:, : patch_tokens.size(-1)]
             counterfactual = self.classifier(
                 torch.cat((class_token, complementary_patches), dim=1)
             )
