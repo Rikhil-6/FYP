@@ -50,11 +50,11 @@ class AcdcPairs(Dataset):
         return normal, adverse, row["pair_id"], row["condition"]
 
 
-def load_model(checkpoint: Path, device):
+def load_model(checkpoint: Path, method, device):
     state = torch.load(checkpoint, map_location="cpu", weights_only=True)
     state = state.get("model", state)
     classes = state["classifier.weight"].shape[0]
-    model = TemporalViT(method="xai", num_classes=classes)
+    model = TemporalViT(method=method, num_classes=classes)
     model.load_state_dict(state)
     return model.to(device).eval()
 
@@ -109,6 +109,12 @@ def parse_args(argv=None):
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--historical-checkpoint", type=Path, required=True)
     parser.add_argument("--adapted-checkpoint", type=Path, required=True)
+    parser.add_argument(
+        "--historical-method", choices=("baseline", "xai"), default="xai"
+    )
+    parser.add_argument(
+        "--adapted-method", choices=("baseline", "xai"), default="xai"
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--workers", type=int, default=0)
@@ -117,6 +123,8 @@ def parse_args(argv=None):
     parser.add_argument("--permutation-limit", type=int, default=200)
     parser.add_argument("--bootstrap-repetitions", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--alpha", type=float, default=0.05)
+    parser.add_argument("--collapse-ratio-floor", type=float, default=0.8)
     return parser.parse_args(argv)
 
 
@@ -135,11 +143,11 @@ def main(argv=None):
     args.output.mkdir(parents=True, exist_ok=True)
 
     archives = {}
-    for name, checkpoint in (
-        ("historical", args.historical_checkpoint),
-        ("adapted", args.adapted_checkpoint),
+    for name, checkpoint, method in (
+        ("historical", args.historical_checkpoint, args.historical_method),
+        ("adapted", args.adapted_checkpoint, args.adapted_method),
     ):
-        model = load_model(checkpoint, device)
+        model = load_model(checkpoint, method, device)
         archives[name] = extract(model, loader, device, name)
         np.savez_compressed(args.output / f"{name}_features.npz", **archives[name])
         del model
@@ -154,6 +162,8 @@ def main(argv=None):
         permutation_limit=args.permutation_limit,
         seed=args.seed,
         bootstrap_repetitions=args.bootstrap_repetitions,
+        alpha=args.alpha,
+        collapse_ratio_floor=args.collapse_ratio_floor,
     )
     report["parameter_update"] = compare_checkpoints(
         args.historical_checkpoint, args.adapted_checkpoint
@@ -170,6 +180,8 @@ def main(argv=None):
             permutation_limit=args.permutation_limit,
             seed=args.seed,
             bootstrap_repetitions=args.bootstrap_repetitions,
+            alpha=args.alpha,
+            collapse_ratio_floor=args.collapse_ratio_floor,
         )
     report["dataset"] = {
         "name": "ACDC",
@@ -179,6 +191,10 @@ def main(argv=None):
             "This is a paired representation screen for CLEAR-trained classifiers. "
             "It does not measure ACDC semantic-segmentation accuracy."
         ),
+    }
+    report["models"] = {
+        "historical_method": args.historical_method,
+        "adapted_method": args.adapted_method,
     }
     report_path = args.output / "adaptation_evidence.json"
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")

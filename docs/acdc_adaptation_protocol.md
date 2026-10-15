@@ -71,6 +71,11 @@ tools/uv run fyp-screen-acdc \
   --output runs/acdc/paired-screen
 ```
 
+The default compares historical and adapted XAI checkpoints. To use the
+original uniform-pooling ViT as the baseline, add `--historical-method baseline`
+and provide its checkpoint. The output records both method names so the
+comparison cannot be mistaken for a same-architecture weight update.
+
 This command is deliberately labelled a representation screen. The checkpoints
 retain the CLEAR-100 classification head, whose labels have no valid mapping to
 ACDC's semantic classes. ACDC task-performance claims require a 19-class ViT
@@ -84,12 +89,25 @@ with `--saliency-aligned` only after that preprocessing has been applied.
 
 ## Decision rule
 
-An adaptation claim is supported when the adapted model improves adverse mIoU,
-retains normal-condition performance, reduces MMD and domain separability, and
-reduces matched-pair feature distance with a confidence interval above zero.
-Feature variance and effective rank must remain stable enough to rule out a
-trivial constant representation. Disagreement among these measures is reported
-as mixed evidence rather than compressed into a single favourable score.
+The generated JSON separates three findings. `baseline_drift` first records
+whether the historical representation rejects the no-drift hypothesis under
+the MMD permutation test. `representation_mitigation` then requires lower MMD,
+lower domain separability and a paired feature-distance reduction whose 95%
+bootstrap interval is above zero. `residual_drift` repeats the MMD test on the
+adapted representation. The model can therefore mitigate drift even when some
+statistically detectable shift remains.
+
+Feature variance and effective rank ratios guard against a trivial constant
+representation. Both default to a retention floor of 0.8. When compatible
+labels are present in both NPZ archives, `task_mitigation` additionally requires
+an adverse macro F1 gain while allowing at most a 0.01 reduction in normal macro
+F1. These thresholds are written into the report and can be changed from the
+command line.
+
+An adaptation claim is supported when baseline drift is verified, the
+representation criteria pass and the task criterion passes. On ACDC, the
+current CLEAR checkpoints can establish representation mitigation only. ACDC
+task mitigation remains unassessed until the segmentation extension is run.
 
 This protocol follows the paired normal/adverse rationale of the
 [ACDC benchmark](https://openaccess.thecvf.com/content/ICCV2021/html/Sakaridis_ACDC_The_Adverse_Conditions_Dataset_With_Correspondences_for_Semantic_Driving_ICCV_2021_paper.html)

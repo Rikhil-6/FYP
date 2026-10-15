@@ -10,6 +10,7 @@ import numpy as np
 import torch
 
 from fyp_drift.evaluation.drift_metrics import distribution_shift_metrics
+from fyp_drift.evaluation.metrics import classification_metrics
 
 
 REQUIRED_ARRAYS = ("normal_features", "adverse_features")
@@ -120,6 +121,124 @@ def optional_pair_metric(arrays, first_name, second_name):
     return {"mean": float(values.mean()), "median": float(np.median(values))}, values
 
 
+def optional_task_metrics(arrays):
+    required = (
+        "normal_labels",
+        "adverse_labels",
+        "normal_probabilities",
+        "adverse_probabilities",
+    )
+    if not all(name in arrays for name in required):
+        return None
+    normal_labels = np.asarray(arrays["normal_labels"], dtype=np.int64)
+    adverse_labels = np.asarray(arrays["adverse_labels"], dtype=np.int64)
+    normal_probabilities = _matrix(
+        arrays["normal_probabilities"], "normal_probabilities"
+    )
+    adverse_probabilities = _matrix(
+        arrays["adverse_probabilities"], "adverse_probabilities"
+    )
+    if len(normal_labels) != len(normal_probabilities) or len(adverse_labels) != len(
+        adverse_probabilities
+    ):
+        raise ValueError("Task labels and probability rows must have matching lengths")
+    classes = normal_probabilities.shape[1]
+    if adverse_probabilities.shape[1] != classes:
+        raise ValueError("Normal and adverse probabilities must use the same classes")
+    return {
+        "normal": classification_metrics(
+            normal_labels, normal_probabilities.argmax(axis=1), classes
+        ),
+        "adverse": classification_metrics(
+            adverse_labels, adverse_probabilities.argmax(axis=1), classes
+        ),
+    }
+
+
+def evidence_conclusions(payload, *, alpha, collapse_ratio_floor, clean_tolerance):
+    historical_shift = payload["historical"]["distribution_shift"]
+    adapted_shift = payload["adapted"]["distribution_shift"]
+    change = payload["change"]
+    distance_ci = change["paired_feature_distance"]["bootstrap_95_ci"]
+    baseline_detected = historical_shift["mmd_permutation_p"] <= alpha
+    residual_detected = adapted_shift["mmd_permutation_p"] <= alpha
+    representation_supported = all(
+        (
+            change["mmd_squared_reduction"] > 0,
+            change["domain_auc_reduction"] > 0,
+            distance_ci[0] > 0,
+            change["adverse_variance_ratio"] >= collapse_ratio_floor,
+            change["adverse_effective_rank_ratio"] >= collapse_ratio_floor,
+        )
+    )
+
+    conclusions = {
+        "baseline_drift": {
+            "detected": baseline_detected,
+            "test": "RBF MMD permutation test",
+            "alpha": alpha,
+            "p_value": historical_shift["mmd_permutation_p"],
+            "domain_classifier_roc_auc": historical_shift[
+                "domain_classifier_roc_auc"
+            ],
+        },
+        "representation_mitigation": {
+            "supported": baseline_detected and representation_supported,
+            "collapse_ratio_floor": collapse_ratio_floor,
+            "criteria": {
+                "mmd_reduced": change["mmd_squared_reduction"] > 0,
+                "domain_separability_reduced": change["domain_auc_reduction"] > 0,
+                "paired_distance_ci_above_zero": distance_ci[0] > 0,
+                "variance_retained": change["adverse_variance_ratio"]
+                >= collapse_ratio_floor,
+                "effective_rank_retained": change["adverse_effective_rank_ratio"]
+                >= collapse_ratio_floor,
+            },
+        },
+        "residual_drift": {
+            "detected": residual_detected,
+            "test": "RBF MMD permutation test on adapted representations",
+            "alpha": alpha,
+            "p_value": adapted_shift["mmd_permutation_p"],
+        },
+        "task_mitigation": {"status": "not_assessed"},
+    }
+
+    if "task_performance" in payload["historical"]:
+        old_task = payload["historical"]["task_performance"]
+        new_task = payload["adapted"]["task_performance"]
+        adverse_gain = (
+            new_task["adverse"]["macro_f1"] - old_task["adverse"]["macro_f1"]
+        )
+        normal_change = (
+            new_task["normal"]["macro_f1"] - old_task["normal"]["macro_f1"]
+        )
+        conclusions["task_mitigation"] = {
+            "status": "supported"
+            if adverse_gain > 0 and normal_change >= -clean_tolerance
+            else "not_supported",
+            "adverse_macro_f1_change": adverse_gain,
+            "normal_macro_f1_change": normal_change,
+            "normal_retention_tolerance": clean_tolerance,
+        }
+
+    task_status = conclusions["task_mitigation"]["status"]
+    if not baseline_detected:
+        overall = "baseline_drift_not_verified"
+    elif not representation_supported:
+        overall = "mitigation_not_supported"
+    elif task_status == "not_supported":
+        overall = "representation_improved_but_task_evidence_failed"
+    elif task_status == "not_assessed":
+        overall = "representation_mitigation_supported_task_not_assessed"
+    elif residual_detected:
+        overall = "partial_mitigation_supported_with_residual_drift"
+    else:
+        overall = "mitigation_supported_no_residual_drift_detected"
+    conclusions["overall"] = overall
+    return conclusions
+
+
 def compare_feature_archives(
     historical,
     adapted,
@@ -129,6 +248,9 @@ def compare_feature_archives(
     permutation_limit=200,
     seed=42,
     bootstrap_repetitions=1000,
+    alpha=0.05,
+    collapse_ratio_floor=0.8,
+    clean_tolerance=0.01,
 ):
     for name in REQUIRED_ARRAYS:
         if name not in historical or name not in adapted:
@@ -194,6 +316,14 @@ def compare_feature_archives(
             repetitions=bootstrap_repetitions,
         )
 
+    old_task = optional_task_metrics(historical)
+    new_task = optional_task_metrics(adapted)
+    if bool(old_task) != bool(new_task):
+        raise ValueError("Task labels and probabilities must be present in both archives")
+    if old_task and new_task:
+        payload["historical"]["task_performance"] = old_task
+        payload["adapted"]["task_performance"] = new_task
+
     has_saliency = all(
         name in historical and name in adapted
         for name in ("normal_saliency", "adverse_saliency")
@@ -219,6 +349,12 @@ def compare_feature_archives(
             "normal/adverse views require correspondence warping and valid-region "
             "masking before patch locations are comparable."
         )
+    payload["conclusions"] = evidence_conclusions(
+        payload,
+        alpha=alpha,
+        collapse_ratio_floor=collapse_ratio_floor,
+        clean_tolerance=clean_tolerance,
+    )
     return payload
 
 
@@ -288,6 +424,9 @@ def parse_args(argv=None):
     parser.add_argument("--permutation-limit", type=int, default=200)
     parser.add_argument("--bootstrap-repetitions", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--alpha", type=float, default=0.05)
+    parser.add_argument("--collapse-ratio-floor", type=float, default=0.8)
+    parser.add_argument("--clean-retention-tolerance", type=float, default=0.01)
     parser.add_argument(
         "--saliency-aligned",
         action="store_true",
@@ -311,6 +450,9 @@ def main(argv=None):
             permutation_limit=args.permutation_limit,
             seed=args.seed,
             bootstrap_repetitions=args.bootstrap_repetitions,
+            alpha=args.alpha,
+            collapse_ratio_floor=args.collapse_ratio_floor,
+            clean_tolerance=args.clean_retention_tolerance,
         )
     if args.historical_checkpoint:
         payload["parameter_update"] = compare_checkpoints(
