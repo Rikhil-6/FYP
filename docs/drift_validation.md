@@ -98,3 +98,10 @@ uv run fyp-replicate-cifar \
 The command compares the original CIFAR-10 test set with CIFAR-10.1 v6 using
 the same frozen-feature probe, MMD test, domain classifier, and matched baseline
 and saliency-gated ViT heads used by the other replication scripts.
+
+The three-seed screen found MMD permutation p = 0.005 for every seed and domain
+ROC AUC between 0.589 and 0.606. Mean OOD macro F1 was 73.97% for the uniform
+baseline and 74.27% for the saliency head. The mean difference was +0.30 points
+with a sample standard deviation of 0.11 points; all three seed differences were
+positive. This is a small, repeatable benefit on a natural recollection shift,
+not evidence of a large or universal improvement.
