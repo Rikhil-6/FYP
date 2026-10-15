@@ -187,12 +187,35 @@ Across seeds 42-44, the saliency head improved CIFAR-10.1 OOD macro F1 by a
 mean 0.30 points (sample standard deviation 0.11). Yearbook remained negative
 by 0.33 points in its single-seed screen, so the external evidence is mixed.
 
+Camelyon17-WILDS adds a real acquisition shift across hospitals. The public
+mirror can be streamed, so the screen does not require the expired CodaLab
+certificate or a complete 10.7 GB download:
+
+```bash
+tools/uv run fyp-replicate-camelyon \
+  --output runs/wilds/camelyon17/seed42 \
+  --train-limit 5000 \
+  --eval-limit 1000 \
+  --epochs 2 \
+  --seed 42
+```
+
+The source-hospital training and ID samples are class balanced and patient
+disjoint. The OOD sample comes from the validation hospital. This is an
+exploratory matched-head screen: DINOv2 pretraining makes it a non-standard
+WILDS run, and the WILDS guidance recommends ten Camelyon17 replicates for a
+leaderboard result. Across seeds 42-44, the hospital shift was detected in every
+run, but the saliency head changed OOD macro F1 by only -0.07 points on average
+(sample standard deviation 0.12). The third dataset strengthens the drift
+detection evidence while rejecting a general accuracy-improvement claim.
+
 Summarise completed external screens without pooling unlike datasets:
 
 ```bash
 tools/uv run fyp-summarise-replications \
   results/drift_verification/yearbook_replication.json \
   results/drift_verification/cifar10_1_seed*.json \
+  results/drift_verification/camelyon17_seed*.json \
   --output results/drift_verification
 ```
 

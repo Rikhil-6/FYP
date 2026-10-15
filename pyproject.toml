@@ -18,6 +18,7 @@ dependencies = [
     "scikit-learn>=1.5",
     "matplotlib>=3.9",
     "wild-time-data>=0.1.1",
+    "datasets>=3,<5",
 ]
 
 [project.scripts]
@@ -30,6 +31,7 @@ fyp-verify-drift = "fyp_drift.evaluation.drift_verification:main"
 fyp-replicate-wilds = "fyp_drift.evaluation.wilds_replication:main"
 fyp-replicate-yearbook = "fyp_drift.evaluation.yearbook_replication:main"
 fyp-replicate-cifar = "fyp_drift.evaluation.cifar_replication:main"
+fyp-replicate-camelyon = "fyp_drift.evaluation.camelyon_replication:main"
 fyp-summarise-replications = "fyp_drift.evaluation.replication_summary:main"
 fyp-experiment = "fyp_drift.workflows.experiment:main"
 fyp-export-router-report = "fyp_drift.artifacts.router_report:main"
