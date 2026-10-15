@@ -232,7 +232,9 @@ tools/uv run fyp-ingest-acdc --data-root data/ACDC
 The paired-condition audit reports whether adaptation reduces MMD, domain
 separability, matched-scene feature distance and prediction divergence while
 checking feature variance and effective rank for collapse. It also records
-layer-wise checkpoint movement. See
+layer-wise checkpoint movement. The JSON separates baseline drift detection,
+representation mitigation, residual drift and task mitigation, so a partial
+reduction is not reported as elimination. See
 [`docs/acdc_adaptation_protocol.md`](docs/acdc_adaptation_protocol.md) for the
 required evidence and the command format.
 

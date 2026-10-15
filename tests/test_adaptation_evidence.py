@@ -39,6 +39,63 @@ class AdaptationEvidenceTests(unittest.TestCase):
         paired = report["change"]["paired_feature_distance"]
         self.assertGreater(paired["historical_minus_adapted_mean"], 0)
         self.assertGreater(paired["bootstrap_95_ci"][0], 0)
+        self.assertTrue(report["conclusions"]["baseline_drift"]["detected"])
+        self.assertTrue(
+            report["conclusions"]["representation_mitigation"]["supported"]
+        )
+        self.assertEqual(
+            report["conclusions"]["overall"],
+            "representation_mitigation_supported_task_not_assessed",
+        )
+
+    def test_task_evidence_requires_adverse_gain_and_clean_retention(self):
+        generator = np.random.default_rng(4)
+        normal = generator.normal(size=(40, 6))
+        labels = np.arange(40) % 2
+
+        def probabilities(predictions):
+            values = np.full((40, 2), 0.1)
+            values[np.arange(40), predictions] = 0.9
+            return values
+
+        historical_predictions = labels.copy()
+        historical_predictions[:12] = 1 - historical_predictions[:12]
+        adapted_predictions = labels.copy()
+        adapted_predictions[:4] = 1 - adapted_predictions[:4]
+        shared = {
+            "normal_features": normal,
+            "normal_labels": labels,
+            "adverse_labels": labels,
+            "normal_probabilities": probabilities(labels),
+        }
+        historical = {
+            **shared,
+            "adverse_features": normal + 1,
+            "adverse_probabilities": probabilities(historical_predictions),
+        }
+        adapted = {
+            **shared,
+            "adverse_features": normal + generator.normal(0, 0.05, normal.shape),
+            "adverse_probabilities": probabilities(adapted_predictions),
+        }
+
+        report = compare_feature_archives(
+            historical,
+            adapted,
+            permutations=19,
+            bootstrap_repetitions=50,
+            seed=4,
+        )
+
+        self.assertEqual(
+            report["conclusions"]["task_mitigation"]["status"], "supported"
+        )
+        self.assertGreater(
+            report["conclusions"]["task_mitigation"][
+                "adverse_macro_f1_change"
+            ],
+            0,
+        )
 
     def test_checkpoint_comparison_reports_parameter_movement(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
