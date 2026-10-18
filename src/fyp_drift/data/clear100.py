@@ -10,9 +10,10 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision.transforms import functional as F
 
+from fyp_drift.data.manifest import NUM_CLASSES, validate_manifest_rows
+
 MEAN = (0.485, 0.456, 0.406)
 STD = (0.229, 0.224, 0.225)
-NUM_CLASSES = 100
 
 
 def balanced_indices(rows, candidates, limit, seed):
@@ -45,53 +46,6 @@ def balanced_indices(rows, candidates, limit, seed):
         if not added:
             break
     return sorted(selected)
-
-
-def validate_manifest_rows(rows):
-    required = {"path", "source", "bucket", "year", "class_name", "label", "split"}
-    if not rows or not required.issubset(rows[0]):
-        raise ValueError("CLEAR-100 manifest is empty or missing required columns")
-    paths = [row["path"] for row in rows]
-    if len(paths) != len(set(paths)):
-        raise ValueError("CLEAR-100 manifest contains duplicate image paths")
-
-    class_to_label = {}
-    for row in rows:
-        bucket = int(row["bucket"])
-        year = int(row["year"])
-        label = int(row["label"])
-        if row["source"] not in ("train", "test"):
-            raise ValueError(f"Unknown CLEAR-100 source: {row['source']}")
-        if year != 2004 + bucket:
-            raise ValueError(
-                f"CLEAR-100 year/bucket mismatch for {row['path']}: {year}, {bucket}"
-            )
-        if not 0 <= label < NUM_CLASSES:
-            raise ValueError(f"CLEAR-100 label outside 0-{NUM_CLASSES - 1}: {label}")
-        expected_split = "unused"
-        if row["source"] == "train":
-            if 0 <= bucket <= 6:
-                expected_split = "train"
-            elif bucket == 7:
-                expected_split = "id_val"
-            elif bucket in (8, 9):
-                expected_split = "val"
-        elif bucket == 7:
-            expected_split = "id_test"
-        elif bucket == 10:
-            expected_split = "test"
-        if row["split"] != expected_split:
-            raise ValueError(
-                f"CLEAR-100 split mismatch for {row['path']}: "
-                f"expected {expected_split}, found {row['split']}"
-            )
-        previous = class_to_label.setdefault(row["class_name"], label)
-        if previous != label:
-            raise ValueError(f"Class {row['class_name']} maps to multiple labels")
-    if len(class_to_label) != NUM_CLASSES or set(class_to_label.values()) != set(
-        range(NUM_CLASSES)
-    ):
-        raise ValueError("CLEAR-100 manifest must map 100 classes one-to-one to labels")
 
 
 def transform(image, index=None):
@@ -200,12 +154,19 @@ def year_loader(
     image_transform=transform,
 ):
     """Select real upload-year buckets from a CLEAR-100 split."""
+    years = tuple(years)
+    if not years:
+        raise ValueError("At least one year must be requested")
     subset = dataset.get_subset(split, transform=image_transform)
     year_column = dataset.metadata_fields.index("year")
     year_ids = torch.tensor([year - 2002 for year in years])
     indices = torch.where(torch.isin(subset.metadata_array[:, year_column], year_ids))[
         0
     ].tolist()
+    represented = {int(subset.rows[index]["year"]) for index in indices}
+    missing = sorted(set(years) - represented)
+    if missing:
+        raise ValueError(f"Years are unavailable in CLEAR-100 split {split}: {missing}")
     if limit:
         indices = balanced_indices(
             subset.rows,
@@ -252,17 +213,22 @@ def stratified_year_partition_loaders(
         label = int(subset.rows[index]["label"])
         by_class.setdefault(label, []).append(index)
 
+    if not candidates:
+        raise ValueError(f"Year {year} is unavailable in CLEAR-100 split {split}")
+    missing_classes = sorted(set(range(NUM_CLASSES)) - set(by_class))
+    if missing_classes:
+        raise ValueError(f"Year {year} is missing CLEAR-100 classes: {missing_classes}")
+    sparse_classes = sorted(label for label, indices in by_class.items() if len(indices) < 2)
+    if sparse_classes:
+        raise ValueError(
+            f"Year {year} needs at least two examples per class for disjoint "
+            f"selection and calibration; sparse classes: {sparse_classes}"
+        )
+
     selection_indices, calibration_indices = [], []
     for label, indices in sorted(by_class.items()):
         shuffled = list(indices)
         random.Random(seed + 1009 * label).shuffle(shuffled)
-        if len(shuffled) == 1:
-            # Alternate singleton classes deterministically. CLEAR-100 normally
-            # has multiple samples per class, but this keeps debug subsets valid.
-            (selection_indices if label % 2 == 0 else calibration_indices).extend(
-                shuffled
-            )
-            continue
         cut = max(1, min(len(shuffled) - 1, round(len(shuffled) * fraction)))
         selection_indices.extend(shuffled[:cut])
         calibration_indices.extend(shuffled[cut:])

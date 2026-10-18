@@ -54,9 +54,27 @@ def fit_policy(
     features = all_features[:, _feature_indices(feature_names)]
     labels = np.asarray(labels, dtype=np.int64)
     mean, scale = features.mean(0), features.std(0).clip(1e-8)
-    model = LogisticRegression(class_weight="balanced", max_iter=1000, random_state=42)
-    model.fit((features - mean) / scale, labels)
-    probabilities = model.predict_proba((features - mean) / scale)[:, 1]
+    unique_labels = np.unique(labels)
+    if not set(unique_labels).issubset({0, 1}):
+        raise ValueError("Routing targets must be binary")
+    if len(unique_labels) == 1:
+        coefficients = np.zeros(features.shape[1], dtype=np.float64)
+        intercept = 20.0 if unique_labels[0] == 1 else -20.0
+        probabilities = np.full(
+            len(features),
+            1.0 if unique_labels[0] == 1 else 0.0,
+            dtype=np.float64,
+        )
+        fit_kind = "constant"
+    else:
+        model = LogisticRegression(
+            class_weight="balanced", max_iter=1000, random_state=42
+        )
+        model.fit((features - mean) / scale, labels)
+        probabilities = model.predict_proba((features - mean) / scale)[:, 1]
+        coefficients = model.coef_[0]
+        intercept = float(model.intercept_[0])
+        fit_kind = "logistic_regression"
     best = None
     saliency_index = FEATURES.index("saliency_js")
     floor_options = (
@@ -101,8 +119,10 @@ def fit_policy(
         "feature_names": list(feature_names),
         "mean": mean.tolist(),
         "scale": scale.tolist(),
-        "coefficients": model.coef_[0].tolist(),
-        "intercept": float(model.intercept_[0]),
+        "coefficients": coefficients.tolist(),
+        "intercept": intercept,
+        "fit_kind": fit_kind,
+        "beneficial_switch_rate": float(labels.mean()),
         "probability_threshold": best[3],
         "saliency_floor": best[4],
         "saliency_quantile": best[5],

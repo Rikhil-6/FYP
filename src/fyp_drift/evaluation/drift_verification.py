@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 from transformers import Dinov2Model
 
-from fyp_drift.data.clear100 import open_dataset
+from fyp_drift.data.clear100 import NUM_CLASSES, open_dataset
 from fyp_drift.data.corruptions import (
     REALISTIC_BENCHMARK_SCENARIOS,
     drift_transform,
@@ -48,11 +48,20 @@ def parse_args(argv=None):
 def stratified_indices(subset, year, limit, seed):
     year_id = year - 2002
     candidates = torch.where(subset.metadata_array[:, 0] == year_id)[0].tolist()
+    if not candidates:
+        raise ValueError(f"No CLEAR-100 samples are available for {year}")
     by_class = {}
     for index in candidates:
         by_class.setdefault(int(subset.rows[index]["label"]), []).append(index)
     for label, indices in by_class.items():
         random.Random(seed + 1009 * label).shuffle(indices)
+    missing = sorted(set(range(NUM_CLASSES)) - set(by_class))
+    if missing:
+        raise ValueError(f"CLEAR-100 year {year} is missing classes: {missing}")
+    if limit < len(by_class):
+        raise ValueError(
+            f"Sample limit {limit} cannot represent all {len(by_class)} classes"
+        )
 
     selected = []
     while len(selected) < min(limit, len(candidates)):
@@ -118,8 +127,8 @@ def write_csv(path, rows):
 
 def main(argv=None):
     args = parse_args(argv)
-    if args.limit < 10:
-        raise ValueError("--limit must be at least 10")
+    if args.limit < NUM_CLASSES:
+        raise ValueError(f"--limit must be at least {NUM_CLASSES}")
     if args.permutations < 19:
         raise ValueError("--permutations must be at least 19")
 
@@ -130,13 +139,14 @@ def main(argv=None):
     dataset = open_dataset(args.data_root)
     clean_transform = drift_transform("clean", 1, args.seed)
 
-    reference_subset = dataset.get_subset("train_source", transform=clean_transform)
+    # Hold the archive partition constant so this comparison only changes year.
+    reference_subset = dataset.get_subset("test_source", transform=clean_transform)
     reference_indices = stratified_indices(
         reference_subset, args.reference_year, args.limit, args.seed
     )
     reference_loader = loader(
         dataset,
-        "train_source",
+        "test_source",
         args.reference_year,
         clean_transform,
         reference_indices,
@@ -245,6 +255,7 @@ def main(argv=None):
         "protocol": {
             "feature_extractor": BACKBONE,
             "reference_year": args.reference_year,
+            "natural_comparison_source": "held-out test archive for every year",
             "future_years": list(args.future_years),
             "controlled_year": evaluation_year,
             "controlled_severity": severity,

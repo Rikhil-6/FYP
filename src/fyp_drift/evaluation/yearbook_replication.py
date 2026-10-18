@@ -19,7 +19,7 @@ from fyp_drift.evaluation.wilds_replication import (
     classification_scores,
     extract_features,
     fit_linear_probe,
-    stratified_sample,
+    stratified_group_sample,
     train_architecture,
 )
 from fyp_drift.models.vision_transformer import BACKBONE
@@ -90,11 +90,14 @@ def year_range(data_root, start, end, split):
         datasets.append(WithYear(dataset, year))
     combined = ConcatDataset(datasets)
     combined.labels = np.concatenate([dataset.labels for dataset in datasets])
+    combined.years = np.concatenate(
+        [np.full(len(dataset), dataset.year, dtype=np.int64) for dataset in datasets]
+    )
     return combined
 
 
 def sampled_loader(dataset, limit, seed, batch_size, workers):
-    indices = stratified_sample(dataset.labels, limit, seed)
+    indices = stratified_group_sample(dataset.labels, dataset.years, limit, seed)
     return DataLoader(
         Subset(dataset, indices),
         batch_size=batch_size,
@@ -105,6 +108,15 @@ def sampled_loader(dataset, limit, seed, batch_size, workers):
 
 def main(argv=None):
     args = parse_args(argv)
+    if not (
+        args.train_start <= args.id_start <= args.id_end <= args.train_end
+        and args.ood_start <= args.ood_end
+        and args.ood_start > args.train_end
+    ):
+        raise ValueError(
+            "Yearbook periods must use an ID interval within training history and "
+            "a strictly later OOD interval"
+        )
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -173,6 +185,7 @@ def main(argv=None):
             "in_distribution_test": [args.id_start, args.id_end],
             "later_test": [args.ood_start, args.ood_end],
         },
+        "sampling": "balanced across year and class without replacement",
         "linear_probe": {
             "in_distribution": id_scores,
             "later_period": ood_scores,

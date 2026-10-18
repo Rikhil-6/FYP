@@ -11,6 +11,42 @@ from pathlib import Path
 
 CONDITIONS = ("fog", "night", "rain", "snow")
 SPLITS = ("train", "val", "test")
+MANIFEST_FIELDS = {
+    "pair_id",
+    "condition",
+    "split",
+    "recording",
+    "adverse_image",
+    "normal_image",
+    "label",
+    "invalid_mask",
+}
+
+
+def validate_rows(rows, check_files=True):
+    """Validate one-to-one ACDC pairs before representation extraction."""
+    if not rows or not MANIFEST_FIELDS.issubset(rows[0]):
+        raise ValueError("ACDC manifest is empty or missing required columns")
+    for field in ("pair_id", "adverse_image", "normal_image"):
+        values = [row[field] for row in rows]
+        if len(values) != len(set(values)):
+            raise ValueError(f"ACDC manifest contains duplicate {field} values")
+    for row in rows:
+        if row["condition"] not in CONDITIONS:
+            raise ValueError(f"Unknown ACDC condition: {row['condition']}")
+        if row["split"] not in SPLITS:
+            raise ValueError(f"Unknown ACDC split: {row['split']}")
+        if Path(row["adverse_image"]).resolve() == Path(row["normal_image"]).resolve():
+            raise ValueError(f"ACDC pair uses one image twice: {row['pair_id']}")
+        if check_files:
+            required = [row["adverse_image"], row["normal_image"]]
+            if row["split"] != "test":
+                required.extend((row["label"], row["invalid_mask"]))
+            missing = [path for path in required if not path or not Path(path).is_file()]
+            if missing:
+                raise FileNotFoundError(
+                    f"ACDC pair {row['pair_id']} has missing files: {missing}"
+                )
 
 
 def paired_paths(image_path: Path, root: Path, condition: str, split: str):
@@ -83,10 +119,12 @@ def scan_acdc(root: Path, splits=("train", "val"), require_labels=True):
         )
     if not rows:
         raise ValueError(f"No ACDC image pairs were found beneath {root}")
+    validate_rows(rows)
     return rows
 
 
 def write_manifest(rows, output: Path):
+    validate_rows(rows)
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", newline="", encoding="utf-8") as handle:

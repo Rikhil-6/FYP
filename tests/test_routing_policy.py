@@ -56,6 +56,18 @@ class RoutingFeatureAblationTest(unittest.TestCase):
     def test_declared_features_match_model_order(self):
         self.assertEqual(FEATURE_SETS["combined"], FEATURES)
 
+    def test_no_beneficial_switches_produces_safe_constant_policy(self):
+        policy = fit_policy(
+            self.features,
+            np.zeros(len(self.labels), dtype=int),
+            self.old,
+            self.new,
+            self.truth,
+        )
+        self.assertEqual(policy["fit_kind"], "constant")
+        self.assertEqual(policy["beneficial_switch_rate"], 0.0)
+        self.assertTrue(all(value == 0.0 for value in policy["coefficients"]))
+
 
 if __name__ == "__main__":
     unittest.main()
