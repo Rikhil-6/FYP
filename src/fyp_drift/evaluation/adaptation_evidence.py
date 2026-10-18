@@ -9,7 +9,10 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from fyp_drift.evaluation.drift_metrics import distribution_shift_metrics
+from fyp_drift.evaluation.drift_metrics import (
+    distribution_shift_metrics,
+    median_bandwidth,
+)
 from fyp_drift.evaluation.metrics import classification_metrics
 
 
@@ -90,7 +93,14 @@ def bootstrap_mean_change(historical, adapted, seed=42, repetitions=1000):
     }
 
 
-def audit_features(arrays, *, permutations=199, permutation_limit=200, seed=42):
+def audit_features(
+    arrays,
+    *,
+    permutations=199,
+    permutation_limit=200,
+    seed=42,
+    bandwidth=None,
+):
     normal = _matrix(arrays["normal_features"], "normal_features")
     adverse = _matrix(arrays["adverse_features"], "adverse_features")
     if normal.shape != adverse.shape:
@@ -103,6 +113,8 @@ def audit_features(arrays, *, permutations=199, permutation_limit=200, seed=42):
             permutations=permutations,
             permutation_limit=permutation_limit,
             seed=seed,
+            paired=True,
+            bandwidth=bandwidth,
         ),
         "paired_feature_cosine_distance": {
             "mean": float(distances.mean()),
@@ -256,17 +268,33 @@ def compare_feature_archives(
         if name not in historical or name not in adapted:
             raise KeyError(f"Both archives must contain {name}")
 
+    pooled_normal = np.concatenate(
+        (
+            unit_rows(historical["normal_features"]),
+            unit_rows(adapted["normal_features"]),
+        )
+    )
+    pooled_adverse = np.concatenate(
+        (
+            unit_rows(historical["adverse_features"]),
+            unit_rows(adapted["adverse_features"]),
+        )
+    )
+    common_bandwidth = median_bandwidth(pooled_normal, pooled_adverse)
+
     old_metrics, old_distances = audit_features(
         historical,
         permutations=permutations,
         permutation_limit=permutation_limit,
         seed=seed,
+        bandwidth=common_bandwidth,
     )
     new_metrics, new_distances = audit_features(
         adapted,
         permutations=permutations,
         permutation_limit=permutation_limit,
         seed=seed,
+        bandwidth=common_bandwidth,
     )
     payload = {
         "historical": old_metrics,

@@ -1,7 +1,11 @@
 import unittest
 from typing import ClassVar
 
-from fyp_drift.data.clear100 import ClearSubset, stratified_year_partition_loaders
+from fyp_drift.data.clear100 import (
+    ClearSubset,
+    balanced_indices,
+    stratified_year_partition_loaders,
+)
 
 
 class _Dataset:
@@ -15,6 +19,21 @@ class _Dataset:
 
 
 class TemporalPartitionTests(unittest.TestCase):
+    def test_limited_sample_represents_classes_and_years(self):
+        rows = [
+            {
+                "path": f"unused-{year}-{label}-{item}.jpg",
+                "label": str(label),
+                "year": str(year),
+            }
+            for year in (2008, 2009)
+            for label in range(4)
+            for item in range(5)
+        ]
+        selected = balanced_indices(rows, range(len(rows)), 16, seed=11)
+        self.assertEqual({int(rows[index]["year"]) for index in selected}, {2008, 2009})
+        self.assertEqual({int(rows[index]["label"]) for index in selected}, set(range(4)))
+
     def test_selection_and_calibration_are_disjoint_stratified_and_deterministic(self):
         rows = [
             {"path": f"unused-{label}-{item}.jpg", "label": str(label), "year": "2011"}

@@ -7,7 +7,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 
-from fyp_drift.data.clear100 import open_dataset
+from fyp_drift.data.clear100 import balanced_indices, open_dataset
 from fyp_drift.data.corruptions import (
     REALISTIC_BENCHMARK_SCENARIOS,
     SCENARIOS,
@@ -69,7 +69,12 @@ def main():
                 0
             ].tolist()
             if args.limit:
-                indices = indices[: args.limit]
+                indices = balanced_indices(
+                    subset.rows,
+                    indices,
+                    min(args.limit, len(indices)),
+                    args.seed,
+                )
             loader = DataLoader(
                 torch.utils.data.Subset(subset, indices),
                 batch_size=args.batch_size,

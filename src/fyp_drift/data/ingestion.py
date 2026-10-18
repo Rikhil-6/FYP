@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import hashlib
 import json
 import subprocess
 import zipfile
@@ -15,6 +16,10 @@ from tqdm.auto import tqdm
 SOURCE = "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/"
 ARCHIVES = {"train": "clear100-train-image-only.zip", "test": "clear100-test.zip"}
 ARCHIVE_ROOTS = {"train": "train_image_only", "test": "test"}
+ARCHIVE_SHA256 = {
+    "train": "0376b952674e6ef55c3923ee4ce61e5b299fea4e29bbc4780530636e8988fd72",
+    "test": "c939753be4e62dc7732347e5e636ea599022c82f45443ea9e7166167e467abd0",
+}
 
 
 def split_for(source, bucket):
@@ -25,9 +30,29 @@ def split_for(source, bucket):
     return {7: "id_test", 10: "test"}.get(bucket, "unused")
 
 
+def archive_sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        while chunk := handle.read(8 * 1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def verify_archive(path, source):
+    if not zipfile.is_zipfile(path):
+        return False
+    actual = archive_sha256(path)
+    if actual != ARCHIVE_SHA256[source]:
+        raise RuntimeError(
+            f"Checksum mismatch for {path}: expected {ARCHIVE_SHA256[source]}, "
+            f"found {actual}. Remove the archive and run ingestion again."
+        )
+    return True
+
+
 def download(root, source):
     archive = root / f"{source}.zip"
-    if zipfile.is_zipfile(archive):
+    if verify_archive(archive, source):
         print(f"Valid archive already present: {archive}", flush=True)
         return archive
     url = SOURCE + ARCHIVES[source]
@@ -50,7 +75,7 @@ def download(root, source):
         ],
         check=True,
     )
-    if not zipfile.is_zipfile(archive):
+    if not verify_archive(archive, source):
         raise RuntimeError(f"Downloaded archive is incomplete: {archive}")
     return archive
 
@@ -181,6 +206,11 @@ def main():
                 and (root / "train.ready").is_file()
                 and (root / "test.ready").is_file()
             ):
+                for source in ("train", "test"):
+                    if not verify_archive(root / f"{source}.zip", source):
+                        raise RuntimeError(
+                            f"CLEAR-100 {source} archive is missing or incomplete"
+                        )
                 print(
                     "CLEAR-100 is already ingested; skipping download and extraction.",
                     flush=True,

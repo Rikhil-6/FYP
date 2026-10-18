@@ -11,8 +11,13 @@ stamp="${RUN_STAMP:-$(date -u +%Y%m%dT%H%M%SZ)}"
 base_checkpoint="${BASE_CHECKPOINT:-}"
 
 if [[ -z "$base_checkpoint" ]]; then
-  base_checkpoint="$(find "${project_dir}/runs/xai" -mindepth 3 -maxdepth 3 \
-    -path '*/models/best.pt' -type f | sort | tail -n 1)"
+  while IFS= read -r candidate; do
+    config="$(dirname -- "$(dirname -- "$candidate")")/config.json"
+    if [[ -f "$config" ]] && grep -q '"cv_val_year": 2009' "$config"; then
+      base_checkpoint="$candidate"
+    fi
+  done < <(find "${project_dir}/runs/xai" -mindepth 3 -maxdepth 3 \
+    -path '*/models/best.pt' -type f | sort)
 fi
 if [[ ! -f "$base_checkpoint" ]]; then
   echo "Historical XAI checkpoint missing: $base_checkpoint" >&2

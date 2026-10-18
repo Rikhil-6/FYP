@@ -19,7 +19,7 @@ from PIL import Image, ImageDraw, ImageFont
 from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
 
-from fyp_drift.data.clear100 import MEAN, STD, open_dataset
+from fyp_drift.data.clear100 import MEAN, STD, balanced_indices, open_dataset
 from fyp_drift.data.corruptions import SCENARIOS, drift_transform, scenario_components
 from fyp_drift.models.routing import FEATURES, apply_policy
 from fyp_drift.models.siamese import ViTTwinRouter
@@ -243,7 +243,12 @@ def main():
     )
     indices = torch.where(shifted.metadata_array[:, 0] == args.year - 2002)[0].tolist()
     if args.limit:
-        indices = indices[: args.limit]
+        indices = balanced_indices(
+            shifted.rows,
+            indices,
+            min(args.limit, len(indices)),
+            args.seed,
+        )
     loader = DataLoader(IndexedDataset(shifted, indices), batch_size=args.batch_size)
 
     rows = []

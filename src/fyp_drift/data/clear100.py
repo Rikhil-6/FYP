@@ -15,6 +15,85 @@ STD = (0.229, 0.224, 0.225)
 NUM_CLASSES = 100
 
 
+def balanced_indices(rows, candidates, limit, seed):
+    """Limit a subset without favouring early manifest classes or years."""
+    candidates = list(candidates)
+    if not limit or limit >= len(candidates):
+        return sorted(candidates)
+
+    groups = {}
+    for index in candidates:
+        row = rows[index]
+        key = (int(row["year"]), int(row["label"]))
+        groups.setdefault(key, []).append(index)
+
+    generator = random.Random(seed)
+    keys = sorted(groups)
+    generator.shuffle(keys)
+    for key in keys:
+        generator.shuffle(groups[key])
+
+    selected = []
+    while len(selected) < limit:
+        added = False
+        for key in keys:
+            if groups[key]:
+                selected.append(groups[key].pop())
+                added = True
+                if len(selected) == limit:
+                    break
+        if not added:
+            break
+    return sorted(selected)
+
+
+def validate_manifest_rows(rows):
+    required = {"path", "source", "bucket", "year", "class_name", "label", "split"}
+    if not rows or not required.issubset(rows[0]):
+        raise ValueError("CLEAR-100 manifest is empty or missing required columns")
+    paths = [row["path"] for row in rows]
+    if len(paths) != len(set(paths)):
+        raise ValueError("CLEAR-100 manifest contains duplicate image paths")
+
+    class_to_label = {}
+    for row in rows:
+        bucket = int(row["bucket"])
+        year = int(row["year"])
+        label = int(row["label"])
+        if row["source"] not in ("train", "test"):
+            raise ValueError(f"Unknown CLEAR-100 source: {row['source']}")
+        if year != 2004 + bucket:
+            raise ValueError(
+                f"CLEAR-100 year/bucket mismatch for {row['path']}: {year}, {bucket}"
+            )
+        if not 0 <= label < NUM_CLASSES:
+            raise ValueError(f"CLEAR-100 label outside 0-{NUM_CLASSES - 1}: {label}")
+        expected_split = "unused"
+        if row["source"] == "train":
+            if 0 <= bucket <= 6:
+                expected_split = "train"
+            elif bucket == 7:
+                expected_split = "id_val"
+            elif bucket in (8, 9):
+                expected_split = "val"
+        elif bucket == 7:
+            expected_split = "id_test"
+        elif bucket == 10:
+            expected_split = "test"
+        if row["split"] != expected_split:
+            raise ValueError(
+                f"CLEAR-100 split mismatch for {row['path']}: "
+                f"expected {expected_split}, found {row['split']}"
+            )
+        previous = class_to_label.setdefault(row["class_name"], label)
+        if previous != label:
+            raise ValueError(f"Class {row['class_name']} maps to multiple labels")
+    if len(class_to_label) != NUM_CLASSES or set(class_to_label.values()) != set(
+        range(NUM_CLASSES)
+    ):
+        raise ValueError("CLEAR-100 manifest must map 100 classes one-to-one to labels")
+
+
 def transform(image, index=None):
     image = F.resize(image.convert("RGB"), (224, 224))
     return F.normalize(F.to_tensor(image), MEAN, STD)
@@ -58,6 +137,7 @@ class ClearDataset:
             )
         with manifest.open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
+        validate_manifest_rows(rows)
         self.rows = {
             split: [row for row in rows if row["split"] == split]
             for split in ("train", "id_val", "id_test", "val", "test")
@@ -88,25 +168,12 @@ def make_loaders(
     for name, subset in list(subsets.items()):
         limit = limit_train if name == "train" else limit_eval
         if limit:
-            if name == "train":
-                indices = list(range(min(limit, len(subset))))
-            else:
-                # Preserve every year represented by a temporal split in small
-                # debug runs instead of truncating into its earliest year only.
-                by_year = {}
-                for index, year in enumerate(subset.metadata_array[:, 0].tolist()):
-                    by_year.setdefault(year, []).append(index)
-                indices = []
-                while len(indices) < min(limit, len(subset)):
-                    added = False
-                    for year in sorted(by_year):
-                        if by_year[year]:
-                            indices.append(by_year[year].pop(0))
-                            added = True
-                            if len(indices) == min(limit, len(subset)):
-                                break
-                    if not added:
-                        break
+            indices = balanced_indices(
+                subset.rows,
+                range(len(subset)),
+                min(limit, len(subset)),
+                seed,
+            )
             subsets[name] = Subset(subset, indices)
     generator = torch.Generator().manual_seed(seed)
     loaders = {
@@ -140,7 +207,12 @@ def year_loader(
         0
     ].tolist()
     if limit:
-        indices = indices[:limit]
+        indices = balanced_indices(
+            subset.rows,
+            indices,
+            min(limit, len(indices)),
+            seed,
+        )
     selected = Subset(subset, indices)
     generator = torch.Generator().manual_seed(seed)
     return DataLoader(
@@ -198,8 +270,18 @@ def stratified_year_partition_loaders(
     selection_indices.sort()
     calibration_indices.sort()
     if limit:
-        selection_indices = selection_indices[:limit]
-        calibration_indices = calibration_indices[:limit]
+        selection_indices = balanced_indices(
+            subset.rows,
+            selection_indices,
+            min(limit, len(selection_indices)),
+            seed + 1,
+        )
+        calibration_indices = balanced_indices(
+            subset.rows,
+            calibration_indices,
+            min(limit, len(calibration_indices)),
+            seed + 2,
+        )
     if not selection_indices or not calibration_indices:
         raise ValueError(
             f"Year {year} cannot be split into non-empty selection and calibration sets"

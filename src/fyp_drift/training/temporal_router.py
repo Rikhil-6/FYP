@@ -17,6 +17,7 @@ from tqdm.auto import tqdm
 
 from fyp_drift.artifacts.run_store import RunStore
 from fyp_drift.data.clear100 import (
+    balanced_indices,
     open_dataset,
     stratified_year_partition_loaders,
     year_loader,
@@ -256,6 +257,24 @@ def validate_resume_protocol(run_dir, requested_protocol):
         raise ValueError(
             f"Resume protocol mismatch: run uses {saved_protocol}, "
             f"requested {requested_protocol}."
+        )
+
+
+def validate_historical_checkpoint(checkpoint, long_horizon):
+    """Verify that a long-horizon checkpoint stops before the adaptation year."""
+    if not long_horizon:
+        return
+    checkpoint = Path(checkpoint).resolve()
+    config_path = checkpoint.parent.parent / "config.json"
+    if not config_path.is_file():
+        raise ValueError(
+            "Long-horizon runs require the historical run config beside the checkpoint"
+        )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    if config.get("method") != "xai" or config.get("cv_val_year") != 2009:
+        raise ValueError(
+            "The long-horizon historical checkpoint must be an XAI run trained on "
+            "years before 2009 and selected on 2009 (--cv-val-year 2009)."
         )
 
 
@@ -630,7 +649,12 @@ def evaluate_drift_scenarios(router, policy, dataset, loaders, store, args, devi
                 subset.metadata_array[:, loaders.year_column] == year - 2002
             )[0].tolist()
             if args.limit_test:
-                indices = indices[: args.limit_test]
+                indices = balanced_indices(
+                    subset.rows,
+                    indices,
+                    min(args.limit_test, len(indices)),
+                    args.seed,
+                )
             stream = DataLoader(Subset(subset, indices), batch_size=args.batch_size)
             report, decisions = evaluate_stream(
                 router, stream, policy, device, loaders.year_column
@@ -689,6 +713,7 @@ def evaluate_drift_scenarios(router, policy, dataset, loaders, store, args, devi
 def main(argv=None):
     args = parse_args(argv)
     seed_everything(args.seed)
+    validate_historical_checkpoint(args.base_checkpoint, args.long_horizon)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dataset = open_dataset(args.data_root)
     loaders = build_temporal_loaders(dataset, args)
