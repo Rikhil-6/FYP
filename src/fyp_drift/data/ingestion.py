@@ -13,11 +13,15 @@ from pathlib import Path
 from filelock import FileLock, Timeout
 from tqdm.auto import tqdm
 
-from fyp_drift.data.manifest import expected_split, validate_manifest_rows
+from fyp_drift.data.manifest import (
+    ARCHIVE_ROOTS,
+    NUM_CLASSES,
+    expected_split,
+    validate_manifest_rows,
+)
 
 SOURCE = "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/"
 ARCHIVES = {"train": "clear100-train-image-only.zip", "test": "clear100-test.zip"}
-ARCHIVE_ROOTS = {"train": "train_image_only", "test": "test"}
 ARCHIVE_SHA256 = {
     "train": "0376b952674e6ef55c3923ee4ce61e5b299fea4e29bbc4780530636e8988fd72",
     "test": "c939753be4e62dc7732347e5e636ea599022c82f45443ea9e7166167e467abd0",
@@ -136,8 +140,8 @@ def build_manifest(root):
                         candidates.append((path, source, bucket, class_dir.name))
     candidates.sort(key=lambda item: item[0].relative_to(root).as_posix())
     classes = sorted({item[3] for item in candidates})
-    if len(classes) != 100:
-        raise ValueError(f"Expected 100 CLEAR classes, found {len(classes)}")
+    if len(classes) != NUM_CLASSES:
+        raise ValueError(f"Expected {NUM_CLASSES} CLEAR classes, found {len(classes)}")
     labels = {name: index for index, name in enumerate(classes)}
     counts = Counter()
     rows = []
