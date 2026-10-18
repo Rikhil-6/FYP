@@ -52,6 +52,16 @@ def main():
                     key: result[key]
                     for key in ("helpful_routes", "harmful_routes", "routed_to_new")
                 }
+                if "classwise_comparison" in result:
+                    classwise = result["classwise_comparison"]
+                    scenarios[scenario][year]["classwise"] = {
+                        "minimum_support": classwise["minimum_support"],
+                        "eligible_classes": classwise["eligible_classes"],
+                        "comparison": classwise["comparison"],
+                        "historical_f1_rank_strata": classwise[
+                            "historical_f1_rank_strata"
+                        ],
+                    }
         report["runs"][name] = {
             "path": str(path),
             "config": {

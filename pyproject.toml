@@ -25,6 +25,7 @@ dependencies = [
 fyp-analyze-saliency = "fyp_drift.evaluation.saliency:main"
 fyp-audit-router = "fyp_drift.evaluation.audit:main"
 fyp-compare-runs = "fyp_drift.evaluation.compare_runs:main"
+fyp-export-classwise = "fyp_drift.evaluation.classwise:main"
 fyp-evaluate = "fyp_drift.evaluation.classifier:main"
 fyp-evaluate-drift = "fyp_drift.evaluation.drift:main"
 fyp-verify-drift = "fyp_drift.evaluation.drift_verification:main"

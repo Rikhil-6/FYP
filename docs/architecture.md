@@ -32,6 +32,7 @@ not occur inside a training command.
 | Temporal adaptation and routing | `uv run fyp-train-router --base-checkpoint <path>` | `runs/siamese/<run-id>/` |
 | Frozen classifier evaluation | `uv run fyp-evaluate ...` | JSON metrics and prediction CSV |
 | Controlled drift evaluation | `uv run fyp-evaluate-drift ...` | Per-source temporal metrics |
+| Class-level router analysis | `uv run fyp-export-classwise ...` | Per-class and historical-difficulty CSV tables |
 | Counterexample audit | `uv run fyp-audit-router ...` | Decision CSV and bounded panels |
 | Runtime check | `uv run fyp-smoke` | Temporary synthetic run |
 | Hardware check | `uv run fyp-hardware` | Torch, CUDA, GPU, CPU, and storage status |

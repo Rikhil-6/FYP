@@ -33,11 +33,12 @@ from fyp_drift.data.corruptions import (
 from fyp_drift.evaluation.metrics import (
     binary_metrics,
     classification_metrics,
+    classwise_model_comparison,
     topk_map_agreement,
 )
 from fyp_drift.models.routing import (
-    FEATURES,
     FEATURE_SETS,
+    FEATURES,
     apply_policy,
     feature_tensor,
     fit_policy,
@@ -379,6 +380,7 @@ def _summarize_decisions(rows):
         "old": classification_metrics(truth, [row["old_class"] for row in rows]),
         "new": classification_metrics(truth, [row["new_class"] for row in rows]),
         "routed": classification_metrics(truth, [row["routed_class"] for row in rows]),
+        "classwise_comparison": classwise_model_comparison(rows),
         "update_trigger_vs_beneficial_switch": binary_metrics(beneficial, flagged),
         "update_flags": sum(flagged),
         "routed_to_new": sum(row["routed_to_new"] for row in rows),
