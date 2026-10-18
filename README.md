@@ -246,6 +246,19 @@ Classification results include macro F1, macro IoU, accuracy, per-class scores,
 and helpful and harmful switch counts. Saliency overlap is reported only as map
 agreement; CLEAR-100 does not provide segmentation masks.
 
+The class-level export keeps low-support classes visible while excluding them
+from aggregate gain claims. It also ranks eligible classes by historical F1 and
+splits them into four equal groups, which shows whether changes concentrate in
+the weakest or strongest historical classes.
+
+```bash
+tools/uv run fyp-export-classwise \
+  --decisions runs/siamese/<run>/logs/drift_routing_decisions.csv \
+  --class-names data/clear100/classes.json \
+  --output-dir results/classwise/<run> \
+  --minimum-support 20
+```
+
 For cases where the two models differ in correctness, the audit removes the top
 and bottom 20% of patches under each map. A positive deletion margin means that
 removing highly weighted patches reduces true-class probability more than
