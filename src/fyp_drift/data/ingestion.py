@@ -13,6 +13,8 @@ from pathlib import Path
 from filelock import FileLock, Timeout
 from tqdm.auto import tqdm
 
+from fyp_drift.data.manifest import expected_split, validate_manifest_rows
+
 SOURCE = "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/"
 ARCHIVES = {"train": "clear100-train-image-only.zip", "test": "clear100-test.zip"}
 ARCHIVE_ROOTS = {"train": "train_image_only", "test": "test"}
@@ -23,11 +25,7 @@ ARCHIVE_SHA256 = {
 
 
 def split_for(source, bucket):
-    if source == "train":
-        if 0 <= bucket <= 6:
-            return "train"
-        return {7: "id_val", 8: "val", 9: "val"}.get(bucket, "unused")
-    return {7: "id_test", 10: "test"}.get(bucket, "unused")
+    return expected_split(source, bucket)
 
 
 def archive_sha256(path):
@@ -80,10 +78,14 @@ def download(root, source):
     return archive
 
 
-def extract(root, source, archive):
+def extract(root, source, archive, force=False):
     marker = root / f"{source}.ready"
     archive_root = ARCHIVE_ROOTS[source]
-    if marker.is_file() and (root / archive_root / "labeled_images").is_dir():
+    if (
+        not force
+        and marker.is_file()
+        and (root / archive_root / "labeled_images").is_dir()
+    ):
         print(f"{source} images already extracted; skipping.", flush=True)
         return
     with zipfile.ZipFile(archive) as handle:
@@ -125,18 +127,36 @@ def build_manifest(root):
             for class_dir in sorted(bucket_dir.iterdir()):
                 if not class_dir.is_dir():
                     continue
-                for path in class_dir.iterdir():
+                for path in sorted(class_dir.iterdir()):
                     if path.is_file() and path.suffix.lower() in (
                         ".jpg",
                         ".jpeg",
                         ".png",
                     ):
                         candidates.append((path, source, bucket, class_dir.name))
+    candidates.sort(key=lambda item: item[0].relative_to(root).as_posix())
     classes = sorted({item[3] for item in candidates})
     if len(classes) != 100:
         raise ValueError(f"Expected 100 CLEAR classes, found {len(classes)}")
     labels = {name: index for index, name in enumerate(classes)}
     counts = Counter()
+    rows = []
+    for path, source, bucket, class_name in candidates:
+        split = split_for(source, bucket)
+        counts[split] += 1
+        rows.append(
+            {
+                "path": path.relative_to(root).as_posix(),
+                "source": source,
+                "bucket": str(bucket),
+                "year": str(2004 + bucket),
+                "class_name": class_name,
+                "label": str(labels[class_name]),
+                "split": split,
+            }
+        )
+    validate_manifest_rows(rows)
+
     temp = root / "manifest.csv.tmp"
     with temp.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(
@@ -152,20 +172,7 @@ def build_manifest(root):
             ),
         )
         writer.writeheader()
-        for path, source, bucket, class_name in candidates:
-            split = split_for(source, bucket)
-            counts[split] += 1
-            writer.writerow(
-                {
-                    "path": path.relative_to(root).as_posix(),
-                    "source": source,
-                    "bucket": bucket,
-                    "year": 2004 + bucket,
-                    "class_name": class_name,
-                    "label": labels[class_name],
-                    "split": split,
-                }
-            )
+        writer.writerows(rows)
     required = ("train", "id_val", "id_test", "val", "test")
     if any(counts[name] == 0 for name in required):
         raise ValueError(f"Required temporal split is empty: {dict(counts)}")
@@ -192,6 +199,53 @@ def build_manifest(root):
     print(json.dumps(summary, indent=2), flush=True)
 
 
+def archive_image_inventory(archive):
+    """Return archive image paths and byte sizes keyed by relative path."""
+    with zipfile.ZipFile(archive) as handle:
+        return {
+            item.filename: item.file_size
+            for item in handle.infolist()
+            if not item.is_dir()
+            and Path(item.filename).suffix.lower() in (".jpg", ".jpeg", ".png")
+            and "labeled_images" in Path(item.filename).parts
+        }
+
+
+def validate_installed_dataset(root):
+    """Verify the manifest against both archives and the extracted files."""
+    manifest = root / "manifest.csv"
+    with manifest.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    validate_manifest_rows(rows)
+
+    manifest_paths = {row["path"] for row in rows}
+    inventory = {}
+    for source in ("train", "test"):
+        inventory.update(archive_image_inventory(root / f"{source}.zip"))
+    archive_paths = set(inventory)
+    if manifest_paths != archive_paths:
+        missing = sorted(archive_paths - manifest_paths)
+        extra = sorted(manifest_paths - archive_paths)
+        raise ValueError(
+            "CLEAR-100 manifest differs from the verified archives; "
+            f"missing={missing[:3]}, extra={extra[:3]}"
+        )
+
+    invalid_files = []
+    for relative_path, expected_size in inventory.items():
+        path = root / relative_path
+        if not path.is_file() or path.stat().st_size != expected_size:
+            invalid_files.append(relative_path)
+            if len(invalid_files) == 3:
+                break
+    if invalid_files:
+        raise ValueError(
+            "CLEAR-100 extracted files are missing or have the wrong size: "
+            f"{invalid_files}"
+        )
+    return len(rows)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", default="data")
@@ -211,19 +265,29 @@ def main():
                         raise RuntimeError(
                             f"CLEAR-100 {source} archive is missing or incomplete"
                         )
+                try:
+                    rows = validate_installed_dataset(root)
+                except (OSError, ValueError) as error:
+                    print(f"Installed data need repair: {error}", flush=True)
+                    for source in ("train", "test"):
+                        extract(root, source, root / f"{source}.zip", force=True)
+                    build_manifest(root)
+                    rows = validate_installed_dataset(root)
                 print(
-                    "CLEAR-100 is already ingested; skipping download and extraction.",
+                    f"CLEAR-100 is already valid ({rows} images); skipping download.",
                     flush=True,
                 )
-                print(
-                    (root / "dataset_summary.json").read_text(encoding="utf-8"),
-                    flush=True,
-                )
+                if (root / "dataset_summary.json").is_file():
+                    print(
+                        (root / "dataset_summary.json").read_text(encoding="utf-8"),
+                        flush=True,
+                    )
                 return
             for source in ("train", "test"):
                 archive = download(root, source)
                 extract(root, source, archive)
             build_manifest(root)
+            validate_installed_dataset(root)
     except Timeout as error:
         parser.exit(2, f"Another CLEAR-100 ingestion is already running: {error}\n")
 

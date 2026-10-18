@@ -8,8 +8,8 @@ import json
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from fyp_drift.data.clear100 import NUM_CLASSES, validate_manifest_rows
 from fyp_drift.data.ingestion import ARCHIVE_SHA256, archive_sha256
+from fyp_drift.data.manifest import NUM_CLASSES, validate_manifest_rows
 
 
 def audit_manifest(data_root, check_files=False, check_archives=False):
@@ -60,6 +60,7 @@ def audit_manifest(data_root, check_files=False, check_archives=False):
         "rows": len(rows),
         "classes": NUM_CLASSES,
         "unique_paths": len({row["path"] for row in rows}),
+        "unique_image_ids": len({Path(row["path"]).stem for row in rows}),
         "split_counts": dict(sorted(split_counts.items())),
         "buckets": [
             {
@@ -76,6 +77,7 @@ def audit_manifest(data_root, check_files=False, check_archives=False):
         "archive_checks": archive_checks,
         "checks": {
             "unique_paths": True,
+            "unique_image_ids_across_time_and_source": True,
             "year_equals_2004_plus_bucket": True,
             "source_bucket_split_mapping": True,
             "one_to_one_class_labels": True,

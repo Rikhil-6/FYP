@@ -61,14 +61,21 @@ class CIFAR101(Dataset):
         labels_path = root / "cifar10.1_v6_labels.npy"
         for path in (data_path, labels_path):
             if not path.exists():
-                urlretrieve(f"{CIFAR101_BASE_URL}/{path.name}", path)
+                temporary = path.with_suffix(path.suffix + ".part")
+                urlretrieve(f"{CIFAR101_BASE_URL}/{path.name}", temporary)
+                temporary.replace(path)
 
-        self.data = np.load(data_path)
-        self.labels = np.load(labels_path).astype(np.int64)
+        self.data = np.load(data_path, allow_pickle=False)
+        labels = np.load(labels_path, allow_pickle=False)
         if self.data.shape != (2000, 32, 32, 3):
             raise ValueError(f"Unexpected CIFAR-10.1 image shape: {self.data.shape}")
-        if self.labels.shape != (2000,):
-            raise ValueError(f"Unexpected CIFAR-10.1 label shape: {self.labels.shape}")
+        if self.data.dtype != np.uint8:
+            raise ValueError(f"Unexpected CIFAR-10.1 image dtype: {self.data.dtype}")
+        if labels.shape != (2000,):
+            raise ValueError(f"Unexpected CIFAR-10.1 label shape: {labels.shape}")
+        if not np.issubdtype(labels.dtype, np.integer):
+            raise ValueError(f"Unexpected CIFAR-10.1 label dtype: {labels.dtype}")
+        self.labels = labels.astype(np.int64)
         if not np.array_equal(np.bincount(self.labels, minlength=10), np.full(10, 200)):
             raise ValueError("CIFAR-10.1 v6 should contain 200 examples per class")
         self.transform = transform
@@ -199,6 +206,7 @@ def main(argv=None):
             "in_distribution_test": len(loaders["id"].dataset),
             "recollected_test": len(loaders["ood"].dataset),
         },
+        "sampling": "class-balanced without replacement",
         "linear_probe": {
             "in_distribution": id_scores,
             "recollected": ood_scores,

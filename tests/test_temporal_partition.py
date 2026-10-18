@@ -5,7 +5,9 @@ from fyp_drift.data.clear100 import (
     ClearSubset,
     balanced_indices,
     stratified_year_partition_loaders,
+    year_loader,
 )
+from fyp_drift.evaluation.drift_verification import stratified_indices
 
 
 class _Dataset:
@@ -37,7 +39,7 @@ class TemporalPartitionTests(unittest.TestCase):
     def test_selection_and_calibration_are_disjoint_stratified_and_deterministic(self):
         rows = [
             {"path": f"unused-{label}-{item}.jpg", "label": str(label), "year": "2011"}
-            for label in range(4)
+            for label in range(100)
             for item in range(7)
         ]
         dataset = _Dataset(rows)
@@ -54,12 +56,29 @@ class TemporalPartitionTests(unittest.TestCase):
         self.assertEqual(calibration, second[1].dataset.indices)
         self.assertFalse(set(selection) & set(calibration))
         self.assertEqual(set(selection) | set(calibration), set(range(len(rows))))
-        for label in range(4):
+        for label in range(100):
             selected = sum(int(rows[index]["label"]) == label for index in selection)
             calibrated = sum(
                 int(rows[index]["label"]) == label for index in calibration
             )
             self.assertLessEqual(abs(selected - calibrated), 1)
+
+    def test_missing_requested_year_is_rejected(self):
+        rows = [
+            {"path": f"unused-{label}.jpg", "label": str(label), "year": "2011"}
+            for label in range(100)
+        ]
+        with self.assertRaisesRegex(ValueError, "2012"):
+            year_loader(_Dataset(rows), "train_source", (2011, 2012))
+
+    def test_drift_sample_cannot_silently_drop_classes(self):
+        rows = [
+            {"path": f"unused-{label}.jpg", "label": str(label), "year": "2014"}
+            for label in range(100)
+        ]
+        subset = ClearSubset(".", rows)
+        with self.assertRaisesRegex(ValueError, "cannot represent all"):
+            stratified_indices(subset, 2014, limit=99, seed=42)
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from torchvision.transforms import Compose, Normalize, Resize, ToTensor
 from tqdm.auto import tqdm
 
 from fyp_drift.data.clear100 import MEAN, STD
+from fyp_drift.data.acdc import validate_rows
 from fyp_drift.evaluation.adaptation_evidence import (
     compare_checkpoints,
     compare_feature_archives,
@@ -27,9 +28,7 @@ class AcdcPairs(Dataset):
     def __init__(self, manifest: Path, limit=None, seed=42):
         with Path(manifest).open(newline="", encoding="utf-8") as handle:
             self.rows = list(csv.DictReader(handle))
-        pair_ids = [row["pair_id"] for row in self.rows]
-        if len(pair_ids) != len(set(pair_ids)):
-            raise ValueError("ACDC manifest contains duplicate pair identifiers")
+        validate_rows(self.rows)
         if limit and limit < len(self.rows):
             by_condition = {}
             for row in self.rows:

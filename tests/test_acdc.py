@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from fyp_drift.data.acdc import scan_acdc, write_manifest
+from fyp_drift.data.acdc import scan_acdc, validate_rows, write_manifest
 
 
 class AcdcManifestTests(unittest.TestCase):
@@ -29,6 +29,11 @@ class AcdcManifestTests(unittest.TestCase):
             self.assertTrue(manifest.is_file())
             self.assertTrue(all(row["normal_image"] for row in rows))
             self.assertTrue(all(row["invalid_mask"] for row in rows))
+
+            duplicated = [dict(row) for row in rows]
+            duplicated[1]["normal_image"] = duplicated[0]["normal_image"]
+            with self.assertRaisesRegex(ValueError, "duplicate normal_image"):
+                validate_rows(duplicated)
 
 
 if __name__ == "__main__":

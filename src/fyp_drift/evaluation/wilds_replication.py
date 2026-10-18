@@ -64,9 +64,16 @@ def parse_args(argv=None):
 def stratified_sample(labels, limit, seed):
     """Return a repeatable class-balanced sample without duplicating rows."""
     labels = np.asarray(labels).reshape(-1)
+    if limit < 1:
+        raise ValueError("sample limit must be positive")
     buckets = {}
     for index, label in enumerate(labels):
-        buckets.setdefault(int(label), []).append(index)
+        key = label.item() if isinstance(label, np.generic) else label
+        buckets.setdefault(key, []).append(index)
+    if limit < len(buckets):
+        raise ValueError(
+            f"sample limit {limit} cannot represent all {len(buckets)} classes"
+        )
 
     generator = random.Random(seed)
     for indices in buckets.values():
@@ -85,6 +92,18 @@ def stratified_sample(labels, limit, seed):
         if not added:
             break
     return sorted(selected)
+
+
+def stratified_group_sample(labels, groups, limit, seed):
+    """Balance a sample across label and metadata groups."""
+    labels = np.asarray(labels).reshape(-1)
+    groups = np.asarray(groups).reshape(-1)
+    if len(labels) != len(groups):
+        raise ValueError("labels and groups must have equal lengths")
+    combined = np.asarray(
+        [f"{group}\0{label}" for group, label in zip(groups, labels)], dtype=str
+    )
+    return stratified_sample(combined, limit, seed)
 
 
 def image_transform():
@@ -181,8 +200,18 @@ def train_architecture(method, num_classes, loaders, args, device):
         model.train()
         model.backbone.eval()
         total_loss = 0.0
+        generator = torch.Generator().manual_seed(args.seed + epoch)
+        order = torch.randperm(
+            len(loaders["train"].dataset), generator=generator
+        ).tolist()
+        training_loader = DataLoader(
+            Subset(loaders["train"].dataset, order),
+            batch_size=loaders["train"].batch_size,
+            num_workers=loaders["train"].num_workers,
+            shuffle=False,
+        )
         progress = tqdm(
-            loaders["train"],
+            training_loader,
             desc=f"{method} epoch {epoch}/{args.epochs}",
             unit="batch",
         )
@@ -302,9 +331,11 @@ def main(argv=None):
             "out_of_distribution": ood_split,
         },
         "limits": {
-            "training": args.train_limit,
-            "evaluation_per_split": args.eval_limit,
+            "training": len(loaders["train"].dataset),
+            "in_distribution": len(loaders["id"].dataset),
+            "out_of_distribution": len(loaders["ood"].dataset),
         },
+        "sampling": "class-balanced without replacement",
         "classification": {
             "in_distribution": id_scores,
             "out_of_distribution": ood_scores,
