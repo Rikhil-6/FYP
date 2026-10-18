@@ -36,6 +36,10 @@ class AdaptationEvidenceTests(unittest.TestCase):
 
         self.assertGreater(report["change"]["mmd_squared_reduction"], 0)
         self.assertGreater(report["change"]["domain_auc_reduction"], 0)
+        self.assertEqual(
+            report["historical"]["distribution_shift"]["mmd_bandwidth"],
+            report["adapted"]["distribution_shift"]["mmd_bandwidth"],
+        )
         paired = report["change"]["paired_feature_distance"]
         self.assertGreater(paired["historical_minus_adapted_mean"], 0)
         self.assertGreater(paired["bootstrap_95_ci"][0], 0)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import random
 from pathlib import Path
 
 import numpy as np
@@ -23,11 +24,28 @@ from fyp_drift.models.vision_transformer import TemporalViT
 
 
 class AcdcPairs(Dataset):
-    def __init__(self, manifest: Path, limit=None):
+    def __init__(self, manifest: Path, limit=None, seed=42):
         with Path(manifest).open(newline="", encoding="utf-8") as handle:
             self.rows = list(csv.DictReader(handle))
-        if limit:
-            self.rows = self.rows[:limit]
+        pair_ids = [row["pair_id"] for row in self.rows]
+        if len(pair_ids) != len(set(pair_ids)):
+            raise ValueError("ACDC manifest contains duplicate pair identifiers")
+        if limit and limit < len(self.rows):
+            by_condition = {}
+            for row in self.rows:
+                by_condition.setdefault(row["condition"], []).append(row)
+            generator = random.Random(seed)
+            conditions = sorted(by_condition)
+            for rows in by_condition.values():
+                generator.shuffle(rows)
+            selected = []
+            while len(selected) < limit:
+                for condition in conditions:
+                    if by_condition[condition]:
+                        selected.append(by_condition[condition].pop())
+                        if len(selected) == limit:
+                            break
+            self.rows = selected
         if len(self.rows) < 10:
             raise ValueError("The ACDC screen needs at least ten paired scenes")
         self.transform = Compose(
@@ -133,7 +151,7 @@ def main(argv=None):
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    dataset = AcdcPairs(args.manifest, args.limit)
+    dataset = AcdcPairs(args.manifest, args.limit, args.seed)
     loader = DataLoader(
         dataset,
         batch_size=args.batch_size,

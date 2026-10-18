@@ -96,6 +96,7 @@ def comparison_row(group, reference, target, first, second, args, paired):
         permutations=args.permutations,
         permutation_limit=args.permutation_limit,
         seed=args.seed,
+        paired=paired,
     )
     return {
         "group": group,

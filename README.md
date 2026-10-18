@@ -91,6 +91,8 @@ The long-horizon protocol uses:
 - 2012-2014 for frozen future evaluation.
 
 ```bash
+tools/uv run fyp-train --method xai --cv-val-year 2009 --epochs 5
+
 tools/uv run fyp-train-router \
   --base-checkpoint runs/xai/<historical-run>/models/best.pt \
   --long-horizon --adaptation-profile realistic --epochs 5
