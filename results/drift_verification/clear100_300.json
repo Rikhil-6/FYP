@@ -2,6 +2,7 @@
   "protocol": {
     "feature_extractor": "facebook/dinov2-small",
     "reference_year": 2009,
+    "natural_comparison_source": "held-out test archive for every year",
     "future_years": [
       2012,
       2013,
@@ -27,12 +28,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": false,
-      "mmd_squared": 0.001911691583255326,
-      "mmd_bandwidth": 66.2112590776654,
-      "mmd_permutation_p": 0.985,
+      "mmd_squared": 0.0018621285509545782,
+      "mmd_bandwidth": 66.24014162841756,
+      "mmd_permutation_p": 0.995,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.5288222222222222
+      "mmd_permutation_scheme": "pooled_label_permutation",
+      "domain_classifier_roc_auc": 0.44171111111111117,
+      "domain_classifier_cv": "stratified"
     },
     {
       "group": "natural_temporal",
@@ -41,12 +44,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": false,
-      "mmd_squared": 0.001958721830908061,
-      "mmd_bandwidth": 66.29383264842485,
-      "mmd_permutation_p": 0.96,
+      "mmd_squared": 0.0018294370489042588,
+      "mmd_bandwidth": 66.31774671810805,
+      "mmd_permutation_p": 0.94,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.5115777777777778
+      "mmd_permutation_scheme": "pooled_label_permutation",
+      "domain_classifier_roc_auc": 0.4573666666666667,
+      "domain_classifier_cv": "stratified"
     },
     {
       "group": "natural_temporal",
@@ -55,12 +60,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": false,
-      "mmd_squared": 0.002081675469567834,
-      "mmd_bandwidth": 66.30961028245798,
-      "mmd_permutation_p": 0.85,
+      "mmd_squared": 0.0019463239752126604,
+      "mmd_bandwidth": 66.3411815859922,
+      "mmd_permutation_p": 0.93,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.5203444444444445
+      "mmd_permutation_scheme": "pooled_label_permutation",
+      "domain_classifier_roc_auc": 0.47004444444444443,
+      "domain_classifier_cv": "stratified"
     },
     {
       "group": "null_control",
@@ -69,12 +76,14 @@
       "reference_samples": 150,
       "target_samples": 150,
       "paired": false,
-      "mmd_squared": 0.003780692769382865,
-      "mmd_bandwidth": 66.35585595484798,
+      "mmd_squared": 0.0037806922602470205,
+      "mmd_bandwidth": 66.3558586648177,
       "mmd_permutation_p": 1.0,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 150,
-      "domain_classifier_roc_auc": 0.6020888888888889
+      "mmd_permutation_scheme": "pooled_label_permutation",
+      "domain_classifier_roc_auc": 0.3979111111111111,
+      "domain_classifier_cv": "stratified"
     },
     {
       "group": "controlled_paired",
@@ -83,12 +92,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": true,
-      "mmd_squared": 2.3228480607651036e-05,
-      "mmd_bandwidth": 66.35281384934603,
-      "mmd_permutation_p": 1.0,
+      "mmd_squared": 2.322849989488951e-05,
+      "mmd_bandwidth": 66.35280552687273,
+      "mmd_permutation_p": 0.005,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.9101333333333333
+      "mmd_permutation_scheme": "paired_within_image_swap",
+      "domain_classifier_roc_auc": 0.5186333333333333,
+      "domain_classifier_cv": "pair_grouped_stratified"
     },
     {
       "group": "controlled_paired",
@@ -97,12 +108,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": true,
-      "mmd_squared": 0.00016704020636071348,
-      "mmd_bandwidth": 66.3029301763526,
-      "mmd_permutation_p": 1.0,
+      "mmd_squared": 0.00016704031241698836,
+      "mmd_bandwidth": 66.30293308993826,
+      "mmd_permutation_p": 0.005,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.7259111111111112
+      "mmd_permutation_scheme": "paired_within_image_swap",
+      "domain_classifier_roc_auc": 0.6005555555555555,
+      "domain_classifier_cv": "pair_grouped_stratified"
     },
     {
       "group": "controlled_paired",
@@ -111,12 +124,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": true,
-      "mmd_squared": 0.0039468745178936615,
-      "mmd_bandwidth": 66.23517116239901,
-      "mmd_permutation_p": 0.01,
+      "mmd_squared": 0.003946875383401327,
+      "mmd_bandwidth": 66.23517348071952,
+      "mmd_permutation_p": 0.005,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.9281777777777779
+      "mmd_permutation_scheme": "paired_within_image_swap",
+      "domain_classifier_roc_auc": 0.9481666666666667,
+      "domain_classifier_cv": "pair_grouped_stratified"
     },
     {
       "group": "controlled_paired",
@@ -125,12 +140,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": true,
-      "mmd_squared": 0.0011227849445958338,
-      "mmd_bandwidth": 66.23996159738097,
-      "mmd_permutation_p": 1.0,
+      "mmd_squared": 0.0011227840339802508,
+      "mmd_bandwidth": 66.23996673847203,
+      "mmd_permutation_p": 0.005,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.6589444444444446
+      "mmd_permutation_scheme": "paired_within_image_swap",
+      "domain_classifier_roc_auc": 0.7867000000000001,
+      "domain_classifier_cv": "pair_grouped_stratified"
     },
     {
       "group": "controlled_paired",
@@ -139,12 +156,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": true,
-      "mmd_squared": 0.022713658402596426,
-      "mmd_bandwidth": 65.45073173546163,
+      "mmd_squared": 0.022713661075411506,
+      "mmd_bandwidth": 65.45073342318325,
       "mmd_permutation_p": 0.005,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.9888666666666667
+      "mmd_permutation_scheme": "paired_within_image_swap",
+      "domain_classifier_roc_auc": 0.9925999999999999,
+      "domain_classifier_cv": "pair_grouped_stratified"
     },
     {
       "group": "controlled_paired",
@@ -153,12 +172,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": true,
-      "mmd_squared": 0.002329917183399033,
-      "mmd_bandwidth": 66.31771123634975,
-      "mmd_permutation_p": 0.625,
+      "mmd_squared": 0.002329917738982168,
+      "mmd_bandwidth": 66.3177123174495,
+      "mmd_permutation_p": 0.005,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.9599333333333334
+      "mmd_permutation_scheme": "paired_within_image_swap",
+      "domain_classifier_roc_auc": 0.9711333333333334,
+      "domain_classifier_cv": "pair_grouped_stratified"
     },
     {
       "group": "controlled_paired",
@@ -167,12 +188,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": true,
-      "mmd_squared": 0.0007803599728217758,
-      "mmd_bandwidth": 66.27285183305666,
-      "mmd_permutation_p": 1.0,
+      "mmd_squared": 0.0007803603244820323,
+      "mmd_bandwidth": 66.27285573799537,
+      "mmd_permutation_p": 0.005,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.5962333333333334
+      "mmd_permutation_scheme": "paired_within_image_swap",
+      "domain_classifier_roc_auc": 0.7432888888888889,
+      "domain_classifier_cv": "pair_grouped_stratified"
     },
     {
       "group": "controlled_paired",
@@ -181,12 +204,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": true,
-      "mmd_squared": 0.0030004660135378725,
-      "mmd_bandwidth": 66.05340215798952,
-      "mmd_permutation_p": 0.195,
+      "mmd_squared": 0.003000466931259771,
+      "mmd_bandwidth": 66.05339547697182,
+      "mmd_permutation_p": 0.005,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.7982222222222223
+      "mmd_permutation_scheme": "paired_within_image_swap",
+      "domain_classifier_roc_auc": 0.8509888888888889,
+      "domain_classifier_cv": "pair_grouped_stratified"
     },
     {
       "group": "controlled_paired",
@@ -195,12 +220,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": true,
-      "mmd_squared": 0.0021201984629395376,
-      "mmd_bandwidth": 66.16521364278576,
-      "mmd_permutation_p": 0.695,
+      "mmd_squared": 0.0021201989006758293,
+      "mmd_bandwidth": 66.16521658138467,
+      "mmd_permutation_p": 0.005,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.7487555555555556
+      "mmd_permutation_scheme": "paired_within_image_swap",
+      "domain_classifier_roc_auc": 0.8238777777777779,
+      "domain_classifier_cv": "pair_grouped_stratified"
     },
     {
       "group": "controlled_paired",
@@ -209,12 +236,14 @@
       "reference_samples": 300,
       "target_samples": 300,
       "paired": true,
-      "mmd_squared": 0.011376823873391784,
-      "mmd_bandwidth": 65.65274584475642,
+      "mmd_squared": 0.011376824329340174,
+      "mmd_bandwidth": 65.65274182562975,
       "mmd_permutation_p": 0.005,
       "mmd_permutations": 199,
       "mmd_permutation_samples_per_group": 200,
-      "domain_classifier_roc_auc": 0.9040555555555554
+      "mmd_permutation_scheme": "paired_within_image_swap",
+      "domain_classifier_roc_auc": 0.9425888888888889,
+      "domain_classifier_cv": "pair_grouped_stratified"
     }
   ]
 }
