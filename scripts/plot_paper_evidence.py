@@ -7,9 +7,11 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 FIGURES = ROOT / "paper" / "figures"
 COLOURS = {
-    "Historical ViT": "#616161",
-    "Updated XAI ViT": "#56B4E9",
-    "Transparent router": "#0072B2",
+    "Historical uniform ViT": "#4D4D4D",
+    "Conventionally fine-tuned ViT": "#999999",
+    "Historical saliency-guided ViT": "#8CBED6",
+    "Updated saliency-guided ViT": "#56B4E9",
+    "Saliency-guided router": "#0072B2",
 }
 
 
@@ -33,13 +35,15 @@ def apply_style():
 def plot_temporal_performance():
     data = pd.read_csv(ROOT / "results" / "temporal_performance.csv")
     columns = {
-        "historical_xai": "Historical ViT",
-        "updated_xai": "Updated XAI ViT",
-        "routed": "Transparent router",
+        "historical_uniform": "Historical uniform ViT",
+        "conventional_finetuned": "Conventionally fine-tuned ViT",
+        "historical_saliency": "Historical saliency-guided ViT",
+        "saliency_updated": "Updated saliency-guided ViT",
+        "saliency_routed": "Saliency-guided router",
     }
 
-    fig, axes = plt.subplots(1, 2, figsize=(8.0, 3.4), sharex=True)
-    for axis, condition in zip(axes, ("Clean", "Combined drift")):
+    fig, axes = plt.subplots(1, 2, figsize=(8.0, 3.8), sharex=True)
+    for axis, condition in zip(axes, ("Clean", "Evidence-ranked mixture")):
         subset = data[data["condition"] == condition]
         for column, label in columns.items():
             axis.plot(
@@ -57,8 +61,8 @@ def plot_temporal_performance():
         axis.set_ylabel("Macro F1 (%)")
 
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.04))
-    fig.tight_layout(rect=(0, 0, 1, 0.92))
+    fig.legend(handles, labels, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.06))
+    fig.tight_layout(rect=(0, 0, 1, 0.84))
     fig.savefig(FIGURES / "temporal_performance.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 

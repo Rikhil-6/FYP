@@ -9,7 +9,7 @@ The project is an installable Python package. Run every Python stage through
 src/fyp_drift/
 ├── data/             CLEAR-100 ingestion, manifests, temporal splits, drift transforms
 ├── models/           DINOv2 classifier, Siamese comparison, transparent routing policy
-├── training/         Historical/XAI training and temporal router adaptation
+├── training/         Historical and saliency-guided training and temporal routing
 ├── evaluation/       Metrics, frozen evaluations, saliency analysis, counterexample audits
 ├── artifacts/        Checkpoints, run folders, manual snapshots, report exports
 ├── visualization/    Drift previews and saliency or router panels
@@ -28,7 +28,7 @@ not occur inside a training command.
 | --- | --- | --- |
 | Environment | `uv sync --locked` | `.venv/` |
 | Data ingestion | `uv run fyp-ingest` | `data/clear100/manifest.csv` |
-| Baseline or XAI training | `uv run fyp-train --method baseline` | `runs/baseline/<run-id>/` |
+| Baseline or saliency-guided training | `uv run fyp-train --method baseline` | `runs/baseline/<run-id>/` |
 | Conventional temporal fine-tuning | `uv run fyp-train-finetune --base-checkpoint <path>` | `runs/finetune/<run-id>/` |
 | Temporal adaptation and routing | `uv run fyp-train-router --base-checkpoint <path>` | `runs/siamese/<run-id>/` |
 | Frozen classifier evaluation | `uv run fyp-evaluate ...` | JSON metrics and prediction CSV |
@@ -48,7 +48,7 @@ The chronological pipeline has five separate decisions:
 1. Fit the historical classifier on earlier years.
 2. Select its checkpoint on a later validation year.
 3. Adapt either a uniform-pooling ViT with classification loss only or a copied
-   XAI ViT on the declared adaptation window.
+   saliency-guided ViT on the declared adaptation window.
 4. Select the updated checkpoint and fit the router on disjoint calibration data.
 5. Freeze both models and the router before evaluating future years.
 

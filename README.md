@@ -1,12 +1,13 @@
-# Explainable ViT routing under temporal drift
+# Saliency-guided ViT routing under temporal drift
 
 This project studies image classification when the deployment data changes over
-time. It uses CLEAR-100's year-labelled image stream and three DINOv2-small
+time. It uses CLEAR-100's year-labelled image stream and four DINOv2-small
 variants:
 
 1. a historical ViT that pools patch tokens uniformly;
-2. an XAI ViT whose learned patch weights affect the classified representation;
-3. a paired historical and updated ViT with a transparent routing rule.
+2. a conventionally fine-tuned ViT with the same uniform pooling;
+3. a saliency-guided ViT whose learned patch weights affect the classified representation;
+4. a paired historical and updated ViT with a transparent routing rule.
 
 The router compares predictions and saliency distributions from the two model
 versions. It selects the updated prediction only when the models disagree, the
@@ -85,7 +86,7 @@ The long-horizon protocol uses:
 
 - 2004-2008 for historical training;
 - 2009 for historical checkpoint selection;
-- 2010 for adaptation of the updated XAI ViT;
+- 2010 for adaptation of the updated saliency-guided ViT;
 - disjoint class-stratified halves of 2011 for updated checkpoint selection and
   router calibration;
 - 2012-2014 for frozen future evaluation.
@@ -300,7 +301,7 @@ saliency panels. Large checkpoints and complete decision logs remain outside
 Git.
 
 The editable paper is
-[`paper/explainable_vit_drift_routing.docx`](paper/explainable_vit_drift_routing.docx).
+[`paper/saliency_guided_vit_drift_routing.docx`](paper/saliency_guided_vit_drift_routing.docx).
 The main architecture and result figures are also stored separately under
 [`paper/figures/`](paper/figures/).
 
