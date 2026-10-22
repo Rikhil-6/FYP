@@ -116,10 +116,16 @@ and domain-AUC positions. The frozen top three are motion blur, sensor noise,
 and JPEG compression; no 2012-2014 result participates in that choice.
 
 ```bash
-tools/uv run fyp-evaluate-drift \
-  --base-checkpoint runs/xai/<historical-run>/models/best.pt \
-  --run-dir runs/siamese/<run> --long-horizon
+tools/uv run fyp-evaluate-router-drift \
+  --run-dir runs/siamese/<run> \
+  --output runs/reevaluation/<run> \
+  --scenarios realistic_mix
 ```
+
+This command loads the saved historical and updated checkpoints and the saved
+router policy. It performs evaluation only and records that no training took
+place. Use `fyp-evaluate-drift --help` when evaluating one frozen ViT rather
+than a saved router.
 
 The synthetic conditions are controlled sensitivity tests rather than estimates
 of deployment frequency. Full definitions and limitations are in
