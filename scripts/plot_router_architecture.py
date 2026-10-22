@@ -14,7 +14,7 @@ INK = "#202020"
 MID = "#626262"
 LINE = "#4A4A4A"
 LANE = "#F3F3F3"
-XAI = "#E9E9E9"
+SALIENCY = "#E9E9E9"
 
 
 def font(size, bold=False, italic=False):
@@ -69,13 +69,13 @@ def main():
 
     draw.rectangle((980, 70, 1395, 360), fill=LANE, outline="#B5B5B5", width=2)
     draw.text((1000, 84), "Historical path", font=font(23, True), fill=INK)
-    box(draw, (1015, 135, 1360, 300), "Historical XAI ViT",
+    box(draw, (1015, 135, 1360, 300), "Historical saliency-guided ViT",
         ("frozen transformer", "frozen saliency gate", "old logits + patch map"))
 
     draw.rectangle((980, 410, 1395, 700), fill="#F5F5F5", outline="#A5A5A5", width=2)
     draw.text((1000, 424), "Adapted path", font=font(23, True), fill=INK)
-    box(draw, (1015, 475, 1360, 640), "Updated XAI ViT",
-        ("last 3 blocks adapted", "learned saliency gate", "new logits + patch map"), fill=XAI)
+    box(draw, (1015, 475, 1360, 640), "Updated saliency-guided ViT",
+        ("last 3 blocks adapted", "learned saliency gate", "new logits + patch map"), fill=SALIENCY)
     arrow(draw, (900, 155), (1015, 205), "clone + freeze")
     arrow(draw, (900, 215), (1015, 545), "temporal adaptation")
 
@@ -85,7 +85,7 @@ def main():
     arrow(draw, (1360, 555), (1465, 365), "new evidence")
 
     box(draw, (1465, 535, 1845, 740), "Transparent route",
-        ("standardized logistic score", "model disagreement", "saliency floor", "probability threshold"), fill=XAI)
+        ("standardised logistic score", "model disagreement", "saliency floor", "probability threshold"), fill=SALIENCY)
     arrow(draw, (1655, 435), (1655, 535))
 
     box(draw, (620, 700, 1100, 840), "Recorded output",

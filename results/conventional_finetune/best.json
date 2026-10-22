@@ -1,0 +1,6 @@
+{
+  "epoch": 2,
+  "selection_metric": "selection_2011_macro_f1",
+  "metric_value": 0.939,
+  "saved_utc": "2026-10-22T06:47:33.371874+00:00"
+}

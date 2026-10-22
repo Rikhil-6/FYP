@@ -61,7 +61,7 @@ tools/uv run fyp-audit-adaptation \
 ```
 
 The project can extract those archives directly from the historical and adapted
-XAI ViT checkpoints:
+Saliency-guided ViT checkpoints:
 
 ```bash
 tools/uv run fyp-screen-acdc \
@@ -71,7 +71,7 @@ tools/uv run fyp-screen-acdc \
   --output runs/acdc/paired-screen
 ```
 
-The default compares historical and adapted XAI checkpoints. To use the
+The default compares historical and adapted saliency-guided checkpoints. To use the
 original uniform-pooling ViT as the baseline, add `--historical-method baseline`
 and provide its checkpoint. The output records both method names so the
 comparison cannot be mistaken for a same-architecture weight update.

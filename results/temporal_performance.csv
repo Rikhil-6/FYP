@@ -1,7 +1,7 @@
-condition,year,historical_xai,updated_xai,routed
-Clean,2012,95.96,95.89,96.03
-Clean,2013,95.23,95.49,95.55
-Clean,2014,95.24,95.47,95.30
-Combined drift,2012,95.47,95.71,95.81
-Combined drift,2013,93.81,94.43,94.44
-Combined drift,2014,90.34,91.99,91.85
+condition,year,historical_uniform,conventional_finetuned,historical_saliency,saliency_updated,saliency_routed
+Clean,2012,95.86,95.86,95.96,95.89,96.03
+Clean,2013,95.27,95.54,95.23,95.49,95.55
+Clean,2014,95.13,94.93,95.24,95.54,95.36
+Evidence-ranked mixture,2012,94.36,94.71,94.19,95.27,95.23
+Evidence-ranked mixture,2013,89.79,90.84,89.93,91.55,91.19
+Evidence-ranked mixture,2014,79.42,81.55,79.33,82.75,82.36
