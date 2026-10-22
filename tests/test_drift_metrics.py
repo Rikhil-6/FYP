@@ -33,6 +33,7 @@ class DriftMetricTests(unittest.TestCase):
         self.assertEqual(
             metrics["mmd_permutation_scheme"], "paired_within_image_swap"
         )
+        self.assertEqual(metrics["mmd_permutation_resolution"], 1 / 40)
         self.assertEqual(metrics["domain_classifier_cv"], "pair_grouped_stratified")
 
     def test_paired_test_rejects_unequal_pair_counts(self):

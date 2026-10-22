@@ -10,6 +10,7 @@ import numpy as np
 import torch
 
 from fyp_drift.evaluation.drift_metrics import (
+    DEFAULT_PERMUTATIONS,
     distribution_shift_metrics,
     median_bandwidth,
 )
@@ -96,7 +97,7 @@ def bootstrap_mean_change(historical, adapted, seed=42, repetitions=1000):
 def audit_features(
     arrays,
     *,
-    permutations=199,
+    permutations=DEFAULT_PERMUTATIONS,
     permutation_limit=200,
     seed=42,
     bandwidth=None,
@@ -256,7 +257,7 @@ def compare_feature_archives(
     adapted,
     *,
     saliency_aligned=False,
-    permutations=199,
+    permutations=DEFAULT_PERMUTATIONS,
     permutation_limit=200,
     seed=42,
     bootstrap_repetitions=1000,
@@ -448,7 +449,7 @@ def parse_args(argv=None):
     parser.add_argument("--historical-checkpoint", type=Path)
     parser.add_argument("--adapted-checkpoint", type=Path)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--permutations", type=int, default=199)
+    parser.add_argument("--permutations", type=int, default=DEFAULT_PERMUTATIONS)
     parser.add_argument("--permutation-limit", type=int, default=200)
     parser.add_argument("--bootstrap-repetitions", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=42)

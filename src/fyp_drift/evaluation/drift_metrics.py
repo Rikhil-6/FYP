@@ -14,6 +14,12 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 
+# The default of 499 randomisations gives a minimum p-value of 0.002 while
+# keeping repeated drift audits practical on the project server.
+DEFAULT_PERMUTATIONS = 499
+PERMUTATION_BATCH_SIZE = 256
+
+
 def _as_matrix(values):
     matrix = np.asarray(values, dtype=np.float64)
     if matrix.ndim != 2 or len(matrix) < 2:
@@ -63,7 +69,7 @@ def maximum_mean_discrepancy(first, second, bandwidth=None):
 def mmd_permutation_test(
     first,
     second,
-    permutations=199,
+    permutations=DEFAULT_PERMUTATIONS,
     seed=42,
     permutation_limit=200,
     paired=False,
@@ -94,46 +100,52 @@ def mmd_permutation_test(
 
     combined = np.concatenate((first, second), axis=0)
     first_size = len(first)
+    second_size = len(second)
     kernel = rbf_kernel(combined, combined, full_bandwidth)
 
-    def statistic(first_indices, second_indices):
-        return max(
-            0.0,
-            float(
-                kernel[np.ix_(first_indices, first_indices)].mean()
-                + kernel[np.ix_(second_indices, second_indices)].mean()
-                - 2 * kernel[np.ix_(first_indices, second_indices)].mean()
-            ),
+    observed_weights = np.concatenate(
+        (
+            np.full(first_size, 1 / first_size),
+            np.full(second_size, -1 / second_size),
         )
-
-    observed = statistic(
-        np.arange(first_size), np.arange(first_size, len(combined))
     )
+    observed = max(0.0, float(observed_weights @ kernel @ observed_weights))
     exceedances = 0
-    for _ in range(permutations):
+    completed = 0
+    while completed < permutations:
+        batch_size = min(PERMUTATION_BATCH_SIZE, permutations - completed)
         if paired:
-            swap = generator.integers(0, 2, first_size, dtype=np.int8).astype(bool)
-            first_indices = np.where(
-                swap,
-                np.arange(first_size, 2 * first_size),
-                np.arange(first_size),
+            pair_signs = generator.choice(
+                (-1.0, 1.0), size=(batch_size, first_size)
             )
-            second_indices = np.where(
-                swap,
-                np.arange(first_size),
-                np.arange(first_size, 2 * first_size),
-            )
+            weights = np.concatenate((pair_signs, -pair_signs), axis=1)
+            weights /= first_size
         else:
-            order = generator.permutation(len(combined))
-            first_indices, second_indices = order[:first_size], order[first_size:]
-        permuted = statistic(first_indices, second_indices)
-        exceedances += permuted >= observed
+            random_order = generator.random((batch_size, len(combined)))
+            first_indices = np.argpartition(
+                random_order, first_size - 1, axis=1
+            )[:, :first_size]
+            weights = np.full(
+                (batch_size, len(combined)), -1 / second_size, dtype=np.float64
+            )
+            np.put_along_axis(
+                weights,
+                first_indices,
+                np.full_like(first_indices, 1 / first_size, dtype=np.float64),
+                axis=1,
+            )
+        permuted = np.einsum(
+            "bi,ij,bj->b", weights, kernel, weights, optimize=True
+        )
+        exceedances += int(np.count_nonzero(permuted >= observed))
+        completed += batch_size
     p_value = (exceedances + 1) / (permutations + 1)
     return {
         "mmd_squared": full_mmd,
         "mmd_bandwidth": full_bandwidth,
         "mmd_permutation_p": float(p_value),
         "mmd_permutations": int(permutations),
+        "mmd_permutation_resolution": float(1 / (permutations + 1)),
         "mmd_permutation_samples_per_group": int(min(permutation_limit, len(first))),
         "mmd_permutation_scheme": "paired_within_image_swap"
         if paired
@@ -186,7 +198,7 @@ def distribution_shift_metrics(
     first,
     second,
     *,
-    permutations=199,
+    permutations=DEFAULT_PERMUTATIONS,
     permutation_limit=200,
     seed=42,
     paired=False,
