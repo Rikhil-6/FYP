@@ -17,6 +17,7 @@ from transformers import Dinov2Model
 
 from fyp_drift.data.clear100 import NUM_CLASSES, open_dataset
 from fyp_drift.data.corruptions import (
+    EVIDENCE_RANKED_MIX_SOURCES,
     REALISTIC_BENCHMARK_SCENARIOS,
     drift_transform,
 )
@@ -262,6 +263,12 @@ def main(argv=None):
             "future_years": list(args.future_years),
             "controlled_year": evaluation_year,
             "controlled_severity": severity,
+            "realistic_mix_sources": list(EVIDENCE_RANKED_MIX_SOURCES),
+            "realistic_mix_selection": {
+                "year": 2011,
+                "criterion": "mean descending rank across MMD squared and domain-classifier ROC AUC",
+                "top_n": len(EVIDENCE_RANKED_MIX_SOURCES),
+            },
             "sample_limit": args.limit,
             "permutations": args.permutations,
             "permutation_samples_per_group": args.permutation_limit,

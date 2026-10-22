@@ -32,6 +32,13 @@ REALISTIC_BENCHMARK_SCENARIOS = (
     *REALISTIC_INDIVIDUAL_SCENARIOS,
     "realistic_mix",
 )
+# Ranked on the 2011 calibration year before the frozen 2012-2014 evaluation.
+# The rank averages each source's descending MMD and domain-AUC positions.
+EVIDENCE_RANKED_MIX_SOURCES = (
+    "motion_blur",
+    "sensor_noise",
+    "jpeg_compression",
+)
 SCENARIOS = (
     "clean",
     *REALISTIC_INDIVIDUAL_SCENARIOS,
@@ -49,15 +56,7 @@ def scenario_components(scenario, index, severity, seed=42):
     """Return the actual sources used for a sample, for logging and panels."""
     if scenario != "realistic_mix":
         return () if scenario == "clean" else (scenario,)
-    candidates = [
-        name for name in REALISTIC_INDIVIDUAL_SCENARIOS if name != "occlusion"
-    ]
-    ordered = sorted(candidates, key=lambda name: _seed(index, name, severity, seed))
-    chosen = ordered[:severity]
-    # Occlusion is a minority event rather than a compulsory component.
-    if _seed(index, "occlusion-presence", severity, seed) % 10 == 0:
-        chosen.append("occlusion")
-    return tuple(chosen)
+    return EVIDENCE_RANKED_MIX_SOURCES[:severity]
 
 
 def _motion_blur(tensor, size, orientation):

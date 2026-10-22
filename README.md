@@ -110,8 +110,10 @@ coefficients, scaling values, and thresholds used for its decisions.
 The main evaluation reports the natural CLEAR chronology and a controlled suite
 covering illumination, white balance, sensor noise, defocus, motion blur, JPEG
 compression, resolution loss, viewpoint change, and local occlusion. The
-`realistic_mix` condition combines one to three non-occlusion sources and adds
-occlusion to a deterministic 10% minority.
+`realistic_mix` condition applies the top one, two, or three sources selected
+on the 2011 calibration year. Sources are ranked by their mean descending MMD
+and domain-AUC positions. The frozen top three are motion blur, sensor noise,
+and JPEG compression; no 2012-2014 result participates in that choice.
 
 ```bash
 tools/uv run fyp-evaluate-drift \
