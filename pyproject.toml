@@ -49,6 +49,7 @@ fyp-show-router = "fyp_drift.visualization.router:main"
 fyp-show-saliency = "fyp_drift.visualization.saliency:main"
 fyp-smoke = "fyp_drift.system.smoke:main"
 fyp-train = "fyp_drift.training.classifier:main"
+fyp-train-finetune = "fyp_drift.training.fine_tune:main"
 fyp-train-router = "fyp_drift.training.temporal_router:main"
 
 [tool.uv]
