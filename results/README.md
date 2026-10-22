@@ -24,9 +24,11 @@ switches.
 
 [`drift/metrics_2014.csv`](drift/metrics_2014.csv) reports all eleven 2014
 conditions. The saliency-supervised router gains 3.45 points over the frozen
-historical ViT under motion blur and 2.03 points under the realistic mixture.
-Relative to the matched router without auxiliary saliency losses, the additional
-routed gains are 0.90 and 0.84 points respectively.
+historical ViT under motion blur and 3.03 points under the evidence-ranked
+mixture. Relative to the matched router without auxiliary saliency losses, the
+additional routed gains are 0.90 and 1.36 points respectively. The latter
+comparison uses the same saved checkpoints and router policies; no retraining
+was performed for the revised mixture.
 
 The clean routed score is 0.18 points lower than the no-auxiliary control. Mild
 conditions also show small or mixed effects, so the saliency contribution is
@@ -43,10 +45,11 @@ domain AUC from 0.941 to 0.995, but no corresponding saliency-head benefit.
 
 ## Route audits
 
-The `audits/` folders retain aggregate JSON, selected-case CSV files, and two
-helpful, two harmful, and two missed examples for motion blur, viewpoint shift,
-and the realistic mixture. The deletion audit compares the effect of removing
-the most and least weighted patches.
+The `audits/` folders retain aggregate JSON, selected-case CSV files, and
+representative helpful, harmful, and missed examples for motion blur, viewpoint
+shift, and the evidence-ranked mixture. The deletion audit compares the effect
+of removing the most and least weighted patches. The earlier compound-mixture
+audit remains available separately for provenance.
 
 The maps are evidence-allocation diagnostics. They are not segmentation masks,
 and a positive deletion margin does not establish that highlighted pixels caused
