@@ -21,7 +21,10 @@ from transformers import Dinov2Model
 from wilds import get_dataset
 
 from fyp_drift.data.clear100 import MEAN, STD
-from fyp_drift.evaluation.drift_metrics import distribution_shift_metrics
+from fyp_drift.evaluation.drift_metrics import (
+    DEFAULT_PERMUTATIONS,
+    distribution_shift_metrics,
+)
 from fyp_drift.models.vision_transformer import BACKBONE, TemporalViT
 
 
@@ -48,7 +51,7 @@ def parse_args(argv=None):
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--permutations", type=int, default=199)
+    parser.add_argument("--permutations", type=int, default=DEFAULT_PERMUTATIONS)
     parser.add_argument("--permutation-limit", type=int, default=200)
     parser.add_argument(
         "--architecture-screen",

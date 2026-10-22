@@ -20,7 +20,10 @@ from fyp_drift.data.corruptions import (
     REALISTIC_BENCHMARK_SCENARIOS,
     drift_transform,
 )
-from fyp_drift.evaluation.drift_metrics import distribution_shift_metrics
+from fyp_drift.evaluation.drift_metrics import (
+    DEFAULT_PERMUTATIONS,
+    distribution_shift_metrics,
+)
 from fyp_drift.models.vision_transformer import BACKBONE
 
 
@@ -32,7 +35,7 @@ def parse_args(argv=None):
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--limit", type=int, default=500)
-    parser.add_argument("--permutations", type=int, default=199)
+    parser.add_argument("--permutations", type=int, default=DEFAULT_PERMUTATIONS)
     parser.add_argument("--permutation-limit", type=int, default=200)
     parser.add_argument("--reference-year", type=int, default=2009)
     parser.add_argument("--future-years", type=int, nargs="+", default=(2012, 2013, 2014))
@@ -266,6 +269,7 @@ def main(argv=None):
             "interpretation": {
                 "mmd_squared": "larger values indicate greater feature-distribution separation",
                 "mmd_permutation_p": "small values reject exchangeability under the permutation test",
+                "mmd_permutation_resolution": "the smallest Monte Carlo p-value allowed by the configured randomisation count",
                 "domain_classifier_roc_auc": "0.5 is chance and 1.0 is complete linear separability",
             },
         },

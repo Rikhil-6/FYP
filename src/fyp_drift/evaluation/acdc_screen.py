@@ -21,6 +21,7 @@ from fyp_drift.evaluation.adaptation_evidence import (
     compare_checkpoints,
     compare_feature_archives,
 )
+from fyp_drift.evaluation.drift_metrics import DEFAULT_PERMUTATIONS
 from fyp_drift.models.vision_transformer import TemporalViT
 
 
@@ -136,7 +137,7 @@ def parse_args(argv=None):
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--limit", type=int)
-    parser.add_argument("--permutations", type=int, default=199)
+    parser.add_argument("--permutations", type=int, default=DEFAULT_PERMUTATIONS)
     parser.add_argument("--permutation-limit", type=int, default=200)
     parser.add_argument("--bootstrap-repetitions", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=42)

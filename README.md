@@ -131,7 +131,7 @@ tools/uv run fyp-verify-drift \
   --data-root data \
   --output runs/drift-verification \
   --limit 500 \
-  --permutations 199
+  --permutations 499
 ```
 
 The command reports RBF maximum mean discrepancy with a permutation p-value and
