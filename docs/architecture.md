@@ -29,6 +29,7 @@ not occur inside a training command.
 | Environment | `uv sync --locked` | `.venv/` |
 | Data ingestion | `uv run fyp-ingest` | `data/clear100/manifest.csv` |
 | Baseline or XAI training | `uv run fyp-train --method baseline` | `runs/baseline/<run-id>/` |
+| Conventional temporal fine-tuning | `uv run fyp-train-finetune --base-checkpoint <path>` | `runs/finetune/<run-id>/` |
 | Temporal adaptation and routing | `uv run fyp-train-router --base-checkpoint <path>` | `runs/siamese/<run-id>/` |
 | Frozen classifier evaluation | `uv run fyp-evaluate ...` | JSON metrics and prediction CSV |
 | Controlled drift evaluation | `uv run fyp-evaluate-drift ...` | Per-source temporal metrics |
@@ -46,13 +47,15 @@ The chronological pipeline has five separate decisions:
 
 1. Fit the historical classifier on earlier years.
 2. Select its checkpoint on a later validation year.
-3. Adapt a copied XAI ViT on the declared adaptation window.
+3. Adapt either a uniform-pooling ViT with classification loss only or a copied
+   XAI ViT on the declared adaptation window.
 4. Select the updated checkpoint and fit the router on disjoint calibration data.
 5. Freeze both models and the router before evaluating future years.
 
-`training/classifier.py` owns steps 1 and 2. `training/temporal_router.py` owns
-steps 3 to 5. Metrics and figures consume saved artifacts; they do not retrain a
-model.
+`training/classifier.py` owns steps 1 and 2. `training/fine_tune.py` provides the
+conventional adaptation control. `training/temporal_router.py` owns the
+saliency-guided adaptation and routing path. Metrics and figures consume saved
+artifacts; they do not retrain a model.
 
 ## Stored artifacts
 

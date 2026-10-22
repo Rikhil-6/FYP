@@ -96,10 +96,20 @@ tools/uv run fyp-train --method xai --cv-val-year 2009 --epochs 5
 tools/uv run fyp-train-router \
   --base-checkpoint runs/xai/<historical-run>/models/best.pt \
   --long-horizon --adaptation-profile realistic --epochs 5
+
+tools/uv run fyp-train-finetune \
+  --base-checkpoint runs/baseline/<historical-run>/models/best.pt \
+  --epochs 5 --drift-scenarios clean realistic_mix
 ```
 
 The historical model, updated model, and router are frozen before the future
 years are scored. No test-year label is used for model selection.
+
+`fyp-train-finetune` is the conventional adaptation control. It uses uniform
+patch pooling and classification loss only, while retaining the same 2010
+adaptation data, 2011 checkpoint-selection split, three trainable backbone
+blocks, optimiser settings, and 2012-2014 evaluation horizon as the saliency
+experiment.
 
 Use `--router-features confidence_only`, `saliency_only`, or `combined` to run
 the matched routing-evidence ablation. Each saved policy records the features,
