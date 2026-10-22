@@ -11,12 +11,12 @@ within each condition and split into four equal groups:
 - Q1 contains the 25 weakest historical classes.
 - Q4 contains the 25 strongest historical classes.
 
-For the 2014 realistic mixture, the saliency-supervised router changes mean F1
-relative to the historical model by +5.91, +2.00, +1.06 and -0.81 percentage
-points from Q1 to Q4. The matched router without auxiliary saliency losses
-changes the same strata by +2.91, +1.14, +1.16 and -0.44 points. The
+For the 2014 evidence-ranked mixture, the saliency-supervised router changes
+mean F1 relative to the historical model by +8.96, +1.98, +1.45 and -0.26
+percentage points from Q1 to Q4. The matched router without auxiliary saliency
+losses changes the same strata by +5.44, +1.15, +0.78 and -0.69 points. The
 saliency-supervised router therefore helps the weakest classes more under this
-stress condition, but it does not protect the strongest classes completely.
+stress condition and reduces the small loss among the strongest classes.
 
 On clean 2014 data, the corresponding saliency-supervised changes are +1.87,
 -0.46, -0.46 and -0.47 points. The no-auxiliary-loss changes are +2.07, +0.02,
@@ -29,3 +29,7 @@ CSV is the compact source used in the paper table. Helpful and harmful route
 counts are grouped by the true class. Per-class precision and F1 also depend on false-positive
 predictions arriving from other classes, so those counts do not fully explain a
 class F1 change on their own.
+
+The evidence-ranked figures above come from the class-level records in
+`results/router_reevaluation/`. The `realistic-saliency` and `realistic-noaux`
+subdirectories retain the earlier mixture analysis for provenance.

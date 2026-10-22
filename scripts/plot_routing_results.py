@@ -23,7 +23,7 @@ LABELS = {
     "resolution_loss": "Resolution loss",
     "viewpoint_shift": "Viewpoint shift",
     "occlusion": "Occlusion",
-    "realistic_mix": "Realistic mixture",
+    "realistic_mix": "Evidence-ranked mixture",
 }
 
 
