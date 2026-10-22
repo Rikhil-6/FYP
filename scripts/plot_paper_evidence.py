@@ -87,11 +87,36 @@ def plot_drift_verification():
 
     axes[0].barh(data["shift"], data["mmd_squared"], color=colours)
     axes[0].set_xscale("log")
-    axes[0].set_xlabel("MMD squared (log scale)")
+    axes[0].axvline(0.05, color="#555555", linestyle="--", linewidth=1)
+    axes[0].set_xlim(right=0.065)
+    axes[0].annotate(
+        "MMD² = 0.05 reference",
+        xy=(0.05, 0.98),
+        xycoords=("data", "axes fraction"),
+        xytext=(-3, 0),
+        textcoords="offset points",
+        ha="right",
+        va="top",
+        fontsize=8,
+        color="#444444",
+    )
+    axes[0].set_xlabel("MMD squared (log scale; permutation test α = 0.05)")
     axes[0].set_title("Feature-distribution distance", fontweight="bold")
 
     axes[1].barh(data["shift"], data["domain_classifier_roc_auc"], color=colours)
-    axes[1].axvline(0.5, color="#555555", linestyle="--", linewidth=1)
+    axes[1].axvline(0.5, color="#777777", linestyle=":", linewidth=1)
+    axes[1].axvline(0.7, color="#555555", linestyle="--", linewidth=1)
+    axes[1].annotate(
+        "AUC = 0.70",
+        xy=(0.7, 0.98),
+        xycoords=("data", "axes fraction"),
+        xytext=(3, 0),
+        textcoords="offset points",
+        ha="left",
+        va="top",
+        fontsize=8,
+        color="#444444",
+    )
     axes[1].set_xlim(0.45, 1.01)
     axes[1].set_xlabel("Domain-classifier ROC AUC")
     axes[1].set_title("Source/target separability", fontweight="bold")
