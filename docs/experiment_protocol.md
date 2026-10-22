@@ -29,10 +29,13 @@ occurs in a particular industry.
 | `resolution_loss` | Sensor change, downsampling, bandwidth | 192/160/128 pixel intermediate resolution |
 | `viewpoint_shift` | Mounting, framing, crop, pose | Small translation, rotation, and scale change |
 | `occlusion` | Temporary obstruction or missing content | 1.5/3/5% local mean patch |
-| `realistic_mix` | Several changes in the same deployment period | 1/2/3 non-occlusion sources; occlusion added to 10% of samples |
+| `realistic_mix` | Several changes in the same deployment period | Top 1/2/3 sources from the frozen 2011 evidence ranking |
 
-The final mixed condition logs its component names for every sample. This lets a
-reviewer group failures by actual source rather than infer drift from the image.
+The 2011 source screen ranks individual transformations by the mean of their
+descending MMD-squared and domain-AUC ranks. The top three are motion blur,
+sensor noise, and JPEG compression. The final mixed condition applies the top
+one, two, or three sources as severity rises and logs those names for every
+sample. The 2012-2014 evaluation labels do not influence this selection.
 
 ## Adaptation and frozen evaluation
 
@@ -194,8 +197,7 @@ performance-evaluation protocol can be repeated.
 
 - Confirm every transform is deterministic for a fixed seed and manifest index.
 - Save a visual grid with clean and every severity-three source before training.
-- Confirm `realistic_mix` uses several compositions and occlusion remains near
-  its declared 10% rate.
+- Confirm `realistic_mix` uses the frozen 2011 top-three source ranking.
 - Train the realistic profile and a matched control without auxiliary saliency
   losses using the same seed, epochs, data, and trainable blocks.
 - Report each individual source, the mixed condition, clean performance, helpful

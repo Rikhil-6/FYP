@@ -5,6 +5,7 @@ import torch
 from PIL import Image
 
 from fyp_drift.data.corruptions import (
+    EVIDENCE_RANKED_MIX_SOURCES,
     REALISTIC_BENCHMARK_SCENARIOS,
     drift_transform,
     realistic_mixed_drift_transform,
@@ -36,15 +37,10 @@ class RealisticDriftTest(unittest.TestCase):
                 self.assertTrue(torch.isfinite(first).all())
                 self.assertTrue(torch.equal(first, second))
 
-    def test_realistic_mix_varies_by_sample_and_occlusion_is_minor(self):
-        compositions = [
-            scenario_components("realistic_mix", index, 3, 42) for index in range(1000)
-        ]
-        self.assertGreater(len(set(compositions)), 20)
-        occluded = sum("occlusion" in composition for composition in compositions)
-        self.assertGreaterEqual(occluded, 70)
-        self.assertLessEqual(occluded, 130)
-        self.assertTrue(all(3 <= len(composition) <= 4 for composition in compositions))
+    def test_realistic_mix_uses_the_frozen_evidence_ranking(self):
+        for severity in (1, 2, 3):
+            composition = scenario_components("realistic_mix", 123, severity, 42)
+            self.assertEqual(composition, EVIDENCE_RANKED_MIX_SOURCES[:severity])
 
     def test_adaptation_stream_contains_clean_and_each_individual_source(self):
         transform = realistic_mixed_drift_transform((1, 2, 3), seed=42)

@@ -1,0 +1,12 @@
+group,reference,target,reference_samples,target_samples,paired,mmd_squared,mmd_bandwidth,mmd_permutation_p,mmd_permutations,mmd_permutation_resolution,mmd_permutation_samples_per_group,mmd_permutation_scheme,domain_classifier_roc_auc,domain_classifier_cv
+natural_temporal,clean_2009,clean_2011,300,300,False,0.0016997451762748028,66.37493690573213,1.0,499,0.002,200,pooled_label_permutation,0.4575111111111111,stratified
+null_control,clean_2011_half_a,clean_2011_half_b,150,150,False,0.0037110719382564827,66.41686237089073,1.0,499,0.002,150,pooled_label_permutation,0.41217777777777775,stratified
+controlled_paired,clean_2011,illumination_severity_3,300,300,True,1.9996123301169177e-05,66.41897264111269,0.002,499,0.002,200,paired_within_image_swap,0.5123333333333333,pair_grouped_stratified
+controlled_paired,clean_2011,white_balance_severity_3,300,300,True,0.0001736427549834385,66.37280290718613,0.002,499,0.002,200,paired_within_image_swap,0.6136999999999999,pair_grouped_stratified
+controlled_paired,clean_2011,sensor_noise_severity_3,300,300,True,0.003726383396353228,66.337724657597,0.002,499,0.002,200,paired_within_image_swap,0.9522555555555555,pair_grouped_stratified
+controlled_paired,clean_2011,defocus_blur_severity_3,300,300,True,0.0012306674987907495,66.28610729398159,0.002,499,0.002,200,paired_within_image_swap,0.7978,pair_grouped_stratified
+controlled_paired,clean_2011,motion_blur_severity_3,300,300,True,0.022267837258712397,65.59586393018857,0.002,499,0.002,200,paired_within_image_swap,0.9892222222222222,pair_grouped_stratified
+controlled_paired,clean_2011,jpeg_compression_severity_3,300,300,True,0.002291654426072265,66.35330765428557,0.002,499,0.002,200,paired_within_image_swap,0.9574777777777778,pair_grouped_stratified
+controlled_paired,clean_2011,resolution_loss_severity_3,300,300,True,0.0007923320959342117,66.32594489622299,0.002,499,0.002,200,paired_within_image_swap,0.7362333333333333,pair_grouped_stratified
+controlled_paired,clean_2011,viewpoint_shift_severity_3,300,300,True,0.003173279578290167,66.05269895875153,0.002,499,0.002,200,paired_within_image_swap,0.8239777777777778,pair_grouped_stratified
+controlled_paired,clean_2011,occlusion_severity_3,300,300,True,0.0019802729524949214,66.26499093657657,0.002,499,0.002,200,paired_within_image_swap,0.7834444444444446,pair_grouped_stratified
