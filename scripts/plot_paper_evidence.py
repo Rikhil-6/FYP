@@ -9,7 +9,6 @@ FIGURES = ROOT / "paper" / "figures"
 COLOURS = {
     "Historical uniform ViT": "#4D4D4D",
     "Conventionally fine-tuned ViT": "#999999",
-    "Historical saliency-guided ViT": "#8CBED6",
     "Updated saliency-guided ViT": "#56B4E9",
     "Saliency-guided router": "#0072B2",
 }
@@ -37,7 +36,6 @@ def plot_temporal_performance():
     columns = {
         "historical_uniform": "Historical uniform ViT",
         "conventional_finetuned": "Conventionally fine-tuned ViT",
-        "historical_saliency": "Historical saliency-guided ViT",
         "saliency_updated": "Updated saliency-guided ViT",
         "saliency_routed": "Saliency-guided router",
     }
