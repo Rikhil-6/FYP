@@ -66,7 +66,7 @@ def plot_temporal_performance():
 def readable_shift_name(target):
     name = target.replace("_severity_3", "").replace("_", " ")
     label = name.replace("jpeg", "JPEG").title().replace("Jpeg", "JPEG")
-    return label.replace("Realistic Mix", "Realistic Mixture")
+    return label.replace("Realistic Mix", "Evidence-ranked mixture")
 
 
 def plot_drift_verification():
@@ -76,7 +76,7 @@ def plot_drift_verification():
     data = data.sort_values("domain_classifier_roc_auc")
 
     colours = [
-        "#0072B2" if name == "Realistic Mixture" else "#7DB7D8"
+        "#0072B2" if name == "Evidence-ranked mixture" else "#7DB7D8"
         for name in data["shift"]
     ]
     fig, axes = plt.subplots(1, 2, figsize=(8.0, 4.5), sharey=True)
