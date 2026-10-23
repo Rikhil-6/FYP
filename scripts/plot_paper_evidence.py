@@ -8,9 +8,16 @@ ROOT = Path(__file__).resolve().parents[1]
 FIGURES = ROOT / "paper" / "figures"
 COLOURS = {
     "Historical uniform ViT": "#4D4D4D",
-    "Conventionally fine-tuned ViT": "#999999",
-    "Updated saliency-guided ViT": "#56B4E9",
-    "Saliency-guided router": "#0072B2",
+    "Conventionally fine-tuned ViT": "#E69F00",
+    "Updated saliency-guided ViT": "#0072B2",
+    "Saliency-guided router": "#009E73",
+}
+
+MARKERS = {
+    "Historical uniform ViT": "o",
+    "Conventionally fine-tuned ViT": "s",
+    "Updated saliency-guided ViT": "^",
+    "Saliency-guided router": "D",
 }
 
 
@@ -19,7 +26,11 @@ def apply_style():
         {
             "font.family": "serif",
             "font.serif": ["Times New Roman", "Times", "DejaVu Serif"],
-            "font.size": 10,
+            "font.size": 11,
+            "axes.titlesize": 13,
+            "axes.labelsize": 11,
+            "xtick.labelsize": 10,
+            "ytick.labelsize": 10,
             "axes.spines.top": False,
             "axes.spines.right": False,
             "axes.grid": True,
@@ -40,16 +51,16 @@ def plot_temporal_performance():
         "saliency_routed": "Saliency-guided router",
     }
 
-    fig, axes = plt.subplots(1, 2, figsize=(8.0, 3.8), sharex=True)
+    fig, axes = plt.subplots(1, 2, figsize=(9.4, 4.8), sharex=True)
     for axis, condition in zip(axes, ("Clean", "Evidence-ranked mixture")):
         subset = data[data["condition"] == condition]
         for column, label in columns.items():
             axis.plot(
                 subset["year"],
                 subset[column],
-                marker="o",
-                linewidth=2,
-                markersize=5,
+                marker=MARKERS[label],
+                linewidth=2.6,
+                markersize=7,
                 label=label,
                 color=COLOURS[label],
             )
@@ -58,9 +69,21 @@ def plot_temporal_performance():
         axis.set_xlabel("Evaluation year")
         axis.set_ylabel("Macro F1 (%)")
 
+    axes[0].set_ylim(94.5, 96.5)
+    axes[1].set_ylim(77.5, 97.5)
+
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.06))
-    fig.tight_layout(rect=(0, 0, 1, 0.84))
+    fig.legend(
+        handles,
+        labels,
+        loc="upper center",
+        ncol=2,
+        bbox_to_anchor=(0.5, 1.02),
+        fontsize=10.5,
+        columnspacing=1.8,
+        handlelength=2.5,
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.82), w_pad=2.2)
     fig.savefig(FIGURES / "temporal_performance.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 

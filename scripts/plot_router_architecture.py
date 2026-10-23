@@ -1,96 +1,80 @@
-"""Build a restrained, publication-style architecture schematic."""
+"""Draw the asymmetric historical-versus-updated routing architecture."""
+
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
 
-OUTPUT = (
-    Path(__file__).resolve().parents[1]
-    / "paper"
-    / "figures"
-    / "siamese_router_architecture.png"
-)
-INK = "#202020"
-MID = "#626262"
-LINE = "#4A4A4A"
-LANE = "#F3F3F3"
-SALIENCY = "#E9E9E9"
+OUTPUT = Path(__file__).resolve().parents[1] / "paper" / "figures" / "siamese_router_architecture.png"
+INK = "#1F2933"
+LINE = "#52606D"
+BLUE = "#DCEEFF"
+GREEN = "#DDF3E4"
+AMBER = "#FFF0CC"
+VIOLET = "#ECE5F7"
+GREY = "#F3F5F7"
 
 
 def font(size, bold=False, italic=False):
-    if bold:
-        name = "timesbd.ttf"
-    elif italic:
-        name = "timesi.ttf"
-    else:
-        name = "times.ttf"
+    name = "timesbd.ttf" if bold else "timesi.ttf" if italic else "times.ttf"
     return ImageFont.truetype(f"C:/Windows/Fonts/{name}", size)
 
 
-def text_center(draw, xy, value, size=22, bold=False, fill=INK):
-    draw.text(xy, value, font=font(size, bold=bold), fill=fill, anchor="mm")
+def centred(draw, xy, value, size=30, bold=False, italic=False, fill=INK):
+    draw.text(xy, value, font=font(size, bold, italic), fill=fill, anchor="mm")
 
 
-def box(draw, xy, title, lines=(), fill="white", width=2):
-    draw.rectangle(xy, fill=fill, outline=INK, width=width)
+def box(draw, xy, title, lines=(), fill="white"):
+    draw.rounded_rectangle(xy, radius=14, fill=fill, outline=INK, width=3)
     x1, y1, x2, _ = xy
-    text_center(draw, ((x1 + x2) / 2, y1 + 31), title, 24, True)
+    centred(draw, ((x1 + x2) / 2, y1 + 43), title, 31, bold=True)
     for row, line in enumerate(lines):
-        text_center(draw, ((x1 + x2) / 2, y1 + 69 + row * 29), line, 19)
+        centred(draw, ((x1 + x2) / 2, y1 + 92 + row * 37), line, 25)
 
 
 def arrow(draw, start, end, label=None):
-    draw.line((start, end), fill=LINE, width=3)
+    draw.line((start, end), fill=LINE, width=5)
     ex, ey = end
     sx, sy = start
     if abs(ex - sx) >= abs(ey - sy):
         sign = 1 if ex > sx else -1
-        draw.polygon([(ex, ey), (ex - sign * 14, ey - 8), (ex - sign * 14, ey + 8)], fill=LINE)
+        tip = [(ex, ey), (ex - sign * 18, ey - 10), (ex - sign * 18, ey + 10)]
     else:
         sign = 1 if ey > sy else -1
-        draw.polygon([(ex, ey), (ex - 8, ey - sign * 14), (ex + 8, ey - sign * 14)], fill=LINE)
+        tip = [(ex, ey), (ex - 10, ey - sign * 18), (ex + 10, ey - sign * 18)]
+    draw.polygon(tip, fill=LINE)
     if label:
-        draw.text(((sx + ex) / 2, (sy + ey) / 2 - 11), label,
-                  font=font(17, italic=True), fill=MID, anchor="ms",
-                  stroke_width=5, stroke_fill="white")
+        draw.text(
+            ((sx + ex) / 2, (sy + ey) / 2 - 14),
+            label,
+            font=font(23, italic=True),
+            fill=LINE,
+            anchor="ms",
+            stroke_width=6,
+            stroke_fill="white",
+        )
 
 
 def main():
-    image = Image.new("RGB", (1900, 865), "white")
+    image = Image.new("RGB", (1800, 930), "white")
     draw = ImageDraw.Draw(image)
 
-    draw.text((45, 28), "Shared image representation", font=font(24, True), fill=INK)
-    draw.line((45, 63, 900, 63), fill=INK, width=2)
-    box(draw, (45, 105, 260, 245), "Input", ("RGB", "224 × 224"))
-    box(draw, (325, 105, 555, 245), "Patchify", ("14 × 14 patches", "256 tokens"))
-    box(draw, (620, 105, 900, 245), "DINOv2-small", ("self-attention", "384-d tokens"), fill=LANE)
-    arrow(draw, (260, 175), (325, 175))
-    arrow(draw, (555, 175), (620, 175))
+    box(draw, (45, 325, 290, 520), "Input image", ("shared by", "both branches"), fill=GREY)
+    box(draw, (380, 95, 830, 345), "Historical saliency ViT", ("frozen checkpoint", "old logits + patch map"), fill=BLUE)
+    box(draw, (380, 585, 830, 835), "Updated saliency ViT", ("2010 adaptation", "new logits + patch map"), fill=GREEN)
+    arrow(draw, (290, 400), (380, 220), "same image")
+    arrow(draw, (290, 450), (380, 710), "same image")
 
-    draw.rectangle((980, 70, 1395, 360), fill=LANE, outline="#B5B5B5", width=2)
-    draw.text((1000, 84), "Historical path", font=font(23, True), fill=INK)
-    box(draw, (1015, 135, 1360, 300), "Historical saliency-guided ViT",
-        ("frozen transformer", "frozen saliency gate", "old logits + patch map"))
+    box(draw, (925, 275, 1325, 655), "Observable comparison", ("saliency JS divergence", "confidence gain", "entropy reduction", "class-evidence gain"), fill=AMBER)
+    arrow(draw, (830, 220), (925, 365), "old evidence")
+    arrow(draw, (830, 710), (925, 565), "new evidence")
 
-    draw.rectangle((980, 410, 1395, 700), fill="#F5F5F5", outline="#A5A5A5", width=2)
-    draw.text((1000, 424), "Adapted path", font=font(23, True), fill=INK)
-    box(draw, (1015, 475, 1360, 640), "Updated saliency-guided ViT",
-        ("last 3 blocks adapted", "learned saliency gate", "new logits + patch map"), fill=SALIENCY)
-    arrow(draw, (900, 155), (1015, 205), "clone + freeze")
-    arrow(draw, (900, 215), (1015, 545), "temporal adaptation")
+    box(draw, (1415, 175, 1755, 460), "Transparent policy", ("logistic score", "saliency floor", "route threshold"), fill=VIOLET)
+    arrow(draw, (1325, 430), (1415, 320))
+    box(draw, (1415, 600, 1755, 830), "Recorded decision", ("selected prediction", "features + probability", "maps + thresholds"), fill=GREY)
+    arrow(draw, (1585, 460), (1585, 600), "select branch")
+    centred(draw, (900, 895), "The policy compares named signals; it does not learn an opaque pair embedding.", 27, italic=True, fill=LINE)
 
-    box(draw, (1465, 210, 1845, 435), "Observable comparison",
-        ("saliency JS divergence", "confidence gain", "entropy reduction", "class-evidence gain"))
-    arrow(draw, (1360, 220), (1465, 280), "old evidence")
-    arrow(draw, (1360, 555), (1465, 365), "new evidence")
-
-    box(draw, (1465, 535, 1845, 740), "Transparent route",
-        ("standardised logistic score", "model disagreement", "saliency floor", "probability threshold"), fill=SALIENCY)
-    arrow(draw, (1655, 435), (1655, 535))
-
-    box(draw, (620, 700, 1100, 840), "Recorded output",
-        ("historical or updated prediction", "features, thresholds, probability, and maps"))
-    arrow(draw, (1465, 650), (1100, 775), "selected branch")
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     image.save(OUTPUT, optimize=True)
     print(OUTPUT)
