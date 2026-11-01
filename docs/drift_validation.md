@@ -11,10 +11,10 @@ two tests whose outputs can be checked independently:
    separation at least this large if the samples were exchangeable.
 2. **Classifier two-sample test.** A balanced logistic classifier is trained and
    evaluated by five-fold cross-validation to distinguish reference from target
-   features. The reported AUC is symmetrised around 0.5 so that reversing the
-   arbitrary domain labels does not change the result. A value near 0.5 is
-   chance performance; a value towards 1.0 means the domains are readily
-   separable.
+   features. The saved AUC is the raw out-of-fold ROC AUC for the assigned
+   domain labels; it is not symmetrised. A value of 0.5 is chance ranking,
+   values above 0.5 rank the target domain higher, and values below 0.5 rank
+   it lower. Interpret departures in either direction with sampling uncertainty.
 
 The code is intentionally limited to these two measures. Gretton et al. define
 the kernel two-sample test, while Lopez-Paz and Oquab describe the classifier
@@ -43,6 +43,29 @@ larger than the null control, its permutation p-value is small, and its domain
 ROC AUC rises above chance. It is harmful only when classification performance
 also falls. This distinction avoids presenting any visible change as harmful
 data drift.
+
+### Unlabelled sample-size sensitivity
+
+The earlier 300-image audit balanced samples by class retrospectively. Its MMD
+estimate used all 300 images per group, but each permutation test subsampled
+200 per group. The new `fyp_drift.evaluation.drift_sample_size` audit selects
+images randomly within year without class labels and uses the full sampled
+group for each of 499 permutations. It tests nested samples from one seed, so
+the rows are related rather than independent replications.
+
+| Images per group | Clean 2009 vs 2014 MMD p | Clean 2014 null p | Motion blur p | Evidence-ranked mix p |
+| ---: | ---: | ---: | ---: | ---: |
+| 100 | 0.268 | 0.898 | 0.002 | 0.002 |
+| 300 | 0.058 | 0.514 | 0.002 | 0.002 |
+| 500 | 0.136 | 0.678 | 0.002 | 0.002 |
+
+Motion-blur AUC is 0.989–0.994 and mixture AUC is 0.999–1.000; the clean-year
+AUC range is 0.457–0.565. The controlled changes are detectable here even with
+100 images per group. The clean-year non-detection through 500 images is a
+limit of this representation, draw, and detector setup, not evidence that
+natural drift is absent. Random sampling may also vary the class mixture.
+The complete record is in
+`results/validation-20261031/drift-sample-size-100-300-500.json`.
 
 ## WILDS replication
 

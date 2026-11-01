@@ -110,7 +110,7 @@ def main():
     for axis, feature, title in zip(
         axes,
         ("saliency_js", "route_probability"),
-        ("Saliency divergence", "Route probability"),
+        ("Saliency divergence", "Logistic routing score"),
     ):
         values = [
             [float(row[feature]) for row in combined_2014 if outcome(row) == label]

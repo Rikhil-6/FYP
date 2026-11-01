@@ -1,0 +1,100 @@
+{
+  "source_run": "runs/saliency-lora-pilot-v2-20261101",
+  "year": 2014,
+  "scenarios": [
+    "clean",
+    "viewpoint_shift",
+    "occlusion",
+    "realistic_mix"
+  ],
+  "arms": {
+    "none": {
+      "clean": {
+        "count": 4999,
+        "accuracy": 0.946,
+        "macro_f1": 0.9458
+      },
+      "viewpoint_shift": {
+        "count": 4999,
+        "accuracy": 0.9408,
+        "macro_f1": 0.9406
+      },
+      "occlusion": {
+        "count": 4999,
+        "accuracy": 0.9326,
+        "macro_f1": 0.9333
+      },
+      "realistic_mix": {
+        "count": 4999,
+        "accuracy": 0.7842,
+        "macro_f1": 0.7921
+      }
+    },
+    "uniform": {
+      "clean": {
+        "count": 4999,
+        "accuracy": 0.9456,
+        "macro_f1": 0.9454
+      },
+      "viewpoint_shift": {
+        "count": 4999,
+        "accuracy": 0.9396,
+        "macro_f1": 0.9394
+      },
+      "occlusion": {
+        "count": 4999,
+        "accuracy": 0.9366,
+        "macro_f1": 0.9364
+      },
+      "realistic_mix": {
+        "count": 4999,
+        "accuracy": 0.7852,
+        "macro_f1": 0.7917
+      }
+    },
+    "shuffled": {
+      "clean": {
+        "count": 4999,
+        "accuracy": 0.9456,
+        "macro_f1": 0.9454
+      },
+      "viewpoint_shift": {
+        "count": 4999,
+        "accuracy": 0.9398,
+        "macro_f1": 0.9396
+      },
+      "occlusion": {
+        "count": 4999,
+        "accuracy": 0.9356,
+        "macro_f1": 0.9355
+      },
+      "realistic_mix": {
+        "count": 4999,
+        "accuracy": 0.7854,
+        "macro_f1": 0.7919
+      }
+    },
+    "saliency": {
+      "clean": {
+        "count": 4999,
+        "accuracy": 0.9454,
+        "macro_f1": 0.9452
+      },
+      "viewpoint_shift": {
+        "count": 4999,
+        "accuracy": 0.94,
+        "macro_f1": 0.9398
+      },
+      "occlusion": {
+        "count": 4999,
+        "accuracy": 0.9364,
+        "macro_f1": 0.9363
+      },
+      "realistic_mix": {
+        "count": 4999,
+        "accuracy": 0.7856,
+        "macro_f1": 0.7923
+      }
+    }
+  }
+}

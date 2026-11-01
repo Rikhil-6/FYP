@@ -1,0 +1,15 @@
+{
+  "data_root": "data/wild-time",
+  "output": "runs/yearbook-saliency-mask-pilot-20261102",
+  "seed": 42,
+  "historical_limit": 3000,
+  "selection_limit": 300,
+  "adapt_limit": 1000,
+  "future_limit": 1000,
+  "batch_size": 16,
+  "historical_epochs": 2,
+  "adapt_epochs": 2,
+  "rank": 4,
+  "keep_fraction": 0.4,
+  "mask_loss_weight": 0.5
+}

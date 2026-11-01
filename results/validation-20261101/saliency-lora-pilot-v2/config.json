@@ -1,0 +1,27 @@
+{
+  "base_checkpoint": "runs/patch-only-20261031/baseline/historical-patch-only-uniform-seed42/models/best.pt",
+  "data_root": "data",
+  "output": "runs/saliency-lora-pilot-v2-20261101",
+  "seed": 42,
+  "epochs": 2,
+  "batch_size": 8,
+  "rank": 4,
+  "consistency_weight": 1.0,
+  "lora_lr": 0.001,
+  "classifier_lr": 5e-05,
+  "limit_adapt": 1000,
+  "limit_select": 400,
+  "limit_test": 500,
+  "modes": [
+    "none",
+    "uniform",
+    "shuffled",
+    "saliency"
+  ],
+  "device": "cuda",
+  "adaptation_year": 2010,
+  "selection_year": 2011,
+  "evaluation_year": 2014,
+  "selection_protocol": "disjoint_class_stratified",
+  "teacher_map": "frozen_true_class_top20_patch_contribution"
+}

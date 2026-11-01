@@ -73,7 +73,8 @@ Each run has the same small set of directories:
 `models/best.pt` records the validation-selected weights. `models/last.pt`
 records the final epoch. Temporal router runs also update `models/resume.pt`
 atomically after every completed epoch. Routing CSV files retain the four policy
-features, the route probability, the chosen tower, and both model predictions.
+features, the fitted logistic routing score, the chosen tower, and both model predictions.
+The score has not been independently checked for probability calibration.
 
 ## Deployment scripts
 
