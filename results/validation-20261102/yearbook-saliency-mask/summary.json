@@ -1,0 +1,100 @@
+{
+  "historical_history": [
+    {
+      "epoch": 1,
+      "count": 300,
+      "accuracy": 0.87,
+      "macro_f1": 0.8694
+    },
+    {
+      "epoch": 2,
+      "count": 300,
+      "accuracy": 0.8767,
+      "macro_f1": 0.8762
+    }
+  ],
+  "historical_future": {
+    "count": 335,
+    "accuracy": 0.9313,
+    "macro_f1": 0.9313
+  },
+  "historical_2000_2003": {
+    "count": 223,
+    "accuracy": 0.9776,
+    "macro_f1": 0.9775
+  },
+  "arms": {
+    "none": {
+      "history": [
+        {
+          "epoch": 1,
+          "mean_loss": 0.10816203224812708,
+          "count": 223,
+          "accuracy": 0.9731,
+          "macro_f1": 0.9729
+        },
+        {
+          "epoch": 2,
+          "mean_loss": 0.08469224888240061,
+          "count": 223,
+          "accuracy": 0.9776,
+          "macro_f1": 0.9775
+        }
+      ],
+      "future": {
+        "count": 335,
+        "accuracy": 0.9612,
+        "macro_f1": 0.9612
+      },
+      "trainable_parameters": 19202
+    },
+    "random": {
+      "history": [
+        {
+          "epoch": 1,
+          "mean_loss": 0.2512984767201401,
+          "count": 223,
+          "accuracy": 0.9776,
+          "macro_f1": 0.9775
+        },
+        {
+          "epoch": 2,
+          "mean_loss": 0.18910280520480777,
+          "count": 223,
+          "accuracy": 0.9776,
+          "macro_f1": 0.9775
+        }
+      ],
+      "future": {
+        "count": 335,
+        "accuracy": 0.9493,
+        "macro_f1": 0.9492
+      },
+      "trainable_parameters": 19202
+    },
+    "saliency": {
+      "history": [
+        {
+          "epoch": 1,
+          "mean_loss": 0.22309489428464854,
+          "count": 223,
+          "accuracy": 0.9731,
+          "macro_f1": 0.9729
+        },
+        {
+          "epoch": 2,
+          "mean_loss": 0.15341869184362983,
+          "count": 223,
+          "accuracy": 0.9731,
+          "macro_f1": 0.973
+        }
+      ],
+      "future": {
+        "count": 335,
+        "accuracy": 0.9522,
+        "macro_f1": 0.9522
+      },
+      "trainable_parameters": 19202
+    }
+  }
+}

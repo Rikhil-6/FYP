@@ -1,0 +1,88 @@
+{
+  "source_run": "/mnt/sdd/FYP/runs/patch-only-20261031/siamese/updated-patch-only-saliency-aux-seed42",
+  "checkpoint": "/mnt/sdd/FYP/runs/patch-only-20261031/siamese/updated-patch-only-saliency-aux-seed42/models/best.pt",
+  "checkpoint_role": "updated",
+  "pooling_mode": "patch_only",
+  "training_performed": false,
+  "future_labels_used_for_tuning": false,
+  "year": 2014,
+  "seed": 42,
+  "sampling_limit": null,
+  "interpretation": "Learned, uniform, permuted, and inverted patch weights share the same tokens, class token, and classifier. Class-only and patch-only mask one pathway and are not trained baselines. This tests prediction dependence on patch weights, not object localization or the generalization benefit of saliency-guided training.",
+  "conditions": {
+    "clean": {
+      "samples": 4999,
+      "interventions": {
+        "learned": {
+          "accuracy": 0.9506,
+          "macro_f1": 0.9505,
+          "top1_flip_rate_vs_learned": 0.0,
+          "learned_correct_intervention_wrong": 0,
+          "learned_wrong_intervention_correct": 0,
+          "mean_true_class_logit_delta_vs_learned": 0.0
+        },
+        "uniform": {
+          "accuracy": 0.9504,
+          "macro_f1": 0.9503,
+          "top1_flip_rate_vs_learned": 0.000600120024004801,
+          "learned_correct_intervention_wrong": 2,
+          "learned_wrong_intervention_correct": 1,
+          "mean_true_class_logit_delta_vs_learned": -0.015317625228846924
+        },
+        "permuted": {
+          "accuracy": 0.9506,
+          "macro_f1": 0.9504,
+          "top1_flip_rate_vs_learned": 0.0008001600320064013,
+          "learned_correct_intervention_wrong": 2,
+          "learned_wrong_intervention_correct": 2,
+          "mean_true_class_logit_delta_vs_learned": -0.015291615539633005
+        },
+        "inverted": {
+          "accuracy": 0.9508,
+          "macro_f1": 0.9506,
+          "top1_flip_rate_vs_learned": 0.0018003600720144029,
+          "learned_correct_intervention_wrong": 4,
+          "learned_wrong_intervention_correct": 5,
+          "mean_true_class_logit_delta_vs_learned": -0.026763582547370567
+        }
+      }
+    },
+    "realistic_mix": {
+      "samples": 4999,
+      "interventions": {
+        "learned": {
+          "accuracy": 0.8174,
+          "macro_f1": 0.8181,
+          "top1_flip_rate_vs_learned": 0.0,
+          "learned_correct_intervention_wrong": 0,
+          "learned_wrong_intervention_correct": 0,
+          "mean_true_class_logit_delta_vs_learned": 0.0
+        },
+        "uniform": {
+          "accuracy": 0.818,
+          "macro_f1": 0.8187,
+          "top1_flip_rate_vs_learned": 0.0014002800560112022,
+          "learned_correct_intervention_wrong": 2,
+          "learned_wrong_intervention_correct": 5,
+          "mean_true_class_logit_delta_vs_learned": -0.014805481530957716
+        },
+        "permuted": {
+          "accuracy": 0.8184,
+          "macro_f1": 0.8191,
+          "top1_flip_rate_vs_learned": 0.0014002800560112022,
+          "learned_correct_intervention_wrong": 1,
+          "learned_wrong_intervention_correct": 6,
+          "mean_true_class_logit_delta_vs_learned": -0.01485142456175721
+        },
+        "inverted": {
+          "accuracy": 0.8184,
+          "macro_f1": 0.8191,
+          "top1_flip_rate_vs_learned": 0.0034006801360272052,
+          "learned_correct_intervention_wrong": 4,
+          "learned_wrong_intervention_correct": 9,
+          "mean_true_class_logit_delta_vs_learned": -0.025623663752238245
+        }
+      }
+    }
+  }
+}

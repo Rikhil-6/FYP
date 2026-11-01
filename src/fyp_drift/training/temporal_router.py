@@ -118,6 +118,14 @@ def parse_args(argv=None):
         help="Ablate the pairwise and counterfactual saliency losses.",
     )
     parser.add_argument(
+        "--initialize-saliency-from-uniform",
+        action="store_true",
+        help=(
+            "Start the XAI pair from one patch-only uniform checkpoint, "
+            "initialising its gate to exact uniform weights."
+        ),
+    )
+    parser.add_argument(
         "--router-features",
         choices=tuple(FEATURE_SETS),
         default="combined",
@@ -261,7 +269,7 @@ def validate_resume_protocol(run_dir, requested_protocol):
         )
 
 
-def validate_historical_checkpoint(checkpoint, long_horizon):
+def validate_historical_checkpoint(checkpoint, long_horizon, allow_uniform=False):
     """Verify that a long-horizon checkpoint stops before the adaptation year."""
     if not long_horizon:
         return
@@ -272,21 +280,47 @@ def validate_historical_checkpoint(checkpoint, long_horizon):
             "Long-horizon runs require the historical run config beside the checkpoint"
         )
     config = json.loads(config_path.read_text(encoding="utf-8"))
-    if config.get("method") != "xai" or config.get("cv_val_year") != 2009:
+    expected_method = "baseline" if allow_uniform else "xai"
+    if config.get("method") != expected_method or config.get("cv_val_year") != 2009:
         raise ValueError(
-            "The long-horizon historical checkpoint must be an XAI run trained on "
-            "years before 2009 and selected on 2009 (--cv-val-year 2009)."
+            f"The long-horizon historical checkpoint must be a {expected_method} "
+            "run trained before 2009 and selected on 2009 (--cv-val-year 2009)."
+        )
+    if allow_uniform and config.get("pooling_mode") != "patch_only":
+        raise ValueError(
+            "Shared uniform-to-saliency initialization requires a patch-only head"
         )
 
 
-def build_router(base_checkpoint, device, adaptation_profile):
+def build_router(base_checkpoint, device, adaptation_profile,
+                 initialize_saliency_from_uniform=False):
     """Load frozen historical and trainable updated copies of the XAI ViT."""
+    config_path = Path(base_checkpoint).resolve().parent.parent / "config.json"
+    config = (
+        json.loads(config_path.read_text(encoding="utf-8"))
+        if config_path.is_file()
+        else {}
+    )
+    pooling_mode = config.get("pooling_mode", "class_plus_patch")
+    if initialize_saliency_from_uniform and (
+        config.get("method") != "baseline" or pooling_mode != "patch_only"
+    ):
+        raise ValueError("Shared initialization requires a patch-only baseline")
     state = torch.load(base_checkpoint, map_location="cpu", weights_only=True)
     num_classes = state["classifier.weight"].shape[0]
-    historical_model = TemporalViT("xai", num_classes).to(device)
-    updated_model = TemporalViT("xai", num_classes).to(device)
+    historical_model = TemporalViT(
+        "xai", num_classes, pooling_mode=pooling_mode
+    ).to(device)
+    updated_model = TemporalViT(
+        "xai", num_classes, pooling_mode=pooling_mode
+    ).to(device)
     historical_model.load_state_dict(state)
     updated_model.load_state_dict(state)
+    if initialize_saliency_from_uniform:
+        with torch.no_grad():
+            for model in (historical_model, updated_model):
+                model.saliency_head[1].weight.zero_()
+                model.saliency_head[1].bias.zero_()
 
     historical_model.eval()
     for parameter in historical_model.parameters():
@@ -715,13 +749,18 @@ def evaluate_drift_scenarios(router, policy, dataset, loaders, store, args, devi
 def main(argv=None):
     args = parse_args(argv)
     seed_everything(args.seed)
-    validate_historical_checkpoint(args.base_checkpoint, args.long_horizon)
+    validate_historical_checkpoint(
+        args.base_checkpoint, args.long_horizon,
+        allow_uniform=args.initialize_saliency_from_uniform,
+    )
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dataset = open_dataset(args.data_root)
     loaders = build_temporal_loaders(dataset, args)
     router, optimizer, num_classes, uses_strong_profile = build_router(
-        args.base_checkpoint, device, args.adaptation_profile
+        args.base_checkpoint, device, args.adaptation_profile,
+        initialize_saliency_from_uniform=args.initialize_saliency_from_uniform,
     )
+    args.pooling_mode = router.old.pooling_mode
     store = create_run_store(args, loaders, num_classes, device)
     start_epoch, best_score = restore_training_state(
         args, store, router.new, optimizer, device

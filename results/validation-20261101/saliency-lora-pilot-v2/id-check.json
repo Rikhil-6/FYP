@@ -1,0 +1,25 @@
+{
+  "rows": 19996,
+  "identical_ids": true,
+  "id_sha256": "5d009f078f9629928225d51edffccb2530407a367f83ba8f0f661aed7df49192",
+  "prediction_differences_from_none": {
+    "uniform": {
+      "clean": 28,
+      "occlusion": 90,
+      "realistic_mix": 133,
+      "viewpoint_shift": 43
+    },
+    "shuffled": {
+      "clean": 30,
+      "occlusion": 85,
+      "realistic_mix": 138,
+      "viewpoint_shift": 41
+    },
+    "saliency": {
+      "clean": 26,
+      "occlusion": 80,
+      "realistic_mix": 121,
+      "viewpoint_shift": 36
+    }
+  }
+}
