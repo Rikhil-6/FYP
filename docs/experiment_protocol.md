@@ -284,6 +284,9 @@ performance-evaluation protocol can be repeated.
   <https://openaccess.thecvf.com/content/CVPR2024/html/Baek_Unexplored_Faces_of_Robustness_and_Out-of-Distribution_Covariate_Shifts_in_Environment_CVPR_2024_paper.html>.
 - Zheng et al. motivate saliency-guided adaptation when background variation
   dominates domain change: <https://arxiv.org/abs/2403.12712>.
+- Wang et al. establish entropy minimization as a fully test-time adaptation
+  baseline; our online LoRA entropy arm is a distinct lightweight variant:
+  <https://arxiv.org/abs/2006.10726>.
 
 ## Pre-run checks
 
@@ -329,6 +332,8 @@ epoch count:
    beyond ordinary LoRA.
 5. Label-free test-time entropy adaptation as an additional comparator; it
    must not read future labels and is reported as a transductive/online arm.
+   This is TENT-inspired but updates LoRA parameters online rather than
+   reproducing TENT's normalization-affine update exactly.
 
 Use the 2016–2017 labels once for the frozen final evaluation. Do not select
 epochs, saliency settings, or corruption severities on those labels. Include a
@@ -357,3 +362,6 @@ and σ=0.12 future images; repeat with σ=0.18 in the future as a stronger
 sensitivity condition. Crossed fixed-severity results remain the primary
 synthetic comparison. Report Benjamini–Hochberg adjusted MMD tests and paired
 score-difference intervals from a geographic-tile cluster bootstrap.
+These interventions test synthetic covariate drift under the assumption that
+the scene label remains valid; they do not establish natural temporal drift or
+simulate changes to class priors or label definitions.
