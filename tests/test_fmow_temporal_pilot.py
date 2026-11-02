@@ -1,8 +1,10 @@
 import unittest
 
 import numpy as np
+from PIL import Image
 
 from fyp_drift.evaluation.fmow_temporal_pilot import (
+    apply_fmow_corruption,
     fdr_bh,
     matched_metric_sample,
     score_predictions,
@@ -59,6 +61,23 @@ class FMoWTemporalPilotTests(unittest.TestCase):
         self.assertEqual(result["accuracy"], 0.75)
         self.assertIn("macro_f1", result)
         self.assertIn("balanced_accuracy", result)
+
+    def test_gaussian_stress_uses_deterministic_increasing_levels(self):
+        image = Image.new("RGB", (32, 32), (127, 127, 127))
+        outputs = [
+            apply_fmow_corruption(image, "gaussian_noise", level, 17, 4)
+            for level in (1, 2, 3)
+        ]
+        repeated = apply_fmow_corruption(image, "gaussian_noise", 2, 17, 4)
+        self.assertTrue(np.array_equal(outputs[1].numpy(), repeated.numpy()))
+        clean = apply_fmow_corruption(image, "clean", 1, 17, 4)
+        errors = [float(((value - clean) ** 2).mean()) for value in outputs]
+        self.assertLess(errors[0], errors[1])
+        self.assertLess(errors[1], errors[2])
+
+    def test_task_scoring_accepts_precomputed_tta_predictions(self):
+        result = score_predictions(np.asarray([0, 1, 1]), np.asarray([0, 0, 1]))
+        self.assertAlmostEqual(result["accuracy"], 2 / 3)
 
 
 if __name__ == "__main__":
