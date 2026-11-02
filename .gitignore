@@ -13,4 +13,5 @@ __pycache__/
 /.uv-cache
 /output
 /reports
+/results
 /inputs
