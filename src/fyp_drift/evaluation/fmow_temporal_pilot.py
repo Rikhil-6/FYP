@@ -422,6 +422,8 @@ def parse_args(argv=None):
     parser.add_argument("--adaptation-limit", type=int)
     parser.add_argument("--checkpoint-dir", type=Path,
                         help="load trained adaptation arms and rerun evaluation/stress tests")
+    parser.add_argument("--drift-only", action="store_true",
+                        help="save the clean chronological drift audit and exit before adaptation")
     parser.add_argument("--keep-fraction", type=float, default=0.4)
     parser.add_argument("--mask-weight", type=float, default=0.5)
     parser.add_argument("--corruptions", nargs="+", default=("gaussian_noise", "sensor_noise", "defocus_blur"))
@@ -559,6 +561,9 @@ def main(argv=None):
         "drift_detection": drift_rows, "historical_only_performance": clean_scores,
         "note": "Saved before model adaptation and before synthetic corruption runs.",
     }, indent=2), encoding="utf-8")
+    if args.drift_only:
+        print(f"Saved clean-only drift audit: {args.output / 'clean_drift_audit.json'}")
+        return
 
     teacher = FMoWClassifier(len(categories), head_weight, head_bias).to(device).eval()
     raw_test = clean_scores["frozen_historical"]["future"]
