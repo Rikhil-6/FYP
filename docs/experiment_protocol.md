@@ -344,4 +344,6 @@ clean-to-noisy schedule may also be shown as an explicitly synthetic scenario,
 but must not be used as evidence of naturally observed temporal drift. Keep
 composite corruption source count fixed across severity. Save image panels
 before training and use the same image IDs and deterministic corruption seeds
-across model arms.
+across model arms. Gaussian noise uses the first three ImageNet-C standard
+deviations (0.08, 0.12, 0.18 on RGB values in [0, 1]); sensor noise and the
+other acquisition changes retain their separately declared project levels.
