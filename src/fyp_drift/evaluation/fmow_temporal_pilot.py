@@ -53,7 +53,7 @@ class FMoWImages(Dataset):
             image = opened.convert("RGB")
         if self.corruption:
             name, severity = self.corruption
-            image = drift_transform(name, severity, self.seed)(image, index)
+            image = apply_fmow_corruption(image, name, severity, self.seed, index)
         else:
             image = TVF.normalize(
                 TVF.to_tensor(TVF.resize(image, (224, 224))), MEAN, STD
@@ -107,6 +107,17 @@ def make_loader(rows, batch_size, workers, corruption=None, seed=42):
     )
 
 
+def apply_fmow_corruption(image, scenario, severity, seed, index):
+    """Use ImageNet-C Gaussian levels and project-defined non-noise transforms."""
+    if scenario != "gaussian_noise":
+        return drift_transform(scenario, severity, seed)(image, index)
+    sigma = (0.08, 0.12, 0.18)[severity - 1]
+    tensor = TVF.to_tensor(TVF.resize(image.convert("RGB"), (224, 224)))
+    generator = torch.Generator().manual_seed((seed + index) % (2**63 - 1))
+    noise = torch.randn(tensor.shape, generator=generator, dtype=tensor.dtype)
+    return TVF.normalize((tensor + sigma * noise).clamp(0, 1), MEAN, STD)
+
+
 @torch.inference_mode()
 def extract(model, loader, device, desc):
     features, labels = [], []
@@ -119,7 +130,8 @@ def extract(model, loader, device, desc):
 
 
 def score_predictions(labels, logits):
-    prediction = np.asarray(logits).argmax(axis=1)
+    values = np.asarray(logits)
+    prediction = values.astype(np.int64) if values.ndim == 1 else values.argmax(axis=1)
     return {
         "samples": int(len(labels)),
         "accuracy": float(accuracy_score(labels, prediction)),
@@ -295,6 +307,8 @@ def parse_args(argv=None):
     parser.add_argument("--permutations", type=int, default=199)
     parser.add_argument("--permutation-limit", type=int, default=200)
     parser.add_argument("--adaptation-limit", type=int)
+    parser.add_argument("--checkpoint-dir", type=Path,
+                        help="load trained adaptation arms and rerun evaluation/stress tests")
     parser.add_argument("--keep-fraction", type=float, default=0.4)
     parser.add_argument("--mask-weight", type=float, default=0.5)
     parser.add_argument("--corruptions", nargs="+", default=("gaussian_noise", "sensor_noise", "defocus_blur"))
@@ -430,17 +444,23 @@ def main(argv=None):
             len(categories), head_weight, head_bias,
             lora_rank=args.rank if mode in ("lora", "saliency_lora", "random_mask_lora") else 0,
         ).to(device)
-        adaptation_loader = make_loader(splits[PERIODS[1]], args.batch_size, args.workers)
-        history = train_adaptation(
-            student, teacher, adaptation_loader, device, mode,
-            args.adapt_epochs, 1e-3, args.keep_fraction, args.mask_weight, args.seed,
-        )
+        if args.checkpoint_dir:
+            checkpoint = args.checkpoint_dir / f"{mode}.pt"
+            student.load_state_dict(torch.load(checkpoint, map_location=device, weights_only=True))
+            history = [{"loaded_checkpoint": str(checkpoint)}]
+        else:
+            adaptation_loader = make_loader(splits[PERIODS[1]], args.batch_size, args.workers)
+            history = train_adaptation(
+                student, teacher, adaptation_loader, device, mode,
+                args.adapt_epochs, 1e-3, args.keep_fraction, args.mask_weight, args.seed,
+            )
         future = evaluate_model(student, loaders[PERIODS[2]], device, f"{mode} clean future")
         payload["adaptation_arms"][mode] = {
             "history": history, "future": future,
             "trainable_parameters": sum(p.numel() for p in student.parameters() if p.requires_grad),
         }
-        torch.save(student.state_dict(), args.output / f"{mode}.pt")
+        if not args.checkpoint_dir:
+            torch.save(student.state_dict(), args.output / f"{mode}.pt")
         print(json.dumps({"arm": mode, "future": {k: future[k] for k in ("accuracy", "macro_f1", "balanced_accuracy")}}), flush=True)
 
     payload["adaptation_arms"]["entropy_tta"] = {
