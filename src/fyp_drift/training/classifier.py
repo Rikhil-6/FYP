@@ -23,6 +23,11 @@ def parse_args(argv=None):
         description="Train a DINOv2 classifier on chronological CLEAR-100 splits."
     )
     parser.add_argument("--method", choices=("baseline", "xai"), required=True)
+    parser.add_argument(
+        "--pooling-mode", choices=("class_plus_patch", "patch_only"),
+        default="class_plus_patch",
+        help="Use a patch-only head to remove the direct class-token bypass.",
+    )
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--data-root", default="data")
@@ -98,8 +103,10 @@ def build_loaders(args):
     return {"train": train_loader, "id_val": validation_loader}, year_column
 
 
-def build_model(method, device):
-    model = TemporalViT(method, num_classes=NUM_CLASSES).to(device)
+def build_model(method, device, pooling_mode="class_plus_patch"):
+    model = TemporalViT(
+        method, num_classes=NUM_CLASSES, pooling_mode=pooling_mode
+    ).to(device)
     for parameter in model.backbone.parameters():
         parameter.requires_grad = False
     for parameter in model.backbone.encoder.layer[-1].parameters():
@@ -181,7 +188,7 @@ def main(argv=None):
         raise ValueError("Training or validation split is empty")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = build_model(args.method, device)
+    model = build_model(args.method, device, args.pooling_mode)
     optimizer = torch.optim.AdamW(
         (parameter for parameter in model.parameters() if parameter.requires_grad),
         lr=2e-5,

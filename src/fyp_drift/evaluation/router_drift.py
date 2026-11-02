@@ -52,7 +52,12 @@ def main(argv=None):
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     profile = config.get("adaptation_profile", "standard")
-    router, _, _, _ = build_router(Path(config["base_checkpoint"]), device, profile)
+    router, _, _, _ = build_router(
+        Path(config["base_checkpoint"]), device, profile,
+        initialize_saliency_from_uniform=config.get(
+            "initialize_saliency_from_uniform", False
+        ),
+    )
     updated_state = torch.load(
         args.run_dir / "models" / "best.pt", map_location=device, weights_only=True
     )

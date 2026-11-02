@@ -24,6 +24,7 @@ dependencies = [
 [project.scripts]
 fyp-analyze-saliency = "fyp_drift.evaluation.saliency:main"
 fyp-audit-router = "fyp_drift.evaluation.audit:main"
+fyp-ablate-router-features = "fyp_drift.evaluation.router_feature_ablation:main"
 fyp-compare-runs = "fyp_drift.evaluation.compare_runs:main"
 fyp-export-classwise = "fyp_drift.evaluation.classwise:main"
 fyp-evaluate = "fyp_drift.evaluation.classifier:main"

@@ -1,7 +1,0 @@
-condition,year,historical_uniform,conventional_finetuned,saliency_updated,saliency_routed
-Clean,2012,95.86,95.86,95.89,96.03
-Clean,2013,95.27,95.54,95.49,95.55
-Clean,2014,95.13,94.93,95.54,95.36
-Evidence-ranked mixture,2012,94.36,94.71,95.27,95.23
-Evidence-ranked mixture,2013,89.79,90.84,91.55,91.19
-Evidence-ranked mixture,2014,79.42,81.55,82.75,82.36

@@ -21,6 +21,7 @@ from fyp_drift.models.vision_transformer import TemporalViT
 from fyp_drift.training.temporal_router import (
     build_temporal_loaders,
     seed_everything,
+    validate_resume_protocol,
 )
 
 
@@ -43,6 +44,10 @@ def parse_args(argv=None):
     parser.add_argument("--limit-calibrate", type=int)
     parser.add_argument("--limit-test", type=int)
     parser.add_argument(
+        "--selection-fraction", type=float, default=0.5,
+        help="Class-stratified share of 2011 used for checkpoint selection.",
+    )
+    parser.add_argument(
         "--drift-scenarios",
         nargs="+",
         choices=SCENARIOS,
@@ -54,6 +59,8 @@ def parse_args(argv=None):
         parser.error("--epochs must be at least 1")
     if args.log_every < 1:
         parser.error("--log-every must be at least 1")
+    if not 0 < args.selection_fraction < 1:
+        parser.error("--selection-fraction must be strictly between 0 and 1")
 
     # These fields reproduce the established long-horizon protocol.
     args.long_horizon = True
@@ -61,7 +68,6 @@ def parse_args(argv=None):
     args.calibration_year = 2011
     args.test_years = (2012, 2013, 2014)
     args.adaptation_profile = "realistic"
-    args.selection_fraction = 0.5
     args.reuse_calibration_for_selection = False
     return args
 
@@ -77,12 +83,15 @@ def validate_checkpoint(path):
             "Conventional fine-tuning requires a baseline checkpoint selected on "
             "2009 and trained only on earlier years"
         )
+    return config
 
 
-def build_model(checkpoint, device):
+def build_model(checkpoint, device, pooling_mode="class_plus_patch"):
     state = torch.load(checkpoint, map_location="cpu", weights_only=True)
     classes = state["classifier.weight"].shape[0]
-    model = TemporalViT("baseline", classes).to(device)
+    model = TemporalViT(
+        "baseline", classes, pooling_mode=pooling_mode
+    ).to(device)
     model.load_state_dict(state)
 
     for parameter in model.parameters():
@@ -239,11 +248,16 @@ def evaluate_horizon(model, dataset, loaders, store, args, device):
 def main(argv=None):
     args = parse_args(argv)
     seed_everything(args.seed)
-    validate_checkpoint(args.base_checkpoint)
+    historical_config = validate_checkpoint(args.base_checkpoint)
+    args.pooling_mode = historical_config.get("pooling_mode", "class_plus_patch")
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dataset = open_dataset(args.data_root)
     loaders = build_temporal_loaders(dataset, args)
-    model, optimizer, classes = build_model(args.base_checkpoint, device)
+    if args.resume_run_dir:
+        validate_resume_protocol(args.resume_run_dir, loaders.calibration_protocol)
+    model, optimizer, classes = build_model(
+        args.base_checkpoint, device, args.pooling_mode
+    )
 
     if args.resume_run_dir:
         store = RunStore.from_existing(args.resume_run_dir)
@@ -267,8 +281,15 @@ def main(argv=None):
                 "num_classes": classes,
                 "device": device,
                 "objective": "classification_only",
-                "pooling": "uniform_patch_mean_plus_class_token",
+                "pooling": (
+                    "uniform_patch_mean_plus_class_token"
+                    if args.pooling_mode == "class_plus_patch"
+                    else "uniform_patch_mean_only"
+                ),
                 "trainable_backbone_blocks": 3,
+                "calibration_protocol": loaders.calibration_protocol,
+                "selection_samples": len(loaders.selection.dataset),
+                "held_out_router_calibration_samples": len(loaders.calibration.dataset),
                 "torch_version": torch.__version__,
                 "cuda_build": torch.version.cuda,
             },
