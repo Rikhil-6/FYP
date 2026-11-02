@@ -32,6 +32,9 @@ from fyp_drift.training.saliency_lora_pilot import LoRALinear, teacher_saliency
 
 
 PERIODS = ("historical_2010_13", "adapt_2014_15", "future_2016_17")
+# FMoW includes verified JPEGs above Pillow's conservative pixel limit. Ask the
+# JPEG decoder for a reduced-resolution decode before materializing RGB pixels.
+Image.MAX_IMAGE_PIXELS = None
 
 
 class FMoWImages(Dataset):
@@ -46,6 +49,7 @@ class FMoWImages(Dataset):
     def __getitem__(self, index):
         row = self.rows[index]
         with Image.open(row["local_path"]) as opened:
+            opened.draft("RGB", (224, 224))
             image = opened.convert("RGB")
         if self.corruption:
             name, severity = self.corruption
