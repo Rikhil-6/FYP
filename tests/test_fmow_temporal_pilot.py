@@ -119,9 +119,17 @@ class FMoWTemporalPilotTests(unittest.TestCase):
             output = Path(directory) / "preview.png"
             Image.new("RGB", (32, 32), (120, 90, 70)).save(source)
             save_corruption_preview(
-                [{"category": "airport", "local_path": str(source)}], output
+                [{
+                    "category": "airport", "local_path": str(source),
+                    "period": "future_2016_17", "timestamp": "2017-01-01",
+                    "country": "USA", "utm": "10T",
+                }], output
             )
             self.assertTrue(output.is_file())
+            examples = Path(directory) / "examples"
+            self.assertTrue((examples / "manifest.csv").is_file())
+            saved_images = list(examples.glob("*.jpg")) + list(examples.glob("*.png"))
+            self.assertEqual(len(saved_images), 6)
             with Image.open(output) as preview:
                 self.assertEqual(preview.size[1], 224 + 28 + 34)
 
