@@ -350,3 +350,8 @@ before training and use the same image IDs and deterministic corruption seeds
 across model arms. Gaussian noise uses the first three ImageNet-C standard
 deviations (0.08, 0.12, 0.18 on RGB values in [0, 1]); sensor noise and the
 other acquisition changes retain their separately declared project levels.
+For an explicit worsening trajectory, use clean historical, σ=0.08 adaptation,
+and σ=0.12 future images; repeat with σ=0.18 in the future as a stronger
+sensitivity condition. Crossed fixed-severity results remain the primary
+synthetic comparison. Report Benjamini–Hochberg adjusted MMD tests and paired
+score-difference intervals from a geographic-tile cluster bootstrap.

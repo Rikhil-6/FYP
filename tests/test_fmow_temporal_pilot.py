@@ -5,8 +5,10 @@ from PIL import Image
 
 from fyp_drift.evaluation.fmow_temporal_pilot import (
     apply_fmow_corruption,
+    clustered_bootstrap_delta,
     fdr_bh,
     matched_metric_sample,
+    matched_period_sample,
     score_predictions,
 )
 
@@ -78,6 +80,35 @@ class FMoWTemporalPilotTests(unittest.TestCase):
     def test_task_scoring_accepts_precomputed_tta_predictions(self):
         result = score_predictions(np.asarray([0, 1, 1]), np.asarray([0, 0, 1]))
         self.assertAlmostEqual(result["accuracy"], 2 / 3)
+
+    def test_cross_period_stress_sample_matches_every_period(self):
+        splits = {}
+        for period in ("historical_2010_13", "adapt_2014_15", "future_2016_17"):
+            splits[period] = [
+                {"period": period, "category": "airport", "country": "USA", "local_path": f"{period}-{i}"}
+                for i in range(5)
+            ] + [
+                {"period": period, "category": "port", "country": "CAN", "local_path": f"{period}-p-{i}"}
+                for i in range(3)
+            ]
+        selected = matched_period_sample(splits, 4, 12)
+        self.assertEqual({period: len(rows) for period, rows in selected.items()}, {
+            "historical_2010_13": 4, "adapt_2014_15": 4, "future_2016_17": 4,
+        })
+        compositions = [
+            sorted((row["category"], row["country"]) for row in selected[period])
+            for period in selected
+        ]
+        self.assertEqual(compositions[0], compositions[1])
+        self.assertEqual(compositions[1], compositions[2])
+
+    def test_clustered_bootstrap_returns_paired_score_interval(self):
+        result = clustered_bootstrap_delta(
+            [0, 1, 0, 1], [0, 0, 0, 0], [0, 1, 0, 1],
+            ["a", "a", "b", "b"], repetitions=20, seed=3,
+        )
+        self.assertEqual(result["accuracy"]["candidate_minus_reference"], 0.5)
+        self.assertEqual(len(result["accuracy"]["cluster_bootstrap_95_ci"]), 2)
 
 
 if __name__ == "__main__":
