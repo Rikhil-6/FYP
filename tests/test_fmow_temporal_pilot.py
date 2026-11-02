@@ -1,4 +1,6 @@
 import unittest
+import tempfile
+from pathlib import Path
 
 import numpy as np
 from PIL import Image
@@ -9,6 +11,7 @@ from fyp_drift.evaluation.fmow_temporal_pilot import (
     fdr_bh,
     matched_metric_sample,
     matched_period_sample,
+    save_corruption_preview,
     score_predictions,
 )
 
@@ -109,6 +112,18 @@ class FMoWTemporalPilotTests(unittest.TestCase):
         )
         self.assertEqual(result["accuracy"]["candidate_minus_reference"], 0.5)
         self.assertEqual(len(result["accuracy"]["cluster_bootstrap_95_ci"]), 2)
+
+    def test_corruption_preview_is_saved_with_pillow(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "sample.jpg"
+            output = Path(directory) / "preview.png"
+            Image.new("RGB", (32, 32), (120, 90, 70)).save(source)
+            save_corruption_preview(
+                [{"category": "airport", "local_path": str(source)}], output
+            )
+            self.assertTrue(output.is_file())
+            with Image.open(output) as preview:
+                self.assertEqual(preview.size[1], 224 + 28 + 34)
 
 
 if __name__ == "__main__":
