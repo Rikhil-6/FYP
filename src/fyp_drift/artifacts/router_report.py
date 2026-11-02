@@ -142,7 +142,7 @@ def main():
                 footer = (
                     f"sample {index}   true {int(label)}   old {int(comparison['old_logits'].argmax(1)[0])}   "
                     f"new {int(comparison['new_logits'].argmax(1)[0])}   routed {int(routed[0])}   "
-                    f"route probability {float(probability[0]):.3f}"
+                    f"routing score {float(probability[0]):.3f}"
                 )
                 draw.text((6, 258), footer, font=figure_font(13), fill="black")
                 path = folder / f"sample_{offset:04d}.png"
