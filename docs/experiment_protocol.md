@@ -267,6 +267,9 @@ performance-evaluation protocol can be repeated.
 
 - Hendrycks and Dietterich group common corruptions into noise, blur, weather,
   and digital categories in ImageNet-C: <https://arxiv.org/abs/1903.12261>.
+- The official ImageNet-C implementation uses Gaussian standard deviations
+  0.08, 0.12, 0.18, 0.26, and 0.38 on RGB values scaled to [0, 1]; this pilot
+  predeclares its first three levels: <https://github.com/hendrycks/robustness/blob/master/ImageNet-C/imagenet_c/imagenet_c/corruptions.py>.
 - CLEAR supplies smooth natural temporal evolution and near-future streaming
   evaluation rather than artificial year-by-year IID splits:
   <https://arxiv.org/abs/2201.06289>.
