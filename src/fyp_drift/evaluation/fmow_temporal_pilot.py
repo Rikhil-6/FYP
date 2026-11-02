@@ -10,8 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
-from PIL import Image
+from PIL import Image, ImageDraw
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, recall_score
 from sklearn.model_selection import StratifiedGroupKFold, cross_val_predict
@@ -140,8 +139,15 @@ def save_corruption_preview(rows, output_path, seed=42, limit=4):
         ("sensor noise s3", ("sensor_noise", 3)),
         ("defocus blur s3", ("defocus_blur", 3)),
     )
-    figure, axes = plt.subplots(len(examples), len(conditions), figsize=(15, 2.8 * len(examples)))
-    axes = np.atleast_2d(axes)
+    cell_size, label_width, header_height = 224, 150, 34
+    row_height = cell_size + 28
+    canvas = Image.new(
+        "RGB", (label_width + cell_size * len(conditions), header_height + row_height * len(examples)),
+        "white",
+    )
+    draw = ImageDraw.Draw(canvas)
+    for column, (title, _) in enumerate(conditions):
+        draw.text((label_width + column * cell_size + 4, 8), title, fill="black")
     mean = torch.tensor(MEAN)[:, None, None]
     std = torch.tensor(STD)[:, None, None]
     for row_index, row in enumerate(examples):
@@ -155,15 +161,11 @@ def save_corruption_preview(rows, output_path, seed=42, limit=4):
                 else apply_fmow_corruption(image, *corruption, seed, row_index)
             )
             display = (tensor * std + mean).clamp(0, 1)
-            axes[row_index, column].imshow(TVF.to_pil_image(display))
-            axes[row_index, column].axis("off")
-            if row_index == 0:
-                axes[row_index, column].set_title(title)
-        axes[row_index, 0].set_ylabel(row["category"], rotation=0, labelpad=55, va="center")
-    figure.suptitle("FMoW synthetic corruption preview (original labels retained for audit)")
-    figure.tight_layout()
-    figure.savefig(output_path, dpi=150, bbox_inches="tight")
-    plt.close(figure)
+            x = label_width + column * cell_size
+            y = header_height + row_index * row_height
+            canvas.paste(TVF.to_pil_image(display), (x, y))
+        draw.text((5, header_height + row_index * row_height + 100), row["category"], fill="black")
+    canvas.save(output_path)
 
 
 @torch.inference_mode()
