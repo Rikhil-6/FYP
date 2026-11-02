@@ -1,0 +1,16 @@
+.venv/
+/.venv
+__pycache__/
+*.pyc
+/runs
+/data
+/tools
+*.pem
+/cache
+/tmp
+/.pytest_cache
+/.ruff_cache
+/.uv-cache
+/output
+/reports
+/inputs
