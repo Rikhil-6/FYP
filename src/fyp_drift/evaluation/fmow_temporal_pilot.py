@@ -122,8 +122,8 @@ def apply_fmow_corruption(image, scenario, severity, seed, index):
     return TVF.normalize((tensor + sigma * noise).clamp(0, 1), MEAN, STD)
 
 
-def save_corruption_preview(rows, output_path, seed=42, limit=4):
-    """Save a label-preservation panel before adaptation begins."""
+def save_corruption_examples(rows, output_dir, seed=42, limit=4):
+    """Save individual model-resolution clean/corrupted image pairs and a manifest."""
     examples, seen = [], set()
     for row in rows:
         if row["category"] not in seen:
@@ -131,6 +131,59 @@ def save_corruption_preview(rows, output_path, seed=42, limit=4):
             seen.add(row["category"])
         if len(examples) == limit:
             break
+    conditions = (
+        ("clean", None),
+        ("gaussian_noise_s1", ("gaussian_noise", 1)),
+        ("gaussian_noise_s2", ("gaussian_noise", 2)),
+        ("gaussian_noise_s3", ("gaussian_noise", 3)),
+        ("sensor_noise_s3", ("sensor_noise", 3)),
+        ("defocus_blur_s3", ("defocus_blur", 3)),
+    )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    mean = torch.tensor(MEAN)[:, None, None]
+    std = torch.tensor(STD)[:, None, None]
+    manifest_rows = []
+    for row_index, row in enumerate(examples):
+        with Image.open(row["local_path"]) as opened:
+            opened.draft("RGB", (224, 224))
+            image = TVF.resize(opened.convert("RGB"), (224, 224))
+        for title, corruption in conditions:
+            stem = f"example{row_index + 1:02d}_{row['category']}_{title}"
+            if corruption is None:
+                destination = output_dir / f"{stem}.jpg"
+                image.save(destination, format="JPEG", quality=95, subsampling=0)
+            else:
+                tensor = apply_fmow_corruption(image, *corruption, seed, row_index)
+                display = (tensor * std + mean).clamp(0, 1)
+                destination = output_dir / f"{stem}.png"
+                TVF.to_pil_image(display).save(destination, format="PNG")
+            manifest_rows.append({
+                "file": destination.name,
+                "category": row["category"],
+                "period": row["period"],
+                "timestamp": row["timestamp"],
+                "country": row["country"],
+                "utm": row["utm"],
+                "scenario": "clean" if corruption is None else corruption[0],
+                "severity": 0 if corruption is None else corruption[1],
+                "label_check": "pending human visual review",
+            })
+    with (output_dir / "manifest.csv").open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(manifest_rows[0]))
+        writer.writeheader()
+        writer.writerows(manifest_rows)
+
+
+def save_corruption_preview(rows, output_path, seed=42, limit=4):
+    """Save a contact sheet and individual label-preservation examples."""
+    examples, seen = [], set()
+    for row in rows:
+        if row["category"] not in seen:
+            examples.append(row)
+            seen.add(row["category"])
+        if len(examples) == limit:
+            break
+    save_corruption_examples(examples, output_path.parent / "examples", seed, limit)
     conditions = (
         ("clean", None),
         ("Gaussian σ=.08", ("gaussian_noise", 1)),
