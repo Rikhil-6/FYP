@@ -317,9 +317,9 @@ two major composition effects but cannot eliminate every geographic or
 acquisition confound. A stricter country-by-UTM matched subset is a planned
 sensitivity analysis.
 
-After the clean audit, compare these adaptation arms on identical historical
-initialization, 2014–2015 labeled adaptation data, trainable-parameter budget,
-seed, and epoch count:
+After the clean audit, compare these adaptation arms from the same historical
+initialization and on the same 2014–2015 labeled adaptation data, seed, and
+epoch count:
 
 1. Frozen historical ViT, with no correction.
 2. Standard LoRA adaptation.
@@ -334,9 +334,11 @@ Use the 2016–2017 labels once for the frozen final evaluation. Do not select
 epochs, saliency settings, or corruption severities on those labels. Include a
 matched random-patch control for any saliency-guided loss so a gain can be
 attributed to saliency rather than simply to masking or auxiliary training.
-Report paired per-image and geographic-clustered uncertainty for score
-differences, trainable parameter counts, and the saliency faithfulness checks
-already used by the project.
+The saliency-only and random-mask-only arms share a head-only parameter budget;
+standard LoRA and saliency-LoRA share the same adapters and trainable head.
+Report each arm's parameter count, paired per-image and geographic-clustered
+uncertainty for score differences, and the saliency faithfulness checks already
+used by the project.
 
 Treat synthetic drift as a separate controlled stress test. Cross time with
 fixed corruption source and fixed severity: each period receives clean input
