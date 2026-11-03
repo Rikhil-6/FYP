@@ -1,0 +1,26 @@
+{
+  "name": "saliency_only",
+  "features": [
+    "saliency_js",
+    "evidence_gain"
+  ],
+  "mean": [
+    0.2863808274269104,
+    -5.590224742889404
+  ],
+  "scale": [
+    0.04776553809642792,
+    3.702202558517456
+  ],
+  "calibration_images": 210,
+  "calibration_disagreements": 122,
+  "calibration_helpful": 37,
+  "coefficients": [
+    -0.03253680840134621,
+    0.2190074324607849
+  ],
+  "intercept": -0.010881582275032997,
+  "floor": 0.18764877319335938,
+  "threshold": 0.3,
+  "calibration_macro_f1": 0.3028906523251375
+}

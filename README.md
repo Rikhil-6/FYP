@@ -91,12 +91,21 @@ the calibrated cloud layer to the test images.
 | Input head | 42.2 | 38.6 |
 | Gated head | 38.6 | 35.1 |
 | Prior head | 37.2 | 34.7 |
+| Soft gated head | 41.0 | 38.0 |
+| Soft prior head | 41.1 | 38.9 |
 
 Gated and prior heads put roughly ten times the chance level of attention
 mass on the object box. They point at it in 0.57 to 0.62 of images, against
 0.14 for a plain learned head and 0.30 for the gated head with shuffled maps.
 Deleting the top 25% of patches by attention costs 11 to 18 points of
 accuracy; deleting a random or bottom 25% costs about 0 to 2.
+
+The softer heads recover the accuracy but give up most of the grounding: they
+point at the object in only 0.17 to 0.25 of images. Grounding and accuracy
+trade off in these experiments.
+
+Raw outputs for every number above are in `results/fmow_dinov2l_today`, which
+has its own README.
 
 Treat these as exploratory. Differences of a point or less between arms are
 within seed noise.
@@ -115,6 +124,7 @@ src/fyp_drift/
   workflows/     end-to-end experiment runner
 deploy/          Ubuntu setup scripts and logged experiment launchers
 docs/            protocols, architecture and server notes
+results/         raw outputs of the cloud-cover and saliency studies
 tests/           deterministic protocol and entry-point tests
 ```
 

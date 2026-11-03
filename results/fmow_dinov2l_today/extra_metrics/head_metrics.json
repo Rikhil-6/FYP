@@ -1,0 +1,200 @@
+{
+  "clean/attention": {
+    "ece": 0.1795939512271101,
+    "brier": 0.6716301789838378,
+    "nll": 2.0569160416110313,
+    "box_iou_top_k_equal_box": 0.3200521071751912,
+    "box_iou_top_quarter": 0.17879203955332437,
+    "deletion_area": 0.32624155630668,
+    "insertion_area": 0.4924513320128123,
+    "macro_f1": 0.40748046783985264,
+    "seeds": 3
+  },
+  "clean/guided": {
+    "ece": 0.20132229138087268,
+    "brier": 0.6814708734374565,
+    "nll": 2.143625220316828,
+    "box_iou_top_k_equal_box": 0.3353982170422872,
+    "box_iou_top_quarter": 0.16341979304949442,
+    "deletion_area": 0.2928784281015396,
+    "insertion_area": 0.4924314667781194,
+    "macro_f1": 0.4115373758959507,
+    "seeds": 3
+  },
+  "clean/prior": {
+    "ece": 0.2721542428148837,
+    "brier": 0.7741384582764782,
+    "nll": 2.697250015372045,
+    "box_iou_top_k_equal_box": 0.28102394938468933,
+    "box_iou_top_quarter": 0.15354562799135843,
+    "deletion_area": 0.31086611102024714,
+    "insertion_area": 0.46676599383354184,
+    "macro_f1": 0.37229951395498473,
+    "seeds": 3
+  },
+  "clean/gated": {
+    "ece": 0.2775750528232157,
+    "brier": 0.7615274119238727,
+    "nll": 2.6555483011571313,
+    "box_iou_top_k_equal_box": 0.32478034496307373,
+    "box_iou_top_quarter": 0.17489127814769745,
+    "deletion_area": 0.2960667468607426,
+    "insertion_area": 0.4789034595092138,
+    "macro_f1": 0.3855333025177889,
+    "seeds": 3
+  },
+  "clean/input": {
+    "ece": 0.17697523463107456,
+    "brier": 0.6647871437878904,
+    "nll": 2.064357618886363,
+    "box_iou_top_k_equal_box": 0.30295491218566895,
+    "box_iou_top_quarter": 0.16645986835161844,
+    "deletion_area": 0.3420043706893921,
+    "insertion_area": 0.5009535173575084,
+    "macro_f1": 0.42170479302133157,
+    "seeds": 3
+  },
+  "clean/guided_shuffled": {
+    "ece": 0.18932602881503144,
+    "brier": 0.6738132918579679,
+    "nll": 2.1004723786856903,
+    "box_iou_top_k_equal_box": 0.3286130925019582,
+    "box_iou_top_quarter": 0.15267321467399597,
+    "deletion_area": 0.3303436622023582,
+    "insertion_area": 0.4895311862230301,
+    "macro_f1": 0.4138884326646383,
+    "seeds": 3
+  },
+  "clean/prior_shuffled": {
+    "ece": 0.1948817729724983,
+    "brier": 0.67457913649375,
+    "nll": 2.1228329831659303,
+    "box_iou_top_k_equal_box": 0.29761382937431335,
+    "box_iou_top_quarter": 0.15468771755695343,
+    "deletion_area": 0.3431664665540059,
+    "insertion_area": 0.4988279680411021,
+    "macro_f1": 0.4129697861339479,
+    "seeds": 3
+  },
+  "clean/gated_shuffled": {
+    "ece": 0.18404616589776737,
+    "brier": 0.6727595188643126,
+    "nll": 2.095190221137845,
+    "box_iou_top_k_equal_box": 0.2842145363489787,
+    "box_iou_top_quarter": 0.15389726559321085,
+    "deletion_area": 0.344775527715683,
+    "insertion_area": 0.49762614170710245,
+    "macro_f1": 0.4109831751925727,
+    "seeds": 3
+  },
+  "clean/input_shuffled": {
+    "ece": 0.17406141999805547,
+    "brier": 0.663313764189859,
+    "nll": 2.0207241072569517,
+    "box_iou_top_k_equal_box": 0.3165874282519023,
+    "box_iou_top_quarter": 0.17640888690948486,
+    "deletion_area": 0.3256356765826543,
+    "insertion_area": 0.49341478149096174,
+    "macro_f1": 0.41159834232133613,
+    "seeds": 3
+  },
+  "cloud/attention": {
+    "ece": 0.15169941269699003,
+    "brier": 0.6990215565796305,
+    "nll": 2.1857307813401836,
+    "box_iou_top_k_equal_box": 0.30090850591659546,
+    "box_iou_top_quarter": 0.16818448404471079,
+    "deletion_area": 0.2983611424763997,
+    "insertion_area": 0.4522745350996653,
+    "macro_f1": 0.37709613563823313,
+    "seeds": 3
+  },
+  "cloud/guided": {
+    "ece": 0.20485163173820706,
+    "brier": 0.7115735036001873,
+    "nll": 2.318852102835738,
+    "box_iou_top_k_equal_box": 0.2903655767440796,
+    "box_iou_top_quarter": 0.15238840381304422,
+    "deletion_area": 0.2975764791170756,
+    "insertion_area": 0.4698549856742223,
+    "macro_f1": 0.388312740425482,
+    "seeds": 3
+  },
+  "cloud/prior": {
+    "ece": 0.27342666886868244,
+    "brier": 0.8048814081899288,
+    "nll": 2.877166384458942,
+    "box_iou_top_k_equal_box": 0.26137280464172363,
+    "box_iou_top_quarter": 0.1387097934881846,
+    "deletion_area": 0.28512117415666577,
+    "insertion_area": 0.4366507748762767,
+    "macro_f1": 0.3469568311595315,
+    "seeds": 3
+  },
+  "cloud/gated": {
+    "ece": 0.28213670376035543,
+    "brier": 0.8003979940690593,
+    "nll": 2.894746152307143,
+    "box_iou_top_k_equal_box": 0.27892234921455383,
+    "box_iou_top_quarter": 0.1513060579697291,
+    "deletion_area": 0.27015296046932535,
+    "insertion_area": 0.4451529641946157,
+    "macro_f1": 0.351160436169383,
+    "seeds": 3
+  },
+  "cloud/input": {
+    "ece": 0.16928173813940775,
+    "brier": 0.7034197497691443,
+    "nll": 2.240708435740627,
+    "box_iou_top_k_equal_box": 0.2635317047437032,
+    "box_iou_top_quarter": 0.15308461089928946,
+    "deletion_area": 0.3124851033091545,
+    "insertion_area": 0.45884982248147327,
+    "macro_f1": 0.3858660928662743,
+    "seeds": 3
+  },
+  "cloud/guided_shuffled": {
+    "ece": 0.19939160429571748,
+    "brier": 0.7109070304040901,
+    "nll": 2.309041616694102,
+    "box_iou_top_k_equal_box": 0.2863336106141408,
+    "box_iou_top_quarter": 0.14732462167739868,
+    "deletion_area": 0.3105681379636129,
+    "insertion_area": 0.4682359943787257,
+    "macro_f1": 0.3857153420325783,
+    "seeds": 3
+  },
+  "cloud/prior_shuffled": {
+    "ece": 0.19414341525368192,
+    "brier": 0.7064454791381944,
+    "nll": 2.2829427599830394,
+    "box_iou_top_k_equal_box": 0.2869136730829875,
+    "box_iou_top_quarter": 0.1513094703356425,
+    "deletion_area": 0.3253774359822273,
+    "insertion_area": 0.46764997939268743,
+    "macro_f1": 0.38359356635478364,
+    "seeds": 3
+  },
+  "cloud/gated_shuffled": {
+    "ece": 0.18806217587451213,
+    "brier": 0.713193268576819,
+    "nll": 2.285215783425306,
+    "box_iou_top_k_equal_box": 0.2670822540918986,
+    "box_iou_top_quarter": 0.1464697221914927,
+    "deletion_area": 0.31946761856476463,
+    "insertion_area": 0.45760826269785565,
+    "macro_f1": 0.37578975719781144,
+    "seeds": 3
+  },
+  "cloud/input_shuffled": {
+    "ece": 0.17341646862378726,
+    "brier": 0.6983109215049529,
+    "nll": 2.216550145479157,
+    "box_iou_top_k_equal_box": 0.28894386688868207,
+    "box_iou_top_quarter": 0.1612240970134735,
+    "deletion_area": 0.299811282257239,
+    "insertion_area": 0.46651768088340756,
+    "macro_f1": 0.3859569918245777,
+    "seeds": 3
+  }
+}

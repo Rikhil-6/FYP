@@ -1,0 +1,100 @@
+{
+  "backbone": "facebook/dinov2-large",
+  "head_hist_val_macro_f1": 0.28356932397189977,
+  "scores": {
+    "hist_val": {
+      "samples": 886,
+      "accuracy": 0.33521444695259595,
+      "macro_f1": 0.2744219264244191,
+      "balanced_accuracy": 0.2979297592211118,
+      "unique_predictions": 56,
+      "max_class_share": 0.05981941309255079
+    },
+    "adapt_val": {
+      "samples": 440,
+      "accuracy": 0.48409090909090907,
+      "macro_f1": 0.3042182221977379,
+      "balanced_accuracy": 0.36944990695909813,
+      "unique_predictions": 53,
+      "max_class_share": 0.1431818181818182
+    },
+    "adapt_train": {
+      "samples": 6560,
+      "accuracy": 0.4266768292682927,
+      "macro_f1": 0.3639540781364959,
+      "balanced_accuracy": 0.36201864200507944,
+      "unique_predictions": 60,
+      "max_class_share": 0.07896341463414634
+    },
+    "future_test": {
+      "samples": 3356,
+      "accuracy": 0.39898688915375446,
+      "macro_f1": 0.32991128634211525,
+      "balanced_accuracy": 0.33903613513347486,
+      "unique_predictions": 58,
+      "max_class_share": 0.05393325387365912
+    },
+    "future_all": {
+      "samples": 7000,
+      "accuracy": 0.41485714285714287,
+      "macro_f1": 0.33985486596019115,
+      "balanced_accuracy": 0.34511010856407354,
+      "unique_predictions": 60,
+      "max_class_share": 0.068
+    }
+  },
+  "drift": [
+    {
+      "comparison": "historical_vs_future",
+      "mmd_squared": 0.0012703544680037204,
+      "mmd_bandwidth": 23.17155413542476,
+      "mmd_permutation_p": 0.05,
+      "mmd_permutations": 499,
+      "mmd_permutation_resolution": 0.002,
+      "mmd_permutation_samples_per_group": 1000,
+      "mmd_permutation_scheme": "pooled_label_permutation",
+      "domain_classifier_roc_auc": 0.606826,
+      "domain_classifier_cv": "stratified"
+    },
+    {
+      "comparison": "historical_vs_adapt",
+      "mmd_squared": 0.0008905667098222381,
+      "mmd_bandwidth": 22.97991704570915,
+      "mmd_permutation_p": 0.268,
+      "mmd_permutations": 499,
+      "mmd_permutation_resolution": 0.002,
+      "mmd_permutation_samples_per_group": 1000,
+      "mmd_permutation_scheme": "pooled_label_permutation",
+      "domain_classifier_roc_auc": 0.544602,
+      "domain_classifier_cv": "stratified"
+    },
+    {
+      "comparison": "historical_split_half_null",
+      "mmd_squared": 0.0006079979403335045,
+      "mmd_bandwidth": 22.895563551432364,
+      "mmd_permutation_p": 0.8,
+      "mmd_permutations": 499,
+      "mmd_permutation_resolution": 0.002,
+      "mmd_permutation_samples_per_group": 1000,
+      "mmd_permutation_scheme": "pooled_label_permutation",
+      "domain_classifier_roc_auc": 0.511178,
+      "domain_classifier_cv": "stratified"
+    }
+  ],
+  "accuracy_gap_hist_val_minus_future": {
+    "mean": -0.06437272366028553,
+    "ci95": [
+      -0.11339165087885307,
+      -0.018858061552980445
+    ]
+  },
+  "counts": {
+    "hist_train": 6114,
+    "hist_val": 886,
+    "adapt_train": 6560,
+    "adapt_val": 440,
+    "future_test": 3356,
+    "future_all": 7000
+  },
+  "harm_gate_passed": false
+}
