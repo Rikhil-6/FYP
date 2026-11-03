@@ -103,20 +103,41 @@ def image_cache(rows, path, workers):
     return np.load(path, mmap_mode="r")
 
 
-def add_cloud(image, key, alpha, seed=42):
-    """Blend a fixed localized near-white cloud into a normalized image; same key, same cloud."""
+CLOUD_REGIONS = ("anywhere", "off_object", "on_object")
+
+
+def cloud_mask(key, region="anywhere", seed=42, size=224):
+    """Smooth near-binary cloud mask from a per-image seed.
+
+    anywhere: top 20% of a smoothed noise field (the main-run cloud).
+    off_object / on_object: the same field restricted to the border or to the central
+    half-width box where fMoW crops place the object; both cover 12.5% of the image.
+    """
     digest = hashlib.sha256(f"{seed}:{key}".encode()).digest()
     noise = torch.rand((1, 1, 16, 16), generator=torch.Generator().manual_seed(int.from_bytes(digest[:8], "little")))
     smooth = F.avg_pool2d(noise, 5, stride=1, padding=2)
-    mask = (smooth >= torch.quantile(smooth, 0.8)).float()
-    mask = F.interpolate(mask, size=image.shape[-2:], mode="bilinear", align_corners=False)[0]
+    if region == "anywhere":
+        mask = (smooth >= torch.quantile(smooth, 0.8)).float()
+    else:
+        centre = torch.zeros_like(smooth, dtype=torch.bool)
+        centre[..., 4:12, 4:12] = True
+        allowed = ~centre if region == "off_object" else centre
+        cells = round(0.125 * smooth.numel())
+        threshold = smooth[allowed].sort(descending=True).values[min(cells, int(allowed.sum())) - 1]
+        mask = ((smooth >= threshold) & allowed).float()
+    return F.interpolate(mask, size=(size, size), mode="bilinear", align_corners=False)[0]
+
+
+def add_cloud(image, key, alpha, seed=42, region="anywhere"):
+    """Blend a fixed near-white cloud into a normalized image; same key and region, same cloud."""
+    mask = cloud_mask(key, region, seed, image.shape[-1])
     white = (1 - MEAN) / STD
     return image * (1 - alpha * mask) + white * (alpha * mask)
 
 
 class CachedImages(Dataset):
-    def __init__(self, cache, rows, cloud_alpha):
-        self.cache, self.rows, self.cloud_alpha = cache, rows, cloud_alpha
+    def __init__(self, cache, rows, cloud_alpha, cloud_region="anywhere"):
+        self.cache, self.rows, self.cloud_alpha, self.cloud_region = cache, rows, cloud_alpha, cloud_region
 
     def __len__(self):
         return len(self.rows)
@@ -125,15 +146,15 @@ class CachedImages(Dataset):
         row = self.rows[i]
         image = (torch.from_numpy(np.array(self.cache[row["idx"]])).permute(2, 0, 1).float() / 255.0 - MEAN) / STD
         if self.cloud_alpha > 0:
-            image = add_cloud(image, row["local_path"], self.cloud_alpha)
+            image = add_cloud(image, row["local_path"], self.cloud_alpha, region=self.cloud_region)
         return image, row["class_id"], i
 
 
-def image_loader(cache, rows, batch_size, workers, cloud_alpha=0.0, shuffle_seed=None):
+def image_loader(cache, rows, batch_size, workers, cloud_alpha=0.0, shuffle_seed=None, cloud_region="anywhere"):
     """Evaluation order when shuffle_seed is None; otherwise a seeded shuffle that drops the last batch."""
     shuffle = shuffle_seed is not None
     generator = torch.Generator().manual_seed(shuffle_seed) if shuffle else None
-    return DataLoader(CachedImages(cache, rows, cloud_alpha), batch_size=batch_size, shuffle=shuffle, drop_last=shuffle,
+    return DataLoader(CachedImages(cache, rows, cloud_alpha, cloud_region), batch_size=batch_size, shuffle=shuffle, drop_last=shuffle,
                       num_workers=workers, pin_memory=True, generator=generator)
 
 
@@ -368,7 +389,7 @@ def anchor_weights(reference_tokens, head, labels, mode, generator):
     return weights
 
 
-def train_arm(args, cache, splits, head, classes, mode, anchor_lambda, cloud_alpha, seed):
+def train_arm(args, cache, splits, head, classes, mode, anchor_lambda, cloud_alpha, seed, extra_tests=None):
     torch.manual_seed(seed)
     np.random.seed(seed)
     backbone = Backbone(args.backbone, args.trainable_blocks, args.rank).cuda()
@@ -403,13 +424,17 @@ def train_arm(args, cache, splits, head, classes, mode, anchor_lambda, cloud_alp
         history.append({"epoch": epoch + 1, "ce": losses["ce"] / (step + 1), "anchor_mse": losses["anchor"] / (step + 1), "adapt_val": val})
         log(f"  {mode} lambda={anchor_lambda} alpha={cloud_alpha} seed={seed} epoch={epoch + 1} val_f1={val['macro_f1']:.4f}")
     test, predictions = evaluate(backbone, head, image_loader(cache, splits["future_test"], args.eval_batch, args.workers, cloud_alpha), classes)
+    shifted = {}
+    for name, (alpha, region) in (extra_tests or {}).items():
+        metrics, shifted_predictions = evaluate(backbone, head, image_loader(cache, splits["future_test"], args.eval_batch, args.workers, alpha, cloud_region=region), classes)
+        shifted[name] = {"future_test": metrics, "predictions": shifted_predictions.tolist()}
     peak_gib = torch.cuda.max_memory_allocated() / 2**30
     del backbone, optimizer
     torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
     return {"mode": mode, "lambda": anchor_lambda, "cloud_alpha": cloud_alpha, "seed": seed, "step0_max_logit_diff": step0,
             "trainable_parameters": int(sum(p.numel() for p in parameters)), "history": history, "adapt_val": history[-1]["adapt_val"],
-            "future_test": test, "predictions": predictions.tolist(), "peak_gpu_gib": peak_gib}
+            "future_test": test, "predictions": predictions.tolist(), "shifted_tests": shifted, "peak_gpu_gib": peak_gib}
 
 
 def anchor_penalty(backbone, head, early, tokens, targets, mode, generator):
@@ -508,13 +533,94 @@ def summarize(args, splits):
     return means
 
 
+def calibrate_region_clouds(args, cache, splits, head, classes):
+    """Per region, the alpha whose frozen historical-val macro-F1 drop is closest to 7.5 points."""
+    path = args.output / "calib_regions.json"
+    if path.exists():
+        return json.loads(path.read_text())
+    backbone = Backbone(args.backbone).cuda().eval()
+    result = {}
+    for region in ("off_object", "on_object"):
+        candidates = []
+        for alpha in (0.0, 0.5, 0.7, 0.85, 1.0):
+            metrics, _ = evaluate(backbone, head, image_loader(cache, splits["hist_val"], args.eval_batch, args.workers, alpha, cloud_region=region), classes)
+            candidates.append({"alpha": alpha, **metrics})
+        clean_f1 = candidates[0]["macro_f1"]
+        chosen = min(candidates[1:], key=lambda c: abs((clean_f1 - c["macro_f1"]) - 0.075))
+        result[region] = {"candidates": candidates, "selected_alpha": chosen["alpha"], "selected_drop": clean_f1 - chosen["macro_f1"]}
+        log("region calib", region, result[region]["selected_alpha"], round(result[region]["selected_drop"], 4))
+    write_json(path, result)
+    del backbone
+    torch.cuda.empty_cache()
+    return result
+
+
+def run_unseen_cloud_arms(args, cache, splits, head_state, classes):
+    """Adapt on clean images with each arm's adapt-val lambda, then score on unseen region clouds."""
+    head = nn.Linear(head_state["weight"].shape[1], classes).cuda().eval()
+    head.load_state_dict(head_state)
+    head.requires_grad_(False)
+    chosen = json.loads((args.output / "summary.json").read_text())["chosen_lambda"]
+    regions = calibrate_region_clouds(args, cache, splits, head, classes)
+    tests = {region: (regions[region]["selected_alpha"], region) for region in regions}
+    out = args.output / "unseen_cloud"
+    out.mkdir(exist_ok=True)
+    backbone = Backbone(args.backbone).cuda().eval()
+    for name, (alpha, region) in tests.items():
+        path = out / f"frozen_{name}.json"
+        if not path.exists():
+            metrics, predictions = evaluate(backbone, head, image_loader(cache, splits["future_test"], args.eval_batch, args.workers, alpha, cloud_region=region), classes)
+            write_json(path, {"mode": "frozen", "condition": name, "future_test": metrics, "predictions": predictions.tolist()})
+    del backbone
+    torch.cuda.empty_cache()
+    for seed in args.seeds:
+        for mode in ("plain",) + ANCHOR_MODES:
+            anchor_lambda = 0.0 if mode == "plain" else float(chosen[f"clean/{mode}"])
+            path = out / f"{mode}_l{anchor_lambda}_s{seed}.json"
+            if path.exists():
+                continue
+            result = train_arm(args, cache, splits, head, classes, mode, anchor_lambda, 0.0, seed, extra_tests=tests)
+            write_json(path, {**result, "condition": "clean_adapt_unseen_cloud"})
+            log(f"done {path.name}: clean={result['future_test']['macro_f1']:.4f} " + " ".join(f"{k}={v['future_test']['macro_f1']:.4f}" for k, v in result["shifted_tests"].items()))
+    summarize_unseen(args, splits)
+
+
+def summarize_unseen(args, splits):
+    labels = np.array([r["class_id"] for r in splits["future_test"]])
+    groups = np.array([r["group"] for r in splits["future_test"]])
+    runs = [json.loads(p.read_text()) for p in sorted((args.output / "unseen_cloud").glob("*_s*.json"))]
+    frozen = {p.stem.replace("frozen_", ""): json.loads(p.read_text())["future_test"] for p in (args.output / "unseen_cloud").glob("frozen_*.json")}
+    means, paired = {}, []
+    tests = ("clean",) + tuple(runs[0]["shifted_tests"]) if runs else ()
+    for test in tests:
+        def f1(run):
+            return run["future_test"]["macro_f1"] if test == "clean" else run["shifted_tests"][test]["future_test"]["macro_f1"]
+
+        def predictions(run):
+            return np.array(run["predictions"] if test == "clean" else run["shifted_tests"][test]["predictions"])
+        for mode in ("plain",) + ANCHOR_MODES:
+            values = [f1(r) for r in runs if r["mode"] == mode]
+            if values:
+                means[f"{test}/{mode}"] = {"seeds": len(values), "mean_test_macro_f1": float(np.mean(values)), "sd": float(np.std(values, ddof=1)) if len(values) > 1 else None}
+        for a, b in (("saliency", "uniform"), ("saliency", "shuffled"), ("saliency", "plain")):
+            for seed in args.seeds:
+                first = next((r for r in runs if r["mode"] == a and r["seed"] == seed), None)
+                second = next((r for r in runs if r["mode"] == b and r["seed"] == seed), None)
+                if first and second:
+                    difference = (predictions(first) == labels).astype(float) - (predictions(second) == labels).astype(float)
+                    paired.append({"test": test, "a": a, "b": b, "seed": seed, "delta_macro_f1": f1(first) - f1(second),
+                                   "delta_accuracy": cluster_bootstrap(difference, groups)})
+    write_json(args.output / "summary_unseen_cloud.json", {"frozen": frozen, "means": means, "paired": paired})
+    log("unseen-cloud summary", json.dumps(means, indent=1))
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--backbone", default="facebook/dinov2-large")
-    parser.add_argument("--stages", nargs="+", choices=("gate", "calib", "arms", "summary"), default=["gate", "calib", "arms", "summary"])
+    parser.add_argument("--stages", nargs="+", choices=("gate", "calib", "arms", "summary", "unseen_cloud"), default=["gate", "calib", "arms", "summary"])
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--eval-batch", type=int, default=64)
     parser.add_argument("--batch", type=int, default=16)
@@ -547,6 +653,8 @@ def main(argv=None):
         run_arms(args, cache, splits, head_state, classes, cloud["selected_alpha"])
     if "summary" in args.stages:
         log("summary", json.dumps(summarize(args, splits), indent=1))
+    if "unseen_cloud" in args.stages:
+        run_unseen_cloud_arms(args, cache, splits, head_state, classes)
 
 
 if __name__ == "__main__":
