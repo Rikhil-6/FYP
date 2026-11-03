@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import os
 import hashlib
 import json
 import math
@@ -37,9 +38,12 @@ STD = torch.tensor([0.229, 0.224, 0.225])[:, None, None]
 PERIODS = ("historical_2010_13", "adapt_2014_15", "future_2016_17")
 ANCHOR_MODES = ("uniform", "shuffled", "saliency")
 SALIENT_FRACTION = 0.4
-DEFAULT_MANIFEST = Path("/mnt/sdd/FYP/data/fmow_v1.1/subset_7k_country_matched/manifest_downloaded.csv")
-DEFAULT_CACHE = Path("/mnt/sdd/FYP/cache/fmow21k_u8_224.npy")
-DEFAULT_METADATA = Path("/mnt/sdd/FYP/data/fmow_v1.1/subset_7k_country_matched/acquisition_metadata.csv")
+# v2 run settings come from the environment so every downstream script picks them up unchanged.
+DEFAULT_MANIFEST = Path(os.environ.get("FYP_MANIFEST", "/mnt/sdd/FYP/data/fmow_v1.1/subset_7k_country_matched/manifest_downloaded.csv"))
+DEFAULT_CACHE = Path(os.environ.get("FYP_CACHE", "/mnt/sdd/FYP/cache/fmow21k_u8_224.npy"))
+DEFAULT_METADATA = Path(os.environ.get("FYP_METADATA", "/mnt/sdd/FYP/data/fmow_v1.1/subset_7k_country_matched/acquisition_metadata.csv"))
+IMAGE_SIZE = int(os.environ.get("FYP_IMG", "224"))      # input side in pixels (multiple of 14)
+CROP_CONTEXT = float(os.environ.get("FYP_CTX", "0"))     # 0 = whole scene; k = square crop of k x the object box
 
 
 def log(*parts):
@@ -63,11 +67,35 @@ def load_rows(manifest, metadata=DEFAULT_METADATA):
         for row in rows:
             extra = acquisition.get(row["key"], {})
             row.update({k: float(v) for k, v in extra.items() if k != "key" and v not in ("", None)})
+    if CROP_CONTEXT > 0:
+        apply_object_crop(rows, Path(manifest).with_name("image_sizes.json"))
     classes = sorted({r["category"] for r in rows})
     class_id = {name: i for i, name in enumerate(classes)}
     for i, row in enumerate(rows):
         row.update(class_id=class_id[row["category"]], idx=i, group=f"{row['country']}:{row['utm']}")
     return rows, len(classes)
+
+
+def apply_object_crop(rows, sizes_path):
+    """Square crop of CROP_CONTEXT x the object box (at least a quarter of the shorter side), kept inside the image.
+
+    Box fields are rewritten as fractions of the crop, so cloud placement and grounding tests stay aligned.
+    """
+    sizes = json.loads(sizes_path.read_text()) if sizes_path.exists() else {}
+    missing = [r for r in rows if r["key"] not in sizes]
+    for r in missing:
+        with Image.open(r["local_path"]) as image:
+            sizes[r["key"]] = image.size
+    if missing:
+        sizes_path.write_text(json.dumps(sizes))
+    for r in rows:
+        width, height = sizes[r["key"]]
+        bw, bh, cx, cy = r["box_w"] * width, r["box_h"] * height, r["box_cx"] * width, r["box_cy"] * height
+        side = min(max(max(bw, bh) * CROP_CONTEXT, 0.25 * min(width, height)), min(width, height))
+        x0 = min(max(cx - side / 2, 0), width - side)
+        y0 = min(max(cy - side / 2, 0), height - side)
+        r["crop"] = (x0, y0, x0 + side, y0 + side)
+        r.update(box_cx=(cx - x0) / side, box_cy=(cy - y0) / side, box_w=min(1.0, bw / side), box_h=min(1.0, bh / side))
 
 
 def split_by_group(rows, held_out_fraction, seed):
@@ -91,7 +119,7 @@ def image_cache(rows, path, workers):
     finished = path.with_suffix(".done")
     if finished.exists():
         return np.load(path, mmap_mode="r")
-    cache = np.lib.format.open_memmap(path, mode="w+", dtype=np.uint8, shape=(len(rows), 224, 224, 3))
+    cache = np.lib.format.open_memmap(path, mode="w+", dtype=np.uint8, shape=(len(rows), IMAGE_SIZE, IMAGE_SIZE, 3))
 
     class Decode(Dataset):
         def __len__(self):
@@ -99,8 +127,11 @@ def image_cache(rows, path, workers):
 
         def __getitem__(self, i):
             with Image.open(rows[i]["local_path"]) as image:
-                image.draft("RGB", (448, 448))
-                pixels = np.asarray(image.convert("RGB").resize((224, 224), Image.BILINEAR), dtype=np.uint8)
+                if "crop" in rows[i]:
+                    image = image.convert("RGB").crop(tuple(int(round(v)) for v in rows[i]["crop"]))
+                else:
+                    image.draft("RGB", (2 * IMAGE_SIZE, 2 * IMAGE_SIZE))
+                pixels = np.asarray(image.convert("RGB").resize((IMAGE_SIZE, IMAGE_SIZE), Image.BICUBIC), dtype=np.uint8)
             return i, torch.from_numpy(pixels.copy())
 
     for ids, images in DataLoader(Decode(), batch_size=64, num_workers=workers):
@@ -113,7 +144,7 @@ def image_cache(rows, path, workers):
 CLOUD_REGIONS = ("off_object", "on_object")
 
 
-def cloud_mask(key, seed=42, size=224):
+def cloud_mask(key, seed=42, size=IMAGE_SIZE):
     """Main-run cloud: the top 20% of a smoothed per-image noise field."""
     digest = hashlib.sha256(f"{seed}:{key}".encode()).digest()
     noise = torch.rand((1, 1, 16, 16), generator=torch.Generator().manual_seed(int.from_bytes(digest[:8], "little")))
@@ -129,7 +160,7 @@ def add_cloud(image, key, alpha, seed=42):
     return image * (1 - alpha * mask) + white * (alpha * mask)
 
 
-def fractal_field(key, size=224, octaves=5, seed=42):
+def fractal_field(key, size=IMAGE_SIZE, octaves=5, seed=42):
     """Multi-octave value noise in [0, 1], the usual cumulus-like texture for simulated clouds."""
     generator = torch.Generator().manual_seed(int.from_bytes(hashlib.sha256(f"{seed}:{key}:fbm".encode()).digest()[:8], "little"))
     field = torch.zeros(1, 1, size, size)
@@ -140,7 +171,7 @@ def fractal_field(key, size=224, octaves=5, seed=42):
     return (field - field.min()) / (field.max() - field.min())
 
 
-def object_box_mask(row, size=224, margin=0.1):
+def object_box_mask(row, size=IMAGE_SIZE, margin=0.1):
     """1 inside the image's labelled object box (plus a margin), 0 elsewhere."""
     mask = torch.zeros(size, size)
     half_w, half_h = (row["box_w"] / 2 + margin) * size, (row["box_h"] / 2 + margin) * size
@@ -149,7 +180,7 @@ def object_box_mask(row, size=224, margin=0.1):
     return mask
 
 
-def cumulus_opacity(row, region, size=224, clouds=6, seed=42):
+def cumulus_opacity(row, region, size=IMAGE_SIZE, clouds=6, seed=42):
     """Opacity of a few puffy cumulus clouds: soft round envelopes carrying fractal texture.
 
     Cloud centres are drawn outside the labelled object box for off_object and inside it
@@ -189,7 +220,7 @@ def realistic_cloud(pixels, row, strength, region, seed=42):
     """
     opacity = cumulus_opacity(row, region, pixels.shape[-1], seed=seed) * strength
     elevation = math.radians(max(5.0, float(row["sun_elevation"])))
-    offset = min(40.0, 14.0 / math.tan(elevation))
+    offset = min(40.0, 14.0 / math.tan(elevation)) * pixels.shape[-1] / 224
     azimuth = math.radians(float(row["sun_azimuth"]))
     dx, dy = int(round(-offset * math.sin(azimuth))), int(round(offset * math.cos(azimuth)))
     shadow = shifted(opacity, dy, dx) * (1 - opacity)

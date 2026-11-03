@@ -31,7 +31,9 @@ from fyp_drift.evaluation.saliency_attention_study import SaliencyAttentionHead,
 
 SOFT = ("soft_gated", "mix", "soft_prior")
 ARMS = SOFT + tuple(f"{a}_shuffled" for a in SOFT)
-RUNS = Path("/mnt/sdd/FYP/runs/today")
+import os
+RUNS = Path(os.environ.get("FYP_RUNS", "/mnt/sdd/FYP/runs/today"))
+TOKENS = Path(os.environ.get("FYP_TOKENS", "/mnt/sdd/FYP/cache/adapter_tokens"))
 
 
 class SoftSaliencyHead(SaliencyAttentionHead):
@@ -105,7 +107,7 @@ def main(argv=None):
     head_state = torch.load(RUNS / "main/head.pt", weights_only=True)
     width = head_state["weight"].shape[1]
     for condition in ("clean", "cloud"):
-        data = {s: (np.load(RUNS.parent.parent / "cache/adapter_tokens" / f"{condition}_{s}.npy", mmap_mode="r"), np.array([r["class_id"] for r in splits[s]])) for s in SPLITS}
+        data = {s: (np.load(TOKENS / f"{condition}_{s}.npy", mmap_mode="r"), np.array([r["class_id"] for r in splits[s]])) for s in SPLITS}
         for seed in args.seeds:
             for arm in ARMS:
                 path = args.output / f"{condition}_{arm}_s{seed}.json"
