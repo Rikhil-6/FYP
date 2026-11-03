@@ -164,10 +164,21 @@ def cumulus_opacity(row, region, size=224, clouds=6, seed=42):
     envelope = torch.zeros(size, size)
     for _ in range(clouds):
         cy, cx = candidates[torch.randint(len(candidates), (1,), generator=generator)].float()[0]
-        radius = 8 + 14 * torch.rand(1, generator=generator).item()
-        envelope = torch.maximum(envelope, torch.exp(-((ys - cy) ** 2 + (xs - cx) ** 2) / (2 * radius ** 2)))
+        radius = 6 + 10 * torch.rand(1, generator=generator).item()
+        for _ in range(4):  # irregular lobes around each centre, as in cumulus tops
+            ly, lx = cy + radius * torch.randn(1, generator=generator).item(), cx + radius * torch.randn(1, generator=generator).item()
+            ry, rx = radius * (0.5 + torch.rand(2, generator=generator)).tolist()
+            envelope = torch.maximum(envelope, torch.exp(-((ys - ly) ** 2 / (2 * ry ** 2) + (xs - lx) ** 2 / (2 * rx ** 2))))
     texture = fractal_field(row["key"], size, seed=seed)
-    return ((envelope * (0.6 + 0.8 * texture) - 0.45) / 0.35).clamp(0, 1)
+    return ((envelope * (0.4 + 1.2 * texture) - 0.5) / 0.3).clamp(0, 1)
+
+
+def shifted(field, dy, dx):
+    """Translate a 2-D field by (dy, dx) pixels, filling uncovered pixels with zero (no wrap-around)."""
+    out = torch.zeros_like(field)
+    h, w = field.shape
+    out[max(0, dy):h + min(0, dy), max(0, dx):w + min(0, dx)] = field[max(0, -dy):h - max(0, dy), max(0, -dx):w - max(0, dx)]
+    return out
 
 
 def realistic_cloud(pixels, row, strength, region, seed=42):
@@ -181,7 +192,7 @@ def realistic_cloud(pixels, row, strength, region, seed=42):
     offset = min(40.0, 14.0 / math.tan(elevation))
     azimuth = math.radians(float(row["sun_azimuth"]))
     dx, dy = int(round(-offset * math.sin(azimuth))), int(round(offset * math.cos(azimuth)))
-    shadow = torch.roll(opacity, shifts=(dy, dx), dims=(0, 1)) * (1 - opacity)
+    shadow = shifted(opacity, dy, dx) * (1 - opacity)
     shaded = pixels * (1 - 0.6 * shadow)
     brightness = 0.88 + 0.12 * fractal_field(row["key"] + ":shade", pixels.shape[-1], seed=seed)
     cloud_colour = torch.stack([0.96 * brightness, 0.97 * brightness, brightness])
