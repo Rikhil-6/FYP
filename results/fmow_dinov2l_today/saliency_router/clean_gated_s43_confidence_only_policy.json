@@ -1,0 +1,26 @@
+{
+  "name": "confidence_only",
+  "features": [
+    "confidence_gain",
+    "entropy_reduction"
+  ],
+  "mean": [
+    0.10764393210411072,
+    0.4885825216770172
+  ],
+  "scale": [
+    0.26200851798057556,
+    0.661912202835083
+  ],
+  "calibration_images": 210,
+  "calibration_disagreements": 78,
+  "calibration_helpful": 17,
+  "coefficients": [
+    0.013989566825330257,
+    0.6591204404830933
+  ],
+  "intercept": -0.15320134162902832,
+  "floor": 0.0,
+  "threshold": 0.5,
+  "calibration_macro_f1": 0.3282135253234531
+}

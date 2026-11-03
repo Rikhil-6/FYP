@@ -1,0 +1,58 @@
++ cd /home/ubuntu/FYP-saliency-layer-full-bundle-20261103
++ export PYTHONPATH=src HF_HOME=/mnt/sdd/FYP/cache/huggingface
++ PYTHONPATH=src
++ HF_HOME=/mnt/sdd/FYP/cache/huggingface
++ PY=/mnt/sdd/FYP/venv/bin/python
++ OUT=/mnt/sdd/FYP/runs/today/main
++ /mnt/sdd/FYP/venv/bin/python fmow_today.py --output /mnt/sdd/FYP/runs/today/main --stages cache features gate calib
+04:16:54 rows 21000 classes 62 {'hist_train': 6114, 'hist_val': 886, 'adapt_train': 6560, 'adapt_val': 440, 'future_test': 3356, 'future_all': 7000}
+04:16:55 cache 64/21000 (1s)
+04:17:05 cache 3264/21000 (11s)
+04:17:17 cache 6464/21000 (23s)
+04:17:27 cache 9664/21000 (33s)
+04:17:40 cache 12864/21000 (46s)
+04:17:58 cache 16064/21000 (64s)
+04:18:14 cache 19264/21000 (80s)
+04:18:51 features 0/21000 (2s)
+04:19:19 features 3200/21000 (30s)
+04:19:48 features 6400/21000 (58s)
+04:20:17 features 9600/21000 (87s)
+04:20:46 features 12800/21000 (117s)
+04:21:15 features 16000/21000 (146s)
+04:21:45 features 19200/21000 (175s)
+04:22:01 features done: 109.6 img/s
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:22:24 drift historical_vs_future 0.0012703544680037204 0.05 0.606826
+04:22:47 drift historical_vs_adapt 0.0008905667098222381 0.268 0.544602
+04:23:11 drift historical_split_half_null 0.0006079979403335045 0.8 0.511178
+04:23:16 GATE {"harm_gate_passed": false, "accuracy_gap_hist_val_minus_future": {"mean": -0.06437272366028553, "ci95": [-0.11339165087885307, -0.018858061552980445]}} {'hist_val': 0.2744, 'adapt_val': 0.3042, 'adapt_train': 0.364, 'future_test': 0.3299, 'future_all': 0.3399}
+04:23:25 calib 0.0 0.2744219264244191
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:23:33 calib 0.2 0.2522591145088685
+04:23:42 calib 0.35 0.24633041902739006
+04:23:50 calib 0.5 0.23589592430548229
+04:23:59 calib 0.7 0.23204301755470075
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:24:07 calib 0.85 0.2284740047573481
++ mkdir -p /mnt/sdd/FYP/runs/today/smoke
++ for f in features.npz gate.json head.pt calib.json
++ ln -sf /mnt/sdd/FYP/runs/today/main/features.npz /mnt/sdd/FYP/runs/today/smoke/features.npz
++ for f in features.npz gate.json head.pt calib.json
++ ln -sf /mnt/sdd/FYP/runs/today/main/gate.json /mnt/sdd/FYP/runs/today/smoke/gate.json
++ for f in features.npz gate.json head.pt calib.json
++ ln -sf /mnt/sdd/FYP/runs/today/main/head.pt /mnt/sdd/FYP/runs/today/smoke/head.pt
++ for f in features.npz gate.json head.pt calib.json
++ ln -sf /mnt/sdd/FYP/runs/today/main/calib.json /mnt/sdd/FYP/runs/today/smoke/calib.json
++ /mnt/sdd/FYP/venv/bin/python fmow_today.py --output /mnt/sdd/FYP/runs/today/smoke --stages arms summary --limit 48 --epochs 1 --seeds 42 --lambdas 1.0
+04:24:11 rows 21000 classes 62 {'hist_train': 48, 'hist_val': 48, 'adapt_train': 48, 'adapt_val': 48, 'future_test': 48, 'future_all': 48}
+Traceback (most recent call last):
+  File "/home/ubuntu/FYP-saliency-layer-full-bundle-20261103/fmow_today.py", line 578, in <module>
+    main()
+  File "/home/ubuntu/FYP-saliency-layer-full-bundle-20261103/fmow_today.py", line 572, in main
+    stage_arms(args, cache, splits, head_state, len(classes), calib["selected_alpha"])
+                                                              ~~~~~^^^^^^^^^^^^^^^^^^
+TypeError: 'NoneType' object is not subscriptable
++ exit 1

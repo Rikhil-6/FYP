@@ -1,0 +1,455 @@
++ cd /home/ubuntu/FYP-saliency-layer-full-bundle-20261103
++ export PYTHONPATH=src HF_HOME=/mnt/sdd/FYP/cache/huggingface
++ PYTHONPATH=src
++ HF_HOME=/mnt/sdd/FYP/cache/huggingface
++ PY=/mnt/sdd/FYP/venv/bin/python
++ M=fyp_drift.evaluation.fmow_dinov2l_study
++ rm -rf /mnt/sdd/FYP/runs/today/smoke/arms
++ /mnt/sdd/FYP/venv/bin/python -m fyp_drift.evaluation.fmow_dinov2l_study --output /mnt/sdd/FYP/runs/today/smoke --stages arms summary --limit 48 --epochs 1 --seeds 42 --lambdas 1.0
+04:25:45 gate False {'mean': -0.06437272366028553, 'ci95': [-0.11339165087885307, -0.018858061552980445]}
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+/home/ubuntu/FYP-saliency-layer-full-bundle-20261103/src/fyp_drift/evaluation/fmow_dinov2l_study.py:400: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:820.)
+  losses["ce"] += float(ce)
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:25:53   plain lambda=0.0 alpha=0.0 seed=42 epoch=1 val_f1=0.0505
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:25:54 done clean_plain_l0.0_s42.json: test_f1=0.0252 peak=2.3GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:25:57   uniform lambda=1.0 alpha=0.0 seed=42 epoch=1 val_f1=0.0505
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:25:57 done clean_uniform_l1.0_s42.json: test_f1=0.0252 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:26:00   shuffled lambda=1.0 alpha=0.0 seed=42 epoch=1 val_f1=0.0505
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:26:01 done clean_shuffled_l1.0_s42.json: test_f1=0.0252 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:26:04   saliency lambda=1.0 alpha=0.0 seed=42 epoch=1 val_f1=0.0505
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:26:05 done clean_saliency_l1.0_s42.json: test_f1=0.0252 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:26:08   plain lambda=0.0 alpha=0.85 seed=42 epoch=1 val_f1=0.0645
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:26:08 done cloud_plain_l0.0_s42.json: test_f1=0.0248 peak=2.3GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:26:11   uniform lambda=1.0 alpha=0.85 seed=42 epoch=1 val_f1=0.0645
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:26:12 done cloud_uniform_l1.0_s42.json: test_f1=0.0248 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:26:15   shuffled lambda=1.0 alpha=0.85 seed=42 epoch=1 val_f1=0.0645
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:26:16 done cloud_shuffled_l1.0_s42.json: test_f1=0.0248 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:26:19   saliency lambda=1.0 alpha=0.85 seed=42 epoch=1 val_f1=0.0645
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:26:20 done cloud_saliency_l1.0_s42.json: test_f1=0.0248 peak=2.4GiB
+04:26:20 summary {
+ "clean/plain": {
+  "lambda": 0.0,
+  "seeds": 1,
+  "mean_test_macro_f1": 0.025188445151926593,
+  "sd": null
+ },
+ "clean/uniform": {
+  "lambda": 1.0,
+  "seeds": 1,
+  "mean_test_macro_f1": 0.025188445151926593,
+  "sd": null
+ },
+ "clean/shuffled": {
+  "lambda": 1.0,
+  "seeds": 1,
+  "mean_test_macro_f1": 0.025188445151926593,
+  "sd": null
+ },
+ "clean/saliency": {
+  "lambda": 1.0,
+  "seeds": 1,
+  "mean_test_macro_f1": 0.025188445151926593,
+  "sd": null
+ },
+ "cloud/plain": {
+  "lambda": 0.0,
+  "seeds": 1,
+  "mean_test_macro_f1": 0.02481389578163772,
+  "sd": null
+ },
+ "cloud/uniform": {
+  "lambda": 1.0,
+  "seeds": 1,
+  "mean_test_macro_f1": 0.02481389578163772,
+  "sd": null
+ },
+ "cloud/shuffled": {
+  "lambda": 1.0,
+  "seeds": 1,
+  "mean_test_macro_f1": 0.02481389578163772,
+  "sd": null
+ },
+ "cloud/saliency": {
+  "lambda": 1.0,
+  "seeds": 1,
+  "mean_test_macro_f1": 0.02481389578163772,
+  "sd": null
+ }
+}
++ /mnt/sdd/FYP/venv/bin/python -m fyp_drift.evaluation.fmow_dinov2l_study --output /mnt/sdd/FYP/runs/today/main --stages arms summary
+04:26:24 gate False {'mean': -0.06437272366028553, 'ci95': [-0.11339165087885307, -0.018858061552980445]}
+/home/ubuntu/FYP-saliency-layer-full-bundle-20261103/src/fyp_drift/evaluation/fmow_dinov2l_study.py:400: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:820.)
+  losses["ce"] += float(ce)
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:29:15   plain lambda=0.0 alpha=0.0 seed=42 epoch=1 val_f1=0.3636
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:31:00   plain lambda=0.0 alpha=0.0 seed=42 epoch=2 val_f1=0.3580
+04:31:34 done clean_plain_l0.0_s42.json: test_f1=0.4167 peak=2.3GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:33:36   uniform lambda=1.0 alpha=0.0 seed=42 epoch=1 val_f1=0.3511
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:35:38   uniform lambda=1.0 alpha=0.0 seed=42 epoch=2 val_f1=0.3393
+04:36:11 done clean_uniform_l1.0_s42.json: test_f1=0.4055 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:38:14   uniform lambda=10.0 alpha=0.0 seed=42 epoch=1 val_f1=0.3281
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:40:16   uniform lambda=10.0 alpha=0.0 seed=42 epoch=2 val_f1=0.3112
+04:40:49 done clean_uniform_l10.0_s42.json: test_f1=0.3624 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:42:52   shuffled lambda=1.0 alpha=0.0 seed=42 epoch=1 val_f1=0.3511
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:44:54   shuffled lambda=1.0 alpha=0.0 seed=42 epoch=2 val_f1=0.3367
+04:45:28 done clean_shuffled_l1.0_s42.json: test_f1=0.4050 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:47:31   shuffled lambda=10.0 alpha=0.0 seed=42 epoch=1 val_f1=0.3281
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:49:33   shuffled lambda=10.0 alpha=0.0 seed=42 epoch=2 val_f1=0.3112
+04:50:06 done clean_shuffled_l10.0_s42.json: test_f1=0.3625 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:52:09   saliency lambda=1.0 alpha=0.0 seed=42 epoch=1 val_f1=0.3509
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:54:11   saliency lambda=1.0 alpha=0.0 seed=42 epoch=2 val_f1=0.3439
+04:54:44 done clean_saliency_l1.0_s42.json: test_f1=0.4044 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+04:56:47   saliency lambda=10.0 alpha=0.0 seed=42 epoch=1 val_f1=0.3281
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:00:43   saliency lambda=10.0 alpha=0.0 seed=42 epoch=2 val_f1=0.3084
+05:01:56 done clean_saliency_l10.0_s42.json: test_f1=0.3591 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:05:49   plain lambda=0.0 alpha=0.85 seed=42 epoch=1 val_f1=0.3190
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:09:30   plain lambda=0.0 alpha=0.85 seed=42 epoch=2 val_f1=0.3512
+05:10:43 done cloud_plain_l0.0_s42.json: test_f1=0.3855 peak=2.3GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:15:07   uniform lambda=1.0 alpha=0.85 seed=42 epoch=1 val_f1=0.3034
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:19:21   uniform lambda=1.0 alpha=0.85 seed=42 epoch=2 val_f1=0.3423
+05:20:14 done cloud_uniform_l1.0_s42.json: test_f1=0.3764 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:23:36   uniform lambda=10.0 alpha=0.85 seed=42 epoch=1 val_f1=0.2973
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:26:31   uniform lambda=10.0 alpha=0.85 seed=42 epoch=2 val_f1=0.3291
+05:27:43 done cloud_uniform_l10.0_s42.json: test_f1=0.3510 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:31:54   shuffled lambda=1.0 alpha=0.85 seed=42 epoch=1 val_f1=0.3034
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:34:32   shuffled lambda=1.0 alpha=0.85 seed=42 epoch=2 val_f1=0.3423
+05:35:30 done cloud_shuffled_l1.0_s42.json: test_f1=0.3763 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:38:32   shuffled lambda=10.0 alpha=0.85 seed=42 epoch=1 val_f1=0.2973
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:40:38   shuffled lambda=10.0 alpha=0.85 seed=42 epoch=2 val_f1=0.3288
+05:41:16 done cloud_shuffled_l10.0_s42.json: test_f1=0.3509 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:44:35   saliency lambda=1.0 alpha=0.85 seed=42 epoch=1 val_f1=0.3055
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:47:44   saliency lambda=1.0 alpha=0.85 seed=42 epoch=2 val_f1=0.3433
+05:48:56 done cloud_saliency_l1.0_s42.json: test_f1=0.3740 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:54:34   saliency lambda=10.0 alpha=0.85 seed=42 epoch=1 val_f1=0.2958
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+05:58:39   saliency lambda=10.0 alpha=0.85 seed=42 epoch=2 val_f1=0.3299
+05:59:21 done cloud_saliency_l10.0_s42.json: test_f1=0.3491 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:03:08   plain lambda=0.0 alpha=0.0 seed=43 epoch=1 val_f1=0.3279
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:06:30   plain lambda=0.0 alpha=0.0 seed=43 epoch=2 val_f1=0.4010
+06:08:01 done clean_plain_l0.0_s43.json: test_f1=0.4057 peak=2.3GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:13:27   uniform lambda=1.0 alpha=0.0 seed=43 epoch=1 val_f1=0.3194
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:16:21   uniform lambda=1.0 alpha=0.0 seed=43 epoch=2 val_f1=0.3724
+06:17:05 done clean_uniform_l1.0_s43.json: test_f1=0.4044 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:19:48   uniform lambda=10.0 alpha=0.0 seed=43 epoch=1 val_f1=0.3102
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:22:20   uniform lambda=10.0 alpha=0.0 seed=43 epoch=2 val_f1=0.3302
+06:23:02 done clean_uniform_l10.0_s43.json: test_f1=0.3758 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:25:05   shuffled lambda=1.0 alpha=0.0 seed=43 epoch=1 val_f1=0.3171
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:27:07   shuffled lambda=1.0 alpha=0.0 seed=43 epoch=2 val_f1=0.3724
+06:27:41 done clean_shuffled_l1.0_s43.json: test_f1=0.4040 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:29:44   shuffled lambda=10.0 alpha=0.0 seed=43 epoch=1 val_f1=0.3102
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:31:46   shuffled lambda=10.0 alpha=0.0 seed=43 epoch=2 val_f1=0.3304
+06:32:19 done clean_shuffled_l10.0_s43.json: test_f1=0.3761 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:34:22   saliency lambda=1.0 alpha=0.0 seed=43 epoch=1 val_f1=0.3302
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:36:24   saliency lambda=1.0 alpha=0.0 seed=43 epoch=2 val_f1=0.3795
+06:36:58 done clean_saliency_l1.0_s43.json: test_f1=0.4044 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:39:01   saliency lambda=10.0 alpha=0.0 seed=43 epoch=1 val_f1=0.3107
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:41:03   saliency lambda=10.0 alpha=0.0 seed=43 epoch=2 val_f1=0.3279
+06:41:36 done clean_saliency_l10.0_s43.json: test_f1=0.3745 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:43:23   plain lambda=0.0 alpha=0.85 seed=43 epoch=1 val_f1=0.3054
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:45:08   plain lambda=0.0 alpha=0.85 seed=43 epoch=2 val_f1=0.3231
+06:45:42 done cloud_plain_l0.0_s43.json: test_f1=0.3883 peak=2.3GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:47:45   uniform lambda=1.0 alpha=0.85 seed=43 epoch=1 val_f1=0.3424
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:49:47   uniform lambda=1.0 alpha=0.85 seed=43 epoch=2 val_f1=0.3367
+06:50:20 done cloud_uniform_l1.0_s43.json: test_f1=0.3750 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:52:23   uniform lambda=10.0 alpha=0.85 seed=43 epoch=1 val_f1=0.2915
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:54:25   uniform lambda=10.0 alpha=0.85 seed=43 epoch=2 val_f1=0.3231
+06:54:59 done cloud_uniform_l10.0_s43.json: test_f1=0.3481 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:57:02   shuffled lambda=1.0 alpha=0.85 seed=43 epoch=1 val_f1=0.3424
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+06:59:05   shuffled lambda=1.0 alpha=0.85 seed=43 epoch=2 val_f1=0.3367
+06:59:38 done cloud_shuffled_l1.0_s43.json: test_f1=0.3737 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:01:42   shuffled lambda=10.0 alpha=0.85 seed=43 epoch=1 val_f1=0.2934
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:03:44   shuffled lambda=10.0 alpha=0.85 seed=43 epoch=2 val_f1=0.3231
+07:04:18 done cloud_shuffled_l10.0_s43.json: test_f1=0.3477 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:06:21   saliency lambda=1.0 alpha=0.85 seed=43 epoch=1 val_f1=0.3404
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:08:23   saliency lambda=1.0 alpha=0.85 seed=43 epoch=2 val_f1=0.3429
+07:08:56 done cloud_saliency_l1.0_s43.json: test_f1=0.3749 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:11:00   saliency lambda=10.0 alpha=0.85 seed=43 epoch=1 val_f1=0.2905
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:13:01   saliency lambda=10.0 alpha=0.85 seed=43 epoch=2 val_f1=0.3233
+07:13:35 done cloud_saliency_l10.0_s43.json: test_f1=0.3461 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:15:22   plain lambda=0.0 alpha=0.0 seed=44 epoch=1 val_f1=0.3545
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:17:07   plain lambda=0.0 alpha=0.0 seed=44 epoch=2 val_f1=0.3390
+07:17:40 done clean_plain_l0.0_s44.json: test_f1=0.4025 peak=2.3GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:19:43   uniform lambda=1.0 alpha=0.0 seed=44 epoch=1 val_f1=0.3591
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:21:45   uniform lambda=1.0 alpha=0.0 seed=44 epoch=2 val_f1=0.3421
+07:22:18 done clean_uniform_l1.0_s44.json: test_f1=0.3955 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:24:21   uniform lambda=10.0 alpha=0.0 seed=44 epoch=1 val_f1=0.3357
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:26:23   uniform lambda=10.0 alpha=0.0 seed=44 epoch=2 val_f1=0.3316
+07:26:57 done clean_uniform_l10.0_s44.json: test_f1=0.3565 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:29:00   shuffled lambda=1.0 alpha=0.0 seed=44 epoch=1 val_f1=0.3591
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:31:02   shuffled lambda=1.0 alpha=0.0 seed=44 epoch=2 val_f1=0.3421
+07:31:35 done clean_shuffled_l1.0_s44.json: test_f1=0.3953 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:33:38   shuffled lambda=10.0 alpha=0.0 seed=44 epoch=1 val_f1=0.3357
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:35:40   shuffled lambda=10.0 alpha=0.0 seed=44 epoch=2 val_f1=0.3316
+07:36:14 done clean_shuffled_l10.0_s44.json: test_f1=0.3561 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:38:17   saliency lambda=1.0 alpha=0.0 seed=44 epoch=1 val_f1=0.3540
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:40:19   saliency lambda=1.0 alpha=0.0 seed=44 epoch=2 val_f1=0.3411
+07:40:52 done clean_saliency_l1.0_s44.json: test_f1=0.3932 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:42:55   saliency lambda=10.0 alpha=0.0 seed=44 epoch=1 val_f1=0.3354
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:44:57   saliency lambda=10.0 alpha=0.0 seed=44 epoch=2 val_f1=0.3239
+07:45:31 done clean_saliency_l10.0_s44.json: test_f1=0.3562 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:47:17   plain lambda=0.0 alpha=0.85 seed=44 epoch=1 val_f1=0.3117
+07:49:02   plain lambda=0.0 alpha=0.85 seed=44 epoch=2 val_f1=0.3041
+07:49:36 done cloud_plain_l0.0_s44.json: test_f1=0.3837 peak=2.3GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:51:39   uniform lambda=1.0 alpha=0.85 seed=44 epoch=1 val_f1=0.3175
+07:53:41   uniform lambda=1.0 alpha=0.85 seed=44 epoch=2 val_f1=0.3115
+07:54:15 done cloud_uniform_l1.0_s44.json: test_f1=0.3616 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:56:18   uniform lambda=10.0 alpha=0.85 seed=44 epoch=1 val_f1=0.2996
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+07:58:20   uniform lambda=10.0 alpha=0.85 seed=44 epoch=2 val_f1=0.3114
+07:58:54 done cloud_uniform_l10.0_s44.json: test_f1=0.3312 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+08:00:57   shuffled lambda=1.0 alpha=0.85 seed=44 epoch=1 val_f1=0.3166
+08:02:59   shuffled lambda=1.0 alpha=0.85 seed=44 epoch=2 val_f1=0.3115
+08:03:33 done cloud_shuffled_l1.0_s44.json: test_f1=0.3619 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+08:05:36   shuffled lambda=10.0 alpha=0.85 seed=44 epoch=1 val_f1=0.2996
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+08:07:39   shuffled lambda=10.0 alpha=0.85 seed=44 epoch=2 val_f1=0.3114
+08:08:12 done cloud_shuffled_l10.0_s44.json: test_f1=0.3316 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+08:10:30   saliency lambda=1.0 alpha=0.85 seed=44 epoch=1 val_f1=0.3211
+08:13:32   saliency lambda=1.0 alpha=0.85 seed=44 epoch=2 val_f1=0.3095
+08:14:22 done cloud_saliency_l1.0_s44.json: test_f1=0.3603 peak=2.4GiB
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+08:17:15   saliency lambda=10.0 alpha=0.85 seed=44 epoch=1 val_f1=0.3005
+/mnt/sdd/FYP/venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+08:20:14   saliency lambda=10.0 alpha=0.85 seed=44 epoch=2 val_f1=0.3070
+08:21:04 done cloud_saliency_l10.0_s44.json: test_f1=0.3329 peak=2.4GiB
+08:21:10 summary {
+ "clean/plain": {
+  "lambda": 0.0,
+  "seeds": 3,
+  "mean_test_macro_f1": 0.4082957737526347,
+  "sd": 0.007421909266398099
+ },
+ "clean/uniform": {
+  "lambda": 1.0,
+  "seeds": 3,
+  "mean_test_macro_f1": 0.4018022344161618,
+  "sd": 0.005451310500269243
+ },
+ "clean/shuffled": {
+  "lambda": 1.0,
+  "seeds": 3,
+  "mean_test_macro_f1": 0.4014508051937396,
+  "sd": 0.005355502019326572
+ },
+ "clean/saliency": {
+  "lambda": 1.0,
+  "seeds": 3,
+  "mean_test_macro_f1": 0.4006620131013989,
+  "sd": 0.00649693330252332
+ },
+ "cloud/plain": {
+  "lambda": 0.0,
+  "seeds": 3,
+  "mean_test_macro_f1": 0.3858181842492687,
+  "sd": 0.002331732812582305
+ },
+ "cloud/uniform": {
+  "lambda": 1.0,
+  "seeds": 3,
+  "mean_test_macro_f1": 0.3710077527704369,
+  "sd": 0.008191081465653552
+ },
+ "cloud/shuffled": {
+  "lambda": 1.0,
+  "seeds": 3,
+  "mean_test_macro_f1": 0.37062083534156853,
+  "sd": 0.007679709973012533
+ },
+ "cloud/saliency": {
+  "lambda": 1.0,
+  "seeds": 3,
+  "mean_test_macro_f1": 0.36972992791648523,
+  "sd": 0.008168716242079077
+ }
+}

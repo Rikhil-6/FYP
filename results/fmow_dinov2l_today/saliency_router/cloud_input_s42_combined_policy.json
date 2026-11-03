@@ -1,0 +1,34 @@
+{
+  "name": "combined",
+  "features": [
+    "saliency_js",
+    "confidence_gain",
+    "entropy_reduction",
+    "evidence_gain"
+  ],
+  "mean": [
+    0.2863808274269104,
+    0.07842671126127243,
+    0.22258523106575012,
+    -5.590224742889404
+  ],
+  "scale": [
+    0.04776553809642792,
+    0.2935468852519989,
+    0.8180620670318604,
+    3.702202558517456
+  ],
+  "calibration_images": 210,
+  "calibration_disagreements": 122,
+  "calibration_helpful": 37,
+  "coefficients": [
+    -0.023383576422929764,
+    0.8637019395828247,
+    -0.410521924495697,
+    0.08456198871135712
+  ],
+  "intercept": -0.05857202410697937,
+  "floor": 0.18764877319335938,
+  "threshold": 0.4,
+  "calibration_macro_f1": 0.32397401927893105
+}
