@@ -39,7 +39,8 @@ from fyp_drift.evaluation.saliency_adapters import SPLITS, batches
 SALIENCY_ARMS = ("guided", "prior", "gated", "input")
 ARMS = ("attention",) + SALIENCY_ARMS + tuple(f"{a}_shuffled" for a in SALIENCY_ARMS)
 from fyp_drift.evaluation.fmow_dinov2l_study import IMAGE_SIZE
-GRID = IMAGE_SIZE // 14
+import os
+GRID = int(os.environ.get("FYP_GRID", IMAGE_SIZE // 14))  # v2 pools 2x2 tokens -> 10x10 grid
 
 
 class SaliencyAttentionHead(nn.Module):
@@ -173,7 +174,7 @@ def grounding(weights, rows, cloudy):
     result = {"box_mass": float(mass.mean()), "box_share": float(chance.mean()), "box_mass_over_share": float((mass / chance).mean()),
               "pointing_game": float(hit.mean())}
     if cloudy:
-        clouds = torch.stack([(F.avg_pool2d(cloud_mask(r["local_path"])[None], 14)[0, 0] > 0.5).flatten() for r in rows]).float()
+        clouds = torch.stack([(F.avg_pool2d(cloud_mask(r["local_path"])[None], IMAGE_SIZE // GRID)[0, 0] > 0.5).flatten() for r in rows]).float()
         has_cloud = clouds.sum(1) > 0
         result |= {"cloud_mass": float((weights * clouds).sum(1)[has_cloud].mean()), "cloud_share": float(clouds.mean(1)[has_cloud].mean())}
     return result
