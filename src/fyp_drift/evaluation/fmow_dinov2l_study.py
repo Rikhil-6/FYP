@@ -36,7 +36,8 @@ Image.MAX_IMAGE_PIXELS = None
 MEAN = torch.tensor([0.485, 0.456, 0.406])[:, None, None]
 STD = torch.tensor([0.229, 0.224, 0.225])[:, None, None]
 PERIODS = ("historical_2010_13", "adapt_2014_15", "future_2016_17")
-ANCHOR_MODES = ("uniform", "shuffled", "saliency")
+# FYP_ANCHOR_MODES="" trains plain LoRA only (v2 time budget); default keeps all three anchors
+ANCHOR_MODES = tuple(m for m in os.environ.get("FYP_ANCHOR_MODES", "uniform,shuffled,saliency").split(",") if m)
 SALIENT_FRACTION = 0.4
 # v2 run settings come from the environment so every downstream script picks them up unchanged.
 DEFAULT_MANIFEST = Path(os.environ.get("FYP_MANIFEST", "/mnt/sdd/FYP/data/fmow_v1.1/subset_7k_country_matched/manifest_downloaded.csv"))
@@ -678,7 +679,7 @@ def run_unseen_cloud_arms(args, cache, splits, head_state, classes):
     torch.cuda.empty_cache()
     for seed in args.seeds:
         for mode in ("plain",) + ANCHOR_MODES:
-            anchor_lambda = 0.0 if mode == "plain" else float(chosen[f"clean/{mode}"])
+            anchor_lambda = 0.0 if mode == "plain" else float(chosen.get(f"clean/{mode}", 1.0))  # v1 chose 1.0 for every anchor
             path = out / f"{mode}_l{anchor_lambda}_s{seed}.json"
             if path.exists():
                 continue
