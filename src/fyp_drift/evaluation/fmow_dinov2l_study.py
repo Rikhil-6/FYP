@@ -52,10 +52,16 @@ def write_json(path, obj):
 
 
 # --------------------------------------------------------------------------- data
-def load_rows(manifest):
-    """Downloaded manifest rows with a dense class id, row index and location group."""
+def load_rows(manifest, metadata=DEFAULT_METADATA):
+    """Downloaded manifest rows with a dense class id, row index, location group and, when present, acquisition metadata."""
     with open(manifest, newline="", encoding="utf-8") as handle:
         rows = [r for r in csv.DictReader(handle) if r.get("local_path") and Path(r["local_path"]).exists()]
+    if Path(metadata).exists():
+        with open(metadata, newline="", encoding="utf-8") as handle:
+            acquisition = {m["key"]: m for m in csv.DictReader(handle)}
+        for row in rows:
+            extra = acquisition.get(row["key"], {})
+            row.update({k: float(v) for k, v in extra.items() if k != "key" and v not in ("", None)})
     classes = sorted({r["category"] for r in rows})
     class_id = {name: i for i, name in enumerate(classes)}
     for i, row in enumerate(rows):
@@ -103,40 +109,77 @@ def image_cache(rows, path, workers):
     return np.load(path, mmap_mode="r")
 
 
-CLOUD_REGIONS = ("anywhere", "off_object", "on_object")
+DEFAULT_METADATA = Path("/mnt/sdd/FYP/data/fmow_v1.1/subset_7k_country_matched/acquisition_metadata.csv")
+CLOUD_REGIONS = ("off_object", "on_object")
 
 
-def cloud_mask(key, region="anywhere", seed=42, size=224):
-    """Smooth near-binary cloud mask from a per-image seed.
-
-    anywhere: top 20% of a smoothed noise field (the main-run cloud).
-    off_object / on_object: the same field restricted to the border or to the central
-    half-width box where fMoW crops place the object; both cover 12.5% of the image.
-    """
+def cloud_mask(key, seed=42, size=224):
+    """Main-run cloud: the top 20% of a smoothed per-image noise field."""
     digest = hashlib.sha256(f"{seed}:{key}".encode()).digest()
     noise = torch.rand((1, 1, 16, 16), generator=torch.Generator().manual_seed(int.from_bytes(digest[:8], "little")))
     smooth = F.avg_pool2d(noise, 5, stride=1, padding=2)
-    if region == "anywhere":
-        mask = (smooth >= torch.quantile(smooth, 0.8)).float()
-    else:
-        centre = torch.zeros_like(smooth, dtype=torch.bool)
-        centre[..., 4:12, 4:12] = True
-        allowed = ~centre if region == "off_object" else centre
-        cells = round(0.125 * smooth.numel())
-        threshold = smooth[allowed].sort(descending=True).values[min(cells, int(allowed.sum())) - 1]
-        mask = ((smooth >= threshold) & allowed).float()
+    mask = (smooth >= torch.quantile(smooth, 0.8)).float()
     return F.interpolate(mask, size=(size, size), mode="bilinear", align_corners=False)[0]
 
 
-def add_cloud(image, key, alpha, seed=42, region="anywhere"):
-    """Blend a fixed near-white cloud into a normalized image; same key and region, same cloud."""
-    mask = cloud_mask(key, region, seed, image.shape[-1])
+def add_cloud(image, key, alpha, seed=42):
+    """Blend the main-run near-white cloud into a normalized image; same key, same cloud."""
+    mask = cloud_mask(key, seed, image.shape[-1])
     white = (1 - MEAN) / STD
     return image * (1 - alpha * mask) + white * (alpha * mask)
 
 
+def fractal_field(key, size=224, octaves=5, seed=42):
+    """Multi-octave value noise in [0, 1], the usual cumulus-like texture for simulated clouds."""
+    generator = torch.Generator().manual_seed(int.from_bytes(hashlib.sha256(f"{seed}:{key}:fbm".encode()).digest()[:8], "little"))
+    field = torch.zeros(1, 1, size, size)
+    for octave in range(octaves):
+        grid = torch.rand((1, 1, 4 * 2 ** octave, 4 * 2 ** octave), generator=generator)
+        field += 0.5 ** octave * F.interpolate(grid, size=(size, size), mode="bicubic", align_corners=False)
+    field = field[0, 0]
+    return (field - field.min()) / (field.max() - field.min())
+
+
+def object_box_mask(row, size=224, margin=0.1):
+    """1 inside the image's labelled object box (plus a margin), 0 elsewhere."""
+    mask = torch.zeros(size, size)
+    half_w, half_h = (row["box_w"] / 2 + margin) * size, (row["box_h"] / 2 + margin) * size
+    cx, cy = row["box_cx"] * size, row["box_cy"] * size
+    mask[max(0, int(cy - half_h)):min(size, int(cy + half_h) + 1), max(0, int(cx - half_w)):min(size, int(cx + half_w) + 1)] = 1
+    return mask
+
+
+def realistic_cloud(pixels, row, strength, region, coverage=0.2, seed=42):
+    """Composite a textured cloud with thin edges and a sun-consistent shadow onto [0, 1] pixels.
+
+    The cloud covers `coverage` of the allowed area: outside the labelled object box for
+    off_object, inside it for on_object. Its shadow is the cloud opacity displaced away from
+    the recorded sun azimuth by an offset that grows as the recorded sun elevation falls.
+    """
+    size = pixels.shape[-1]
+    field = fractal_field(row["key"], size, seed=seed)
+    box = object_box_mask(row, size)
+    allowed = (1 - box) if region == "off_object" else box
+    candidates = field[allowed > 0]
+    if candidates.numel() == 0:
+        return pixels
+    threshold = torch.quantile(candidates, 1 - min(1.0, coverage * size * size / candidates.numel()))
+    opacity = ((field - threshold) / 0.12).clamp(0, 1) * allowed * strength
+    elevation = math.radians(max(5.0, float(row["sun_elevation"])))
+    offset = min(40.0, 10.0 / math.tan(elevation))
+    azimuth = math.radians(float(row["sun_azimuth"]))
+    dx, dy = int(round(-offset * math.sin(azimuth))), int(round(offset * math.cos(azimuth)))
+    shadow = torch.roll(opacity, shifts=(dy, dx), dims=(0, 1)) * (1 - opacity)
+    shaded = pixels * (1 - 0.5 * shadow)
+    brightness = 0.85 + 0.15 * field
+    cloud_colour = torch.stack([0.95 * brightness, 0.96 * brightness, brightness])
+    return shaded * (1 - opacity) + cloud_colour * opacity
+
+
 class CachedImages(Dataset):
-    def __init__(self, cache, rows, cloud_alpha, cloud_region="anywhere"):
+    """Cached images, optionally with the main-run cloud (region None) or a realistic regional cloud."""
+
+    def __init__(self, cache, rows, cloud_alpha, cloud_region=None):
         self.cache, self.rows, self.cloud_alpha, self.cloud_region = cache, rows, cloud_alpha, cloud_region
 
     def __len__(self):
@@ -144,13 +187,16 @@ class CachedImages(Dataset):
 
     def __getitem__(self, i):
         row = self.rows[i]
-        image = (torch.from_numpy(np.array(self.cache[row["idx"]])).permute(2, 0, 1).float() / 255.0 - MEAN) / STD
-        if self.cloud_alpha > 0:
-            image = add_cloud(image, row["local_path"], self.cloud_alpha, region=self.cloud_region)
+        pixels = torch.from_numpy(np.array(self.cache[row["idx"]])).permute(2, 0, 1).float() / 255.0
+        if self.cloud_alpha > 0 and self.cloud_region:
+            pixels = realistic_cloud(pixels, row, self.cloud_alpha, self.cloud_region)
+        image = (pixels - MEAN) / STD
+        if self.cloud_alpha > 0 and not self.cloud_region:
+            image = add_cloud(image, row["local_path"], self.cloud_alpha)
         return image, row["class_id"], i
 
 
-def image_loader(cache, rows, batch_size, workers, cloud_alpha=0.0, shuffle_seed=None, cloud_region="anywhere"):
+def image_loader(cache, rows, batch_size, workers, cloud_alpha=0.0, shuffle_seed=None, cloud_region=None):
     """Evaluation order when shuffle_seed is None; otherwise a seeded shuffle that drops the last batch."""
     shuffle = shuffle_seed is not None
     generator = torch.Generator().manual_seed(shuffle_seed) if shuffle else None
@@ -534,15 +580,18 @@ def summarize(args, splits):
 
 
 def calibrate_region_clouds(args, cache, splits, head, classes):
-    """Per region, the alpha whose frozen historical-val macro-F1 drop is closest to 7.5 points."""
+    """Per region, the cloud strength whose frozen historical-val macro-F1 drop is closest to 7.5 points."""
     path = args.output / "calib_regions.json"
     if path.exists():
         return json.loads(path.read_text())
+    missing = [r["key"] for r in splits["hist_val"] + splits["future_test"] if "sun_elevation" not in r or "box_cx" not in r]
+    if missing:
+        raise RuntimeError(f"{len(missing)} images lack acquisition metadata; run fyp_drift.data.fmow_metadata first")
     backbone = Backbone(args.backbone).cuda().eval()
     result = {}
     for region in ("off_object", "on_object"):
         candidates = []
-        for alpha in (0.0, 0.5, 0.7, 0.85, 1.0):
+        for alpha in (0.0, 0.4, 0.6, 0.8, 1.0):
             metrics, _ = evaluate(backbone, head, image_loader(cache, splits["hist_val"], args.eval_batch, args.workers, alpha, cloud_region=region), classes)
             candidates.append({"alpha": alpha, **metrics})
         clean_f1 = candidates[0]["macro_f1"]
@@ -556,7 +605,7 @@ def calibrate_region_clouds(args, cache, splits, head, classes):
 
 
 def run_unseen_cloud_arms(args, cache, splits, head_state, classes):
-    """Adapt on clean images with each arm's adapt-val lambda, then score on unseen region clouds."""
+    """Adapt on clean images with each arm's adapt-val lambda, then score on unseen realistic clouds off and on the object."""
     head = nn.Linear(head_state["weight"].shape[1], classes).cuda().eval()
     head.load_state_dict(head_state)
     head.requires_grad_(False)
