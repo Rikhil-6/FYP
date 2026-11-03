@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from fyp_drift.evaluation.fmow_dinov2l_study import add_cloud, anchor_weights, cluster_bootstrap, split_by_group
+from fyp_drift.evaluation.fmow_dinov2l_study import add_cloud, anchor_weights, cloud_mask, cluster_bootstrap, split_by_group
 
 
 def rows(n=60):
@@ -40,3 +40,13 @@ def test_cluster_bootstrap_interval_contains_mean():
     groups = np.repeat(np.arange(50), 10)
     result = cluster_bootstrap(values, groups, repetitions=300)
     assert result["ci95"][0] <= result["mean"] <= result["ci95"][1]
+
+
+def test_region_clouds_stay_in_their_region():
+    off, on = cloud_mask("x", "off_object"), cloud_mask("x", "on_object")
+    centre = (slice(None), slice(84, 140), slice(84, 140))
+    assert off[centre].max() < 1e-6
+    assert on[centre].mean() > 0.2
+    assert on[:, :40, :].max() < 1e-6
+    assert 0.07 < off.mean() < 0.2
+    assert abs(off.mean() - on.mean()) < 0.03
