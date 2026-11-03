@@ -167,7 +167,7 @@ def cumulus_opacity(row, region, size=224, clouds=6, seed=42):
         radius = 6 + 10 * torch.rand(1, generator=generator).item()
         for _ in range(4):  # irregular lobes around each centre, as in cumulus tops
             ly, lx = cy + radius * torch.randn(1, generator=generator).item(), cx + radius * torch.randn(1, generator=generator).item()
-            ry, rx = radius * (0.5 + torch.rand(2, generator=generator)).tolist()
+            ry, rx = (radius * (0.5 + torch.rand(2, generator=generator))).tolist()
             envelope = torch.maximum(envelope, torch.exp(-((ys - ly) ** 2 / (2 * ry ** 2) + (xs - lx) ** 2 / (2 * rx ** 2))))
     texture = fractal_field(row["key"], size, seed=seed)
     return ((envelope * (0.4 + 1.2 * texture) - 0.5) / 0.3).clamp(0, 1)
