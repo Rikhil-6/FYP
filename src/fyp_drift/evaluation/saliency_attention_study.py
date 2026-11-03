@@ -38,7 +38,8 @@ from fyp_drift.evaluation.saliency_adapters import SPLITS, batches
 
 SALIENCY_ARMS = ("guided", "prior", "gated", "input")
 ARMS = ("attention",) + SALIENCY_ARMS + tuple(f"{a}_shuffled" for a in SALIENCY_ARMS)
-GRID = 16
+from fyp_drift.evaluation.fmow_dinov2l_study import IMAGE_SIZE
+GRID = IMAGE_SIZE // 14
 
 
 class SaliencyAttentionHead(nn.Module):

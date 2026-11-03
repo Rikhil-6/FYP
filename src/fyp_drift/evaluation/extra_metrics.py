@@ -30,7 +30,9 @@ from fyp_drift.evaluation.fmow_dinov2l_study import DEFAULT_MANIFEST, load_rows,
 from fyp_drift.evaluation.saliency_adapters import SPLITS, batches
 from fyp_drift.evaluation.saliency_attention_study import ARMS, box_patch_mask, train
 
-RUNS = Path("/mnt/sdd/FYP/runs/today")
+import os
+RUNS = Path(os.environ.get("FYP_RUNS", "/mnt/sdd/FYP/runs/today"))
+TOKENS = Path(os.environ.get("FYP_TOKENS", "/mnt/sdd/FYP/cache/adapter_tokens"))
 SEEDS = (42, 43, 44)
 CONTINENT_TO_REGION = {"NA": "Americas", "SA": "Americas", "EU": "Europe", "AS": "Asia", "AF": "Africa", "OC": "Oceania"}
 GUIDE = {"clean": 0.3, "cloud": 0.1}
@@ -208,7 +210,7 @@ def run_heads(output, epochs):
     heads_dir = output / "heads"
     heads_dir.mkdir(parents=True, exist_ok=True)
     for condition in ("clean", "cloud"):
-        data = {s: (np.load(RUNS.parent.parent / "cache/adapter_tokens" / f"{condition}_{s}.npy", mmap_mode="r"), np.array([r["class_id"] for r in splits[s]])) for s in SPLITS}
+        data = {s: (np.load(TOKENS / f"{condition}_{s}.npy", mmap_mode="r"), np.array([r["class_id"] for r in splits[s]])) for s in SPLITS}
         for seed in SEEDS:
             for arm in ARMS:
                 stem = f"{condition}_{arm}_s{seed}"
