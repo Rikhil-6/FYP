@@ -39,6 +39,7 @@ ANCHOR_MODES = ("uniform", "shuffled", "saliency")
 SALIENT_FRACTION = 0.4
 DEFAULT_MANIFEST = Path("/mnt/sdd/FYP/data/fmow_v1.1/subset_7k_country_matched/manifest_downloaded.csv")
 DEFAULT_CACHE = Path("/mnt/sdd/FYP/cache/fmow21k_u8_224.npy")
+DEFAULT_METADATA = Path("/mnt/sdd/FYP/data/fmow_v1.1/subset_7k_country_matched/acquisition_metadata.csv")
 
 
 def log(*parts):
@@ -109,7 +110,6 @@ def image_cache(rows, path, workers):
     return np.load(path, mmap_mode="r")
 
 
-DEFAULT_METADATA = Path("/mnt/sdd/FYP/data/fmow_v1.1/subset_7k_country_matched/acquisition_metadata.csv")
 CLOUD_REGIONS = ("off_object", "on_object")
 
 
