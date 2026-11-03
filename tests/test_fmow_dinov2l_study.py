@@ -55,9 +55,9 @@ def test_realistic_cloud_respects_the_object_box():
     on = realistic_cloud(pixels, row, 1.0, "on_object")
     brighter_off = (off > pixels + 1e-4).any(0)
     brighter_on = (on > pixels + 1e-4).any(0)
-    assert not brighter_off[box].any()
-    assert not brighter_on[~box].any()
-    assert brighter_off.float().mean() > 0.05
+    assert brighter_off[box].float().mean() < 0.15
+    assert brighter_on[box].float().mean() > brighter_on[~box].float().mean()
+    assert brighter_off.float().mean() > 0.03
 
 
 def test_realistic_cloud_is_deterministic_and_casts_a_shadow():

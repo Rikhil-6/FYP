@@ -149,30 +149,42 @@ def object_box_mask(row, size=224, margin=0.1):
     return mask
 
 
-def realistic_cloud(pixels, row, strength, region, coverage=0.2, seed=42):
-    """Composite a textured cloud with thin edges and a sun-consistent shadow onto [0, 1] pixels.
+def cumulus_opacity(row, region, size=224, clouds=6, seed=42):
+    """Opacity of a few puffy cumulus clouds: soft round envelopes carrying fractal texture.
 
-    The cloud covers `coverage` of the allowed area: outside the labelled object box for
-    off_object, inside it for on_object. Its shadow is the cloud opacity displaced away from
-    the recorded sun azimuth by an offset that grows as the recorded sun elevation falls.
+    Cloud centres are drawn outside the labelled object box for off_object and inside it
+    for on_object, so clouds keep natural rounded edges instead of being clipped to the box.
     """
-    size = pixels.shape[-1]
-    field = fractal_field(row["key"], size, seed=seed)
-    box = object_box_mask(row, size)
-    allowed = (1 - box) if region == "off_object" else box
-    candidates = field[allowed > 0]
-    if candidates.numel() == 0:
-        return pixels
-    threshold = torch.quantile(candidates, 1 - min(1.0, coverage * size * size / candidates.numel()))
-    opacity = ((field - threshold) / 0.12).clamp(0, 1) * allowed * strength
+    generator = torch.Generator().manual_seed(int.from_bytes(hashlib.sha256(f"{seed}:{row['key']}:cumulus".encode()).digest()[:8], "little"))
+    box = object_box_mask(row, size).bool()
+    candidates = (~box if region == "off_object" else box).nonzero()
+    if len(candidates) == 0:
+        return torch.zeros(size, size)
+    ys, xs = torch.meshgrid(torch.arange(size).float(), torch.arange(size).float(), indexing="ij")
+    envelope = torch.zeros(size, size)
+    for _ in range(clouds):
+        cy, cx = candidates[torch.randint(len(candidates), (1,), generator=generator)].float()[0]
+        radius = 8 + 14 * torch.rand(1, generator=generator).item()
+        envelope = torch.maximum(envelope, torch.exp(-((ys - cy) ** 2 + (xs - cx) ** 2) / (2 * radius ** 2)))
+    texture = fractal_field(row["key"], size, seed=seed)
+    return ((envelope * (0.6 + 0.8 * texture) - 0.45) / 0.35).clamp(0, 1)
+
+
+def realistic_cloud(pixels, row, strength, region, seed=42):
+    """Composite cumulus clouds with thin edges and a sun-consistent shadow onto [0, 1] pixels.
+
+    The shadow is the cloud opacity displaced away from the recorded sun azimuth by an
+    offset that grows as the recorded sun elevation falls, and it darkens the ground beneath.
+    """
+    opacity = cumulus_opacity(row, region, pixels.shape[-1], seed=seed) * strength
     elevation = math.radians(max(5.0, float(row["sun_elevation"])))
-    offset = min(40.0, 10.0 / math.tan(elevation))
+    offset = min(40.0, 14.0 / math.tan(elevation))
     azimuth = math.radians(float(row["sun_azimuth"]))
     dx, dy = int(round(-offset * math.sin(azimuth))), int(round(offset * math.cos(azimuth)))
     shadow = torch.roll(opacity, shifts=(dy, dx), dims=(0, 1)) * (1 - opacity)
-    shaded = pixels * (1 - 0.5 * shadow)
-    brightness = 0.85 + 0.15 * field
-    cloud_colour = torch.stack([0.95 * brightness, 0.96 * brightness, brightness])
+    shaded = pixels * (1 - 0.6 * shadow)
+    brightness = 0.88 + 0.12 * fractal_field(row["key"] + ":shade", pixels.shape[-1], seed=seed)
+    cloud_colour = torch.stack([0.96 * brightness, 0.97 * brightness, brightness])
     return shaded * (1 - opacity) + cloud_colour * opacity
 
 
