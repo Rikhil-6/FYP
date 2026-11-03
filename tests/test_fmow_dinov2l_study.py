@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from fyp_drift.evaluation.fmow_dinov2l_study import add_cloud, anchor_weights, cloud_mask, cluster_bootstrap, split_by_group
+from fyp_drift.evaluation.fmow_dinov2l_study import add_cloud, anchor_weights, cluster_bootstrap, object_box_mask, realistic_cloud, split_by_group
 
 
 def rows(n=60):
@@ -42,11 +42,26 @@ def test_cluster_bootstrap_interval_contains_mean():
     assert result["ci95"][0] <= result["mean"] <= result["ci95"][1]
 
 
-def test_region_clouds_stay_in_their_region():
-    off, on = cloud_mask("x", "off_object"), cloud_mask("x", "on_object")
-    centre = (slice(None), slice(84, 140), slice(84, 140))
-    assert off[centre].max() < 1e-6
-    assert on[centre].mean() > 0.2
-    assert on[:, :40, :].max() < 1e-6
-    assert 0.07 < off.mean() < 0.2
-    assert abs(off.mean() - on.mean()) < 0.03
+def scene():
+    row = {"key": "train/x/x_1/x_1_1_rgb.jpg", "box_cx": 0.5, "box_cy": 0.5, "box_w": 0.2, "box_h": 0.2,
+           "sun_elevation": 30.0, "sun_azimuth": 160.0}
+    return torch.full((3, 224, 224), 0.4), row
+
+
+def test_realistic_cloud_respects_the_object_box():
+    pixels, row = scene()
+    box = object_box_mask(row).bool()
+    off = realistic_cloud(pixels, row, 1.0, "off_object")
+    on = realistic_cloud(pixels, row, 1.0, "on_object")
+    brighter_off = (off > pixels + 1e-4).any(0)
+    brighter_on = (on > pixels + 1e-4).any(0)
+    assert not brighter_off[box].any()
+    assert not brighter_on[~box].any()
+    assert brighter_off.float().mean() > 0.05
+
+
+def test_realistic_cloud_is_deterministic_and_casts_a_shadow():
+    pixels, row = scene()
+    first, again = realistic_cloud(pixels, row, 1.0, "off_object"), realistic_cloud(pixels, row, 1.0, "off_object")
+    assert torch.equal(first, again)
+    assert (first < pixels - 1e-4).any()
