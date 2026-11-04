@@ -1,1 +1,7 @@
-{"cell_auc_cloud_vs_not": 0.7689678540138388, "true_cloud_share": 0.19729687720785644, "mean_score_cloud_cells": 0.4053545296192169, "mean_score_other_cells": 0.17181645333766937, "mean_score_clean_images": 0.16922645270824432}
+{
+  "cell_auc_cloud_vs_not": 0.7689678540138388,
+  "true_cloud_share": 0.19729687720785644,
+  "mean_score_cloud_cells": 0.4053545296192169,
+  "mean_score_other_cells": 0.17181645333766937,
+  "mean_score_clean_images": 0.16922645270824432
+}
