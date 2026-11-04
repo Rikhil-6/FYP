@@ -17,14 +17,14 @@ source scripts/fmow_v2/env.sh   # paths for data, caches and outputs (edit for y
 |---|---|---|
 | 1. Build the 14k-per-period subset | `python -m fyp_drift.evaluation.fmow_v2.expand_subset` | manifest + images |
 | 2. Drift, harm gate, cloud calibration, historical head | `python -m fyp_drift.evaluation.fmow_dinov2l_study --output $FYP_RUNS/main --stages gate calib` | `main/` |
-| 3. Token caches (clean, then cloud) and 2x2 pooling | `saliency_adapters` (clean), `fmow_v2.cloud_tokens`, `fmow_v2.pool_tokens` | `$FYP_TOKENS` |
+| 3. Token caches (clean, then cloud) and 2x2 pooling | `saliency_adapters` (clean), `fmow_v2.tokens cloud`, `fmow_v2.tokens pool` | `$FYP_TOKENS` |
 | 4. Attention and saliency heads | `saliency_attention_study`, `soft_saliency_heads` | `saliency_attention/`, `saliency_soft/` |
 | 5. Parameter sweep and cloud-aware pooling | `fmow_v2.cloud_pooling` | `cloud_param/` |
 | 6. Moved-object test, saliency in training | `fmow_v2.shift_test`, `fmow_v2.saliency_learning` | `shift_test/`, `saliency_learning/` |
 | 7. Router | `saliency_router_study` | `saliency_router/` |
-| 8. Held-out cloud tokens | `fmow_v2.heldout_tokens` | `$FYP_TOKENS_EXTRA` |
+| 8. Held-out cloud tokens | `fmow_v2.tokens heldout` | `$FYP_TOKENS_EXTRA` |
 | 9. Equal-training LoRA and hybrid | `scripts/fmow_v2/run_equal_training.sh` | `lora_fair/`, `hybrid/` |
-| 10. Analysis and explanations | `fmow_v2.analysis`, `fmow_v2.explain_maps`, `fmow_v2.explain_patches` | `analysis/` |
+| 10. Analysis and explanations | `fmow_v2.analysis`, `fmow_v2.explain` | `analysis/` |
 
 Heads on held-out clouds reuse `saliency_attention_study --tokens DIR`, where `DIR` links the clean training
 caches and the held-out test cache under the expected names.
