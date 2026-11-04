@@ -1,1 +1,26 @@
-{"name": "saliency_only", "features": ["saliency_js", "evidence_gain"], "mean": [0.3322410583496094, 0.4623281955718994], "scale": [0.09422800689935684, 4.244919300079346], "calibration_images": 724, "calibration_disagreements": 283, "calibration_helpful": 139, "coefficients": [-0.28221526741981506, 0.5473509430885315], "intercept": 0.00506553053855896, "floor": 0.1246057078242302, "threshold": 0.3, "calibration_macro_f1": 0.5443716652335752}
+{
+  "name": "saliency_only",
+  "features": [
+    "saliency_js",
+    "evidence_gain"
+  ],
+  "mean": [
+    0.3322410583496094,
+    0.4623281955718994
+  ],
+  "scale": [
+    0.09422800689935684,
+    4.244919300079346
+  ],
+  "calibration_images": 724,
+  "calibration_disagreements": 283,
+  "calibration_helpful": 139,
+  "coefficients": [
+    -0.28221526741981506,
+    0.5473509430885315
+  ],
+  "intercept": 0.00506553053855896,
+  "floor": 0.1246057078242302,
+  "threshold": 0.3,
+  "calibration_macro_f1": 0.5443716652335752
+}

@@ -1,1 +1,62 @@
-{"arm": "prior_shuffled", "condition": "cloud", "seed": 42, "adapt_val_macro_f1": 0.5643242819716684, "centred": {"scores": {"samples": 7077, "accuracy": 0.6263953652677688, "macro_f1": 0.5484219582712829, "balanced_accuracy": 0.566887980818269, "unique_predictions": 61, "max_class_share": 0.09594460929772503}, "grounding": {"pointing_game": 0.9307616353034973, "box_mass_over_share": 2.8430302143096924, "topk_precision": 0.6257919073104858, "box_mass": 0.5947258472442627, "box_mass_minus_centre_prior": 0.020504968240857124, "top_patch_on_border": 0.014130281284451485, "centre_prior_pointing": 0.9860110282897949}, "saliency_grounding": {"pointing_game": 0.28825774788856506, "box_mass_over_share": 1.0014208555221558, "topk_precision": 0.28486424684524536, "box_mass": 0.28473272919654846, "box_mass_minus_centre_prior": -0.2894880771636963, "top_patch_on_border": 0.35678958892822266, "centre_prior_pointing": 0.9860110282897949}}, "shifted": {"scores": {"samples": 7077, "accuracy": 0.543309311855306, "macro_f1": 0.47331080737925096, "balanced_accuracy": 0.4856969824707974, "unique_predictions": 62, "max_class_share": 0.11064010173802459}, "grounding": {"pointing_game": 0.5553200244903564, "box_mass_over_share": 1.5784741640090942, "topk_precision": 0.39890342950820923, "box_mass": 0.40367555618286133, "box_mass_minus_centre_prior": -0.013226905837655067, "top_patch_on_border": 0.018086759373545647, "centre_prior_pointing": 0.570015549659729}, "saliency_grounding": {"pointing_game": 0.2732796370983124, "box_mass_over_share": 0.9979569315910339, "topk_precision": 0.271557480096817, "box_mass": 0.2711588144302368, "box_mass_minus_centre_prior": -0.14574366807937622, "top_patch_on_border": 0.34817013144493103, "centre_prior_pointing": 0.570015549659729}}}
+{
+  "arm": "prior_shuffled",
+  "condition": "cloud",
+  "seed": 42,
+  "adapt_val_macro_f1": 0.5643242819716684,
+  "centred": {
+    "scores": {
+      "samples": 7077,
+      "accuracy": 0.6263953652677688,
+      "macro_f1": 0.5484219582712829,
+      "balanced_accuracy": 0.566887980818269,
+      "unique_predictions": 61,
+      "max_class_share": 0.09594460929772503
+    },
+    "grounding": {
+      "pointing_game": 0.9307616353034973,
+      "box_mass_over_share": 2.8430302143096924,
+      "topk_precision": 0.6257919073104858,
+      "box_mass": 0.5947258472442627,
+      "box_mass_minus_centre_prior": 0.020504968240857124,
+      "top_patch_on_border": 0.014130281284451485,
+      "centre_prior_pointing": 0.9860110282897949
+    },
+    "saliency_grounding": {
+      "pointing_game": 0.28825774788856506,
+      "box_mass_over_share": 1.0014208555221558,
+      "topk_precision": 0.28486424684524536,
+      "box_mass": 0.28473272919654846,
+      "box_mass_minus_centre_prior": -0.2894880771636963,
+      "top_patch_on_border": 0.35678958892822266,
+      "centre_prior_pointing": 0.9860110282897949
+    }
+  },
+  "shifted": {
+    "scores": {
+      "samples": 7077,
+      "accuracy": 0.543309311855306,
+      "macro_f1": 0.47331080737925096,
+      "balanced_accuracy": 0.4856969824707974,
+      "unique_predictions": 62,
+      "max_class_share": 0.11064010173802459
+    },
+    "grounding": {
+      "pointing_game": 0.5553200244903564,
+      "box_mass_over_share": 1.5784741640090942,
+      "topk_precision": 0.39890342950820923,
+      "box_mass": 0.40367555618286133,
+      "box_mass_minus_centre_prior": -0.013226905837655067,
+      "top_patch_on_border": 0.018086759373545647,
+      "centre_prior_pointing": 0.570015549659729
+    },
+    "saliency_grounding": {
+      "pointing_game": 0.2732796370983124,
+      "box_mass_over_share": 0.9979569315910339,
+      "topk_precision": 0.271557480096817,
+      "box_mass": 0.2711588144302368,
+      "box_mass_minus_centre_prior": -0.14574366807937622,
+      "top_patch_on_border": 0.34817013144493103,
+      "centre_prior_pointing": 0.570015549659729
+    }
+  }
+}
