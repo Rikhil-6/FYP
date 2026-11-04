@@ -1,1 +1,200 @@
-{"clean/attention": {"ece": 0.08557889413903243, "brier": 0.45272485639031856, "nll": 1.266703677955329, "box_iou_top_k_equal_box": 0.5520404577255249, "box_iou_top_quarter": 0.43833185235659283, "deletion_area": 0.41493570705254873, "insertion_area": 0.6651264607906341, "macro_f1": 0.600684116564713, "seeds": 3}, "clean/guided": {"ece": 0.09017076703281263, "brier": 0.4514225189767369, "nll": 1.2738812136236322, "box_iou_top_k_equal_box": 0.5155470569928488, "box_iou_top_quarter": 0.4082937439282735, "deletion_area": 0.35122226625680925, "insertion_area": 0.663331917921702, "macro_f1": 0.5961373780000073, "seeds": 3}, "clean/prior": {"ece": 0.11154992491958571, "brier": 0.4734558067949104, "nll": 1.379422474493915, "box_iou_top_k_equal_box": 0.5572196841239929, "box_iou_top_quarter": 0.45601561665534973, "deletion_area": 0.40484668711821237, "insertion_area": 0.6580330709616343, "macro_f1": 0.5871931372818834, "seeds": 3}, "clean/gated": {"ece": 0.10627076214015425, "brier": 0.4661759275207558, "nll": 1.3504014631810353, "box_iou_top_k_equal_box": 0.5513476332028707, "box_iou_top_quarter": 0.4480565090974172, "deletion_area": 0.39285950014988585, "insertion_area": 0.6653572599093119, "macro_f1": 0.597675170813658, "seeds": 3}, "clean/input": {"ece": 0.0708506817569174, "brier": 0.4527952063494151, "nll": 1.252124762514204, "box_iou_top_k_equal_box": 0.5487053592999777, "box_iou_top_quarter": 0.4379336138566335, "deletion_area": 0.42910367250442505, "insertion_area": 0.6616457104682922, "macro_f1": 0.5977166269878298, "seeds": 3}, "clean/guided_shuffled": {"ece": 0.06712716311078791, "brier": 0.4498077171980656, "nll": 1.2372534039077925, "box_iou_top_k_equal_box": 0.5300568342208862, "box_iou_top_quarter": 0.4176163375377655, "deletion_area": 0.44076115489006035, "insertion_area": 0.6558664242426555, "macro_f1": 0.5970918543228226, "seeds": 3}, "clean/prior_shuffled": {"ece": 0.10371800593455933, "brier": 0.45225561849698365, "nll": 1.2991678181661703, "box_iou_top_k_equal_box": 0.5307303071022034, "box_iou_top_quarter": 0.4232085744539897, "deletion_area": 0.4132259413599968, "insertion_area": 0.6734397808710734, "macro_f1": 0.5985456749575159, "seeds": 3}, "clean/gated_shuffled": {"ece": 0.08150445126756127, "brier": 0.4498738923155153, "nll": 1.256704401018129, "box_iou_top_k_equal_box": 0.5178953806559244, "box_iou_top_quarter": 0.4141177833080292, "deletion_area": 0.42906127870082855, "insertion_area": 0.6689651906490326, "macro_f1": 0.6009254283815842, "seeds": 3}, "clean/input_shuffled": {"ece": 0.07957123608270193, "brier": 0.45506652697659494, "nll": 1.2720763391712462, "box_iou_top_k_equal_box": 0.5472808082898458, "box_iou_top_quarter": 0.439541498819987, "deletion_area": 0.41588243742783865, "insertion_area": 0.6627054810523987, "macro_f1": 0.5971631342148047, "seeds": 3}, "cloud/attention": {"ece": 0.10705049673620776, "brier": 0.49667480180388895, "nll": 1.4150176274447703, "box_iou_top_k_equal_box": 0.481749564409256, "box_iou_top_quarter": 0.3848554193973541, "deletion_area": 0.4071075330177943, "insertion_area": 0.6289906283219655, "macro_f1": 0.5579036415633063, "seeds": 3}, "cloud/guided": {"ece": 0.09623131697767502, "brier": 0.4879216831844893, "nll": 1.373078160785292, "box_iou_top_k_equal_box": 0.5095888078212738, "box_iou_top_quarter": 0.4070621430873871, "deletion_area": 0.37674626658360166, "insertion_area": 0.6281757771968842, "macro_f1": 0.565825787549732, "seeds": 3}, "cloud/prior": {"ece": 0.10832834971145637, "brier": 0.5036441051782364, "nll": 1.4495177054736248, "box_iou_top_k_equal_box": 0.5270633697509766, "box_iou_top_quarter": 0.4331774612267812, "deletion_area": 0.41376289278268813, "insertion_area": 0.6281428098678589, "macro_f1": 0.5574348987186286, "seeds": 3}, "cloud/gated": {"ece": 0.10874629894575134, "brier": 0.5063437475650564, "nll": 1.4585711155801915, "box_iou_top_k_equal_box": 0.5210351347923279, "box_iou_top_quarter": 0.42522236704826355, "deletion_area": 0.3967123538255692, "insertion_area": 0.6270689109961192, "macro_f1": 0.5551257522727303, "seeds": 3}, "cloud/input": {"ece": 0.0892682476896965, "brier": 0.4871098829762726, "nll": 1.368799290510496, "box_iou_top_k_equal_box": 0.5089196066061655, "box_iou_top_quarter": 0.40630881985028583, "deletion_area": 0.4079600552717844, "insertion_area": 0.6319014608860015, "macro_f1": 0.5624647730001483, "seeds": 3}, "cloud/guided_shuffled": {"ece": 0.09111751579574666, "brier": 0.48320800472405984, "nll": 1.3587526405061991, "box_iou_top_k_equal_box": 0.4909459153811137, "box_iou_top_quarter": 0.38927164673805237, "deletion_area": 0.41394187808036803, "insertion_area": 0.6298572778701782, "macro_f1": 0.5647380034694052, "seeds": 3}, "cloud/prior_shuffled": {"ece": 0.07674241815002565, "brier": 0.48608646474624173, "nll": 1.3440330948402928, "box_iou_top_k_equal_box": 0.49599496523539227, "box_iou_top_quarter": 0.3982689877351125, "deletion_area": 0.4352173695961634, "insertion_area": 0.6317083438237509, "macro_f1": 0.5564740113576798, "seeds": 3}, "cloud/gated_shuffled": {"ece": 0.08828346194413135, "brier": 0.48992632442463746, "nll": 1.3716031036960101, "box_iou_top_k_equal_box": 0.4685360888640086, "box_iou_top_quarter": 0.3764878710110982, "deletion_area": 0.4169422040383021, "insertion_area": 0.6317366083463033, "macro_f1": 0.5627549762677884, "seeds": 3}, "cloud/input_shuffled": {"ece": 0.0793447452381279, "brier": 0.48839173284642473, "nll": 1.3574133683213352, "box_iou_top_k_equal_box": 0.5179652571678162, "box_iou_top_quarter": 0.41582297285397846, "deletion_area": 0.4113089313109716, "insertion_area": 0.6278272310892741, "macro_f1": 0.5578853422867348, "seeds": 3}}
+{
+  "clean/attention": {
+    "ece": 0.08557889413903243,
+    "brier": 0.45272485639031856,
+    "nll": 1.266703677955329,
+    "box_iou_top_k_equal_box": 0.5520404577255249,
+    "box_iou_top_quarter": 0.43833185235659283,
+    "deletion_area": 0.41493570705254873,
+    "insertion_area": 0.6651264607906341,
+    "macro_f1": 0.600684116564713,
+    "seeds": 3
+  },
+  "clean/guided": {
+    "ece": 0.09017076703281263,
+    "brier": 0.4514225189767369,
+    "nll": 1.2738812136236322,
+    "box_iou_top_k_equal_box": 0.5155470569928488,
+    "box_iou_top_quarter": 0.4082937439282735,
+    "deletion_area": 0.35122226625680925,
+    "insertion_area": 0.663331917921702,
+    "macro_f1": 0.5961373780000073,
+    "seeds": 3
+  },
+  "clean/prior": {
+    "ece": 0.11154992491958571,
+    "brier": 0.4734558067949104,
+    "nll": 1.379422474493915,
+    "box_iou_top_k_equal_box": 0.5572196841239929,
+    "box_iou_top_quarter": 0.45601561665534973,
+    "deletion_area": 0.40484668711821237,
+    "insertion_area": 0.6580330709616343,
+    "macro_f1": 0.5871931372818834,
+    "seeds": 3
+  },
+  "clean/gated": {
+    "ece": 0.10627076214015425,
+    "brier": 0.4661759275207558,
+    "nll": 1.3504014631810353,
+    "box_iou_top_k_equal_box": 0.5513476332028707,
+    "box_iou_top_quarter": 0.4480565090974172,
+    "deletion_area": 0.39285950014988585,
+    "insertion_area": 0.6653572599093119,
+    "macro_f1": 0.597675170813658,
+    "seeds": 3
+  },
+  "clean/input": {
+    "ece": 0.0708506817569174,
+    "brier": 0.4527952063494151,
+    "nll": 1.252124762514204,
+    "box_iou_top_k_equal_box": 0.5487053592999777,
+    "box_iou_top_quarter": 0.4379336138566335,
+    "deletion_area": 0.42910367250442505,
+    "insertion_area": 0.6616457104682922,
+    "macro_f1": 0.5977166269878298,
+    "seeds": 3
+  },
+  "clean/guided_shuffled": {
+    "ece": 0.06712716311078791,
+    "brier": 0.4498077171980656,
+    "nll": 1.2372534039077925,
+    "box_iou_top_k_equal_box": 0.5300568342208862,
+    "box_iou_top_quarter": 0.4176163375377655,
+    "deletion_area": 0.44076115489006035,
+    "insertion_area": 0.6558664242426555,
+    "macro_f1": 0.5970918543228226,
+    "seeds": 3
+  },
+  "clean/prior_shuffled": {
+    "ece": 0.10371800593455933,
+    "brier": 0.45225561849698365,
+    "nll": 1.2991678181661703,
+    "box_iou_top_k_equal_box": 0.5307303071022034,
+    "box_iou_top_quarter": 0.4232085744539897,
+    "deletion_area": 0.4132259413599968,
+    "insertion_area": 0.6734397808710734,
+    "macro_f1": 0.5985456749575159,
+    "seeds": 3
+  },
+  "clean/gated_shuffled": {
+    "ece": 0.08150445126756127,
+    "brier": 0.4498738923155153,
+    "nll": 1.256704401018129,
+    "box_iou_top_k_equal_box": 0.5178953806559244,
+    "box_iou_top_quarter": 0.4141177833080292,
+    "deletion_area": 0.42906127870082855,
+    "insertion_area": 0.6689651906490326,
+    "macro_f1": 0.6009254283815842,
+    "seeds": 3
+  },
+  "clean/input_shuffled": {
+    "ece": 0.07957123608270193,
+    "brier": 0.45506652697659494,
+    "nll": 1.2720763391712462,
+    "box_iou_top_k_equal_box": 0.5472808082898458,
+    "box_iou_top_quarter": 0.439541498819987,
+    "deletion_area": 0.41588243742783865,
+    "insertion_area": 0.6627054810523987,
+    "macro_f1": 0.5971631342148047,
+    "seeds": 3
+  },
+  "cloud/attention": {
+    "ece": 0.10705049673620776,
+    "brier": 0.49667480180388895,
+    "nll": 1.4150176274447703,
+    "box_iou_top_k_equal_box": 0.481749564409256,
+    "box_iou_top_quarter": 0.3848554193973541,
+    "deletion_area": 0.4071075330177943,
+    "insertion_area": 0.6289906283219655,
+    "macro_f1": 0.5579036415633063,
+    "seeds": 3
+  },
+  "cloud/guided": {
+    "ece": 0.09623131697767502,
+    "brier": 0.4879216831844893,
+    "nll": 1.373078160785292,
+    "box_iou_top_k_equal_box": 0.5095888078212738,
+    "box_iou_top_quarter": 0.4070621430873871,
+    "deletion_area": 0.37674626658360166,
+    "insertion_area": 0.6281757771968842,
+    "macro_f1": 0.565825787549732,
+    "seeds": 3
+  },
+  "cloud/prior": {
+    "ece": 0.10832834971145637,
+    "brier": 0.5036441051782364,
+    "nll": 1.4495177054736248,
+    "box_iou_top_k_equal_box": 0.5270633697509766,
+    "box_iou_top_quarter": 0.4331774612267812,
+    "deletion_area": 0.41376289278268813,
+    "insertion_area": 0.6281428098678589,
+    "macro_f1": 0.5574348987186286,
+    "seeds": 3
+  },
+  "cloud/gated": {
+    "ece": 0.10874629894575134,
+    "brier": 0.5063437475650564,
+    "nll": 1.4585711155801915,
+    "box_iou_top_k_equal_box": 0.5210351347923279,
+    "box_iou_top_quarter": 0.42522236704826355,
+    "deletion_area": 0.3967123538255692,
+    "insertion_area": 0.6270689109961192,
+    "macro_f1": 0.5551257522727303,
+    "seeds": 3
+  },
+  "cloud/input": {
+    "ece": 0.0892682476896965,
+    "brier": 0.4871098829762726,
+    "nll": 1.368799290510496,
+    "box_iou_top_k_equal_box": 0.5089196066061655,
+    "box_iou_top_quarter": 0.40630881985028583,
+    "deletion_area": 0.4079600552717844,
+    "insertion_area": 0.6319014608860015,
+    "macro_f1": 0.5624647730001483,
+    "seeds": 3
+  },
+  "cloud/guided_shuffled": {
+    "ece": 0.09111751579574666,
+    "brier": 0.48320800472405984,
+    "nll": 1.3587526405061991,
+    "box_iou_top_k_equal_box": 0.4909459153811137,
+    "box_iou_top_quarter": 0.38927164673805237,
+    "deletion_area": 0.41394187808036803,
+    "insertion_area": 0.6298572778701782,
+    "macro_f1": 0.5647380034694052,
+    "seeds": 3
+  },
+  "cloud/prior_shuffled": {
+    "ece": 0.07674241815002565,
+    "brier": 0.48608646474624173,
+    "nll": 1.3440330948402928,
+    "box_iou_top_k_equal_box": 0.49599496523539227,
+    "box_iou_top_quarter": 0.3982689877351125,
+    "deletion_area": 0.4352173695961634,
+    "insertion_area": 0.6317083438237509,
+    "macro_f1": 0.5564740113576798,
+    "seeds": 3
+  },
+  "cloud/gated_shuffled": {
+    "ece": 0.08828346194413135,
+    "brier": 0.48992632442463746,
+    "nll": 1.3716031036960101,
+    "box_iou_top_k_equal_box": 0.4685360888640086,
+    "box_iou_top_quarter": 0.3764878710110982,
+    "deletion_area": 0.4169422040383021,
+    "insertion_area": 0.6317366083463033,
+    "macro_f1": 0.5627549762677884,
+    "seeds": 3
+  },
+  "cloud/input_shuffled": {
+    "ece": 0.0793447452381279,
+    "brier": 0.48839173284642473,
+    "nll": 1.3574133683213352,
+    "box_iou_top_k_equal_box": 0.5179652571678162,
+    "box_iou_top_quarter": 0.41582297285397846,
+    "deletion_area": 0.4113089313109716,
+    "insertion_area": 0.6278272310892741,
+    "macro_f1": 0.5578853422867348,
+    "seeds": 3
+  }
+}

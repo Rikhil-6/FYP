@@ -1,1 +1,34 @@
-{"name": "combined", "features": ["saliency_js", "confidence_gain", "entropy_reduction", "evidence_gain"], "mean": [0.26096218824386597, 0.16323322057724, 0.5898165106773376, -0.9624814391136169], "scale": [0.08247608691453934, 0.2833138108253479, 0.775026798248291, 3.5171291828155518], "calibration_images": 724, "calibration_disagreements": 258, "calibration_helpful": 121, "coefficients": [-0.2139468938112259, 1.3175387382507324, -0.44297856092453003, 0.049594514071941376], "intercept": -0.031082039698958397, "floor": 0.08607353270053864, "threshold": 0.3, "calibration_macro_f1": 0.533077800523021}
+{
+  "name": "combined",
+  "features": [
+    "saliency_js",
+    "confidence_gain",
+    "entropy_reduction",
+    "evidence_gain"
+  ],
+  "mean": [
+    0.26096218824386597,
+    0.16323322057724,
+    0.5898165106773376,
+    -0.9624814391136169
+  ],
+  "scale": [
+    0.08247608691453934,
+    0.2833138108253479,
+    0.775026798248291,
+    3.5171291828155518
+  ],
+  "calibration_images": 724,
+  "calibration_disagreements": 258,
+  "calibration_helpful": 121,
+  "coefficients": [
+    -0.2139468938112259,
+    1.3175387382507324,
+    -0.44297856092453003,
+    0.049594514071941376
+  ],
+  "intercept": -0.031082039698958397,
+  "floor": 0.08607353270053864,
+  "threshold": 0.3,
+  "calibration_macro_f1": 0.533077800523021
+}
