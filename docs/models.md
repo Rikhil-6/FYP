@@ -16,8 +16,8 @@ backbone is not stored; it downloads from the Hugging Face hub on first use (`fa
 ## Inference
 
 ```bash
-python -m fyp_drift.evaluation.fmow_v2.predict models/fmow_v2/soft_gate site.jpg
-python -m fyp_drift.evaluation.fmow_v2.predict models/fmow_v2/soft_gate site.jpg --box 0.52,0.48,0.30,0.22 --map attention.png
+python -m fyp_drift.evaluation.fmow_v2.models predict models/fmow_v2/soft_gate site.jpg
+python -m fyp_drift.evaluation.fmow_v2.models predict models/fmow_v2/soft_gate site.jpg --box 0.52,0.48,0.30,0.22 --map attention.png
 ```
 
 `--box` (object centre x, y, width, height as fractions of the image) crops the image the way the models were
@@ -37,7 +37,7 @@ Loading takes a few seconds (mostly the backbone); each image then takes well un
 ## Re-exporting
 
 ```bash
-python -m fyp_drift.evaluation.fmow_v2.export_heads --out models/fmow_v2                     # heads, ~1 min each
+python -m fyp_drift.evaluation.fmow_v2.models export --out models/fmow_v2                     # heads, ~1 min each
 python -m fyp_drift.evaluation.fmow_v2.equal_lora --rank 2 --seed 42 --export models/fmow_v2/lora_r2
 python -m fyp_drift.evaluation.fmow_v2.hybrid --seed 42 --export models/fmow_v2/hybrid
 ```

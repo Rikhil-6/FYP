@@ -14,6 +14,6 @@ Rebuild all figures: `bash plots/make_all.sh` (needs matplotlib, seaborn, scipy;
 |---|---|---|
 | fig_overview, fig_pipelines | `tikz/overview.tex`, `tikz/pipelines.tex` | – |
 | fig_gate_curves | `plots/method_figures.py` | `gate_curves` |
-| fig_drift, fig_accuracy, fig_efficiency, fig_cloud | `plots/fig_results.py` | `fig_*` |
+| fig_drift, fig_accuracy, fig_efficiency_params, fig_efficiency_backbone, fig_cloud | `plots/fig_results.py` | `fig_*` |
 | fig_shift, fig_maps, fig_learning, fig_router | `plots/fig_reliance.py` | `fig_*` |
 | fig_explain_goodbad, fig_explain_update | `plots/fig_explanations.py` | `figure` |

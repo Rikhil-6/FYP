@@ -44,7 +44,7 @@ bash figures/fmow_v2/plots/make_all.sh
 ## 5. Use a trained model
 
 ```bash
-python -m fyp_drift.evaluation.fmow_v2.predict models/fmow_v2/soft_gate my_site.jpg --map attention.png
+python -m fyp_drift.evaluation.fmow_v2.models predict models/fmow_v2/soft_gate my_site.jpg --map attention.png
 ```
 
 See [models.md](models.md).

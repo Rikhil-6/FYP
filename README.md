@@ -58,5 +58,5 @@ The earlier CLEAR-100 version of the project (transparent router) is preserved o
 
 ```bash
 pip install -e . && pip install seaborn scipy safetensors
-python -m fyp_drift.evaluation.fmow_v2.predict models/fmow_v2/soft_gate my_site.jpg --map attention.png
+python -m fyp_drift.evaluation.fmow_v2.models predict models/fmow_v2/soft_gate my_site.jpg --map attention.png
 ```

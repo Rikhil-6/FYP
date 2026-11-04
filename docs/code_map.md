@@ -28,14 +28,14 @@ flowchart LR
         BB --> LORA["Equal-training LoRA<br/>equal_lora.py"]
         BB --> HYB["LoRA + soft gate<br/>hybrid.py"]
         ATT & SAL --> TESTS["Moved object, clouds,<br/>saliency in training"]
-        ATT & SAL & HYB --> EXPL["Exact explanations<br/>explain_maps / explain_patches"]
+        ATT & SAL & HYB --> EXPL["Exact explanations<br/>explain.py"]
         ATT & SAL --> ROUTE["Auditable router<br/>saliency_router_study"]
     end
     subgraph out["Outputs"]
         LORA & HYB & TESTS & EXPL & ROUTE --> RES[("results/fmow_v2")]
         RES --> FIG["figures/fmow_v2<br/>(plots/ draws every figure)"]
         ATT & SAL & LORA & HYB --> MOD[("models/fmow_v2<br/>safetensors")]
-        MOD --> PRED["predict.py<br/>inference + attention map"]
+        MOD --> PRED["models.py predict<br/>inference + attention map"]
     end
 ```
 
@@ -62,7 +62,7 @@ flowchart LR
 | Module | Role |
 |---|---|
 | `expand_subset.py` | Download the 14k-per-period country-matched subset |
-| `cloud_tokens.py`, `pool_tokens.py`, `heldout_tokens.py` | Build the frozen-token caches (overlay, 2x2 pooling, held-out cumulus) |
+| `tokens.py` | Build the frozen-token caches (`cloud`, `pool`, `heldout` steps) |
 | `context.py` | Shared splits, image cache, cloud settings and frozen head |
 | `equal_lora.py` | LoRA with the heads' selection protocol (`--rank --blocks --condition --seed`) |
 | `hybrid.py` | LoRA + soft saliency gate trained end to end |
@@ -70,5 +70,5 @@ flowchart LR
 | `cloud_pooling.py` | Cloud-aware pooling and the head-width sweep |
 | `saliency_learning.py` | Saliency in the training signal only |
 | `analysis.py` | Map stability, real-cloud scores, example maps |
-| `explain_maps.py`, `explain_patches.py` | Exact per-cell / per-patch explanations |
-| `models.py`, `export_heads.py`, `predict.py` | Save, load and run trained models |
+| `explain.py` | Exact per-cell and per-patch explanations (`maps`, `patches` steps) |
+| `models.py` | Save, load, export (`export`) and run (`predict`) trained models |
