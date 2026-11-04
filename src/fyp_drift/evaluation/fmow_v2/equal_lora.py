@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import argparse
 import time
+from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from fyp_drift.evaluation import fmow_dinov2l_study as study
 from fyp_drift.evaluation.fmow_v2.context import BACKBONE, load_context, trainable
+from fyp_drift.evaluation.fmow_v2.models import adapter_state, save_model
 
 BATCH, ACCUMULATE, EVAL_BATCH, WORKERS = 16, 2, 64, 4  # effective batch 32
 
@@ -103,9 +105,8 @@ def train_and_score(ctx, rank, blocks, condition, seed, lr, max_epochs=5, patien
         predictions=predictions.tolist(),
         extra=extra,
     )
-    del backbone, optimizer
-    torch.cuda.empty_cache()
-    return result
+    del optimizer
+    return result, (backbone, head)
 
 
 def main(argv=None):
@@ -120,18 +121,32 @@ def main(argv=None):
     parser.add_argument("--max-epochs", type=int, default=5)
     parser.add_argument("--patience", type=int, default=2)
     parser.add_argument("--limit", type=int, default=0, help="cap every split (smoke test only)")
+    parser.add_argument("--export", type=Path, help="also save the trained adapters here (safetensors)")
     args = parser.parse_args(argv)
     ctx = load_context(args.limit)
     out = ctx.runs / "lora_fair"
     out.mkdir(exist_ok=True)
     path = out / output_name(args.condition, args.rank, args.lr, args.blocks, args.seed)
-    if path.exists() and not args.limit:
+    if path.exists() and not (args.limit or args.export):
         study.log("exists, skipping", path.name)
         return
-    result = train_and_score(
+    result, (backbone, head) = train_and_score(
         ctx, args.rank, args.blocks, args.condition, args.seed, args.lr, args.max_epochs, args.patience
     )
-    if not args.limit:
+    if args.export:
+        names = sorted({r["category"] for r in ctx.rows})
+        tensors = {**adapter_state(backbone), "historical.weight": head.weight, "historical.bias": head.bias}
+        save_model(
+            args.export,
+            "lora",
+            tensors,
+            names,
+            rank=args.rank,
+            blocks=args.blocks,
+            seed=args.seed,
+            val_f1=result["best_val"],
+        )
+    if not args.limit and not path.exists():
         study.write_json(path, result)
     study.log("done", path.name, {k: round(v["future_test"]["macro_f1"], 4) for k, v in result["extra"].items()})
 

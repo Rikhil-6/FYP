@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import time
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -20,6 +21,7 @@ from fyp_drift.evaluation.fmow_v2.context import (
     pool_2x2,
     trainable,
 )
+from fyp_drift.evaluation.fmow_v2.models import adapter_state, save_model
 from torch import nn
 
 BATCH, ACCUMULATE, EVAL_BATCH, WORKERS = 16, 2, 64, 4
@@ -163,7 +165,7 @@ def train_and_score(ctx, kind, rank, blocks, seed, max_epochs=5, patience=2):
                 ((positive * box_mask(rows)).sum(1) / (positive.sum(1) + 1e-9)).mean()
             )
     scalars = {k: float(v.detach()) for k, v in model.pooling.named_parameters() if v.ndim == 0}
-    return dict(
+    result = dict(
         kind=kind,
         rank=rank,
         blocks=blocks,
@@ -176,6 +178,7 @@ def train_and_score(ctx, kind, rank, blocks, seed, max_epochs=5, patience=2):
         scalars=scalars,
         tests=tests,
     )
+    return result, model
 
 
 def main(argv=None):
@@ -185,16 +188,36 @@ def main(argv=None):
     parser.add_argument("--blocks", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--limit", type=int, default=0, help="cap every split (smoke test only)")
+    parser.add_argument("--export", type=Path, help="also save the trained model here (safetensors)")
     args = parser.parse_args(argv)
     ctx = load_context(args.limit)
     out = ctx.runs / "hybrid"
     out.mkdir(exist_ok=True)
     path = out / f"clean_{args.kind}_r{args.rank}_w8_b{args.blocks}_s{args.seed}.json"
-    if path.exists() and not args.limit:
+    if path.exists() and not (args.limit or args.export):
         study.log("exists, skipping", path.name)
         return
-    result = train_and_score(ctx, args.kind, args.rank, args.blocks, args.seed)
-    if not args.limit:
+    result, model = train_and_score(ctx, args.kind, args.rank, args.blocks, args.seed)
+    if args.export:
+        names = sorted({r["category"] for r in ctx.rows})
+        tensors = {
+            **adapter_state(model.backbone),
+            **{f"pooling.{k}": v for k, v in model.pooling.state_dict().items()},
+        }
+        tensors |= {"historical.weight": model.historical.weight, "historical.bias": model.historical.bias}
+        save_model(
+            args.export,
+            "hybrid",
+            tensors,
+            names,
+            rank=args.rank,
+            blocks=args.blocks,
+            pooling=args.kind,
+            seed=args.seed,
+            val_f1=result["best_val"],
+            scalars=result["scalars"],
+        )
+    if not args.limit and not path.exists():
         study.write_json(path, result)
     study.log("done", path.name, {k: round(v["future_test"]["macro_f1"], 4) for k, v in result["tests"].items()})
 
