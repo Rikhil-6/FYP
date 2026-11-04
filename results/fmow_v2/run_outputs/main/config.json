@@ -1,0 +1,19 @@
+{
+  "manifest": "/mnt/sdd/FYP/data/fmow_v1.1/subset_14k_country_matched/manifest_downloaded.csv",
+  "cache": "/mnt/sdd/FYP/cache/fmow42k_u8_280_ctx2.npy",
+  "output": "/mnt/sdd/FYP/runs/v2/main",
+  "backbone": "facebook/dinov2-large",
+  "stages": "['unseen_cloud']",
+  "workers": "4",
+  "eval_batch": "64",
+  "batch": "16",
+  "effective_batch": "32",
+  "epochs": "2",
+  "lr": "0.0001",
+  "rank": "8",
+  "trainable_blocks": "6",
+  "lambdas": "[1.0]",
+  "seeds": "[42]",
+  "permutations": "499",
+  "limit": "0"
+}

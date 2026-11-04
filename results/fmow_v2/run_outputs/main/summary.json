@@ -1,0 +1,80 @@
+{
+  "chosen_lambda": {},
+  "means": {
+    "clean/plain": {
+      "lambda": 0.0,
+      "seeds": 3,
+      "mean_test_macro_f1": 0.6091330036624872,
+      "sd": 0.003702193652053708
+    },
+    "cloud/plain": {
+      "lambda": 0.0,
+      "seeds": 3,
+      "mean_test_macro_f1": 0.5828329897829964,
+      "sd": 0.0023753090427694407
+    }
+  },
+  "paired": [],
+  "all_runs": [
+    {
+      "condition": "clean",
+      "mode": "plain",
+      "lambda": 0.0,
+      "seed": 42,
+      "adapt_val_f1": 0.6016903897740571,
+      "test_macro_f1": 0.6087208137913366,
+      "test_accuracy": 0.6889925109509679,
+      "test_unique_predictions": 61
+    },
+    {
+      "condition": "clean",
+      "mode": "plain",
+      "lambda": 0.0,
+      "seed": 43,
+      "adapt_val_f1": 0.6016177798502899,
+      "test_macro_f1": 0.6130240426234037,
+      "test_accuracy": 0.6950685318637841,
+      "test_unique_predictions": 61
+    },
+    {
+      "condition": "clean",
+      "mode": "plain",
+      "lambda": 0.0,
+      "seed": 44,
+      "adapt_val_f1": 0.6017381159180953,
+      "test_macro_f1": 0.6056541545727214,
+      "test_accuracy": 0.6911120531298572,
+      "test_unique_predictions": 61
+    },
+    {
+      "condition": "cloud",
+      "mode": "plain",
+      "lambda": 0.0,
+      "seed": 42,
+      "adapt_val_f1": 0.5595640367120615,
+      "test_macro_f1": 0.5800949417826904,
+      "test_accuracy": 0.6583298007630352,
+      "test_unique_predictions": 61
+    },
+    {
+      "condition": "cloud",
+      "mode": "plain",
+      "lambda": 0.0,
+      "seed": 43,
+      "adapt_val_f1": 0.5684683134725458,
+      "test_macro_f1": 0.5843413440012545,
+      "test_accuracy": 0.66864490603363,
+      "test_unique_predictions": 61
+    },
+    {
+      "condition": "cloud",
+      "mode": "plain",
+      "lambda": 0.0,
+      "seed": 44,
+      "adapt_val_f1": 0.5709878841565618,
+      "test_macro_f1": 0.5840626835650445,
+      "test_accuracy": 0.665536244171259,
+      "test_unique_predictions": 61
+    }
+  ]
+}
