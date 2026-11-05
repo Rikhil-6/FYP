@@ -147,5 +147,7 @@ def test_class_relative_contributions_add_up_to_the_centred_logit():
     ar = np.arange(5)
     contrib = w * (e[ar, :, p] - e.mean(2))
     assert np.allclose(contrib.sum(1), (logits - b)[ar, p] - (logits - b).mean(1))
+    # with the centred bias term the maps add up to the predicted logit minus the mean logit over classes
+    assert np.allclose(contrib.sum(1) + (b[p] - b.mean()), logits[ar, p] - logits.mean(1))
     raw = w * e[ar, :, p]  # unsubtracted contributions plus the bias give the logit exactly
     assert np.allclose(raw.sum(1) + b[p], logits[ar, p])
