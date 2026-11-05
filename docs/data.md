@@ -13,7 +13,7 @@ every period, so geography does not change between periods. 31 of about 42,000 d
 | 2014–15 | Adapt (update) the model | adapt_train / adapt_val | 12,572 / 1,420 |
 | 2016–17 | Test | future_test (half of the locations) | 7,077 |
 
-Splits are by location group (country + UTM zone), so no site appears in two splits.
+Splits are grouped by location group (country + UTM zone) within each period, so no group appears in two splits of the same period. This is not enforced across periods: `results/fmow_v2/site_overlap.json` (from `fmow_v2.site_overlap`) shows that 334 of the 7,077 test images (4.7%) come from a site that also occurs in an earlier split, so `results_table.json` also reports every model on the remaining unseen-site images.
 
 **Preparation.** Each image is cropped to a square twice the object box's longer side (at least a quarter, at
 most all of the shorter side) and resized to 280 × 280. Crops are cached once as a uint8 memmap
