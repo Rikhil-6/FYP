@@ -32,8 +32,8 @@ from fyp_drift.evaluation.saliency_attention_study import SaliencyAttentionHead,
 SOFT = ("soft_gated", "mix", "soft_prior")
 ARMS = SOFT + tuple(f"{a}_shuffled" for a in SOFT)
 import os
-RUNS = Path(os.environ.get("FYP_RUNS", "/mnt/sdd/FYP/runs/today"))
-TOKENS = Path(os.environ.get("FYP_TOKENS", "/mnt/sdd/FYP/cache/adapter_tokens"))
+RUNS = Path(os.environ.get("FYP_RUNS", os.environ.get("FYP_ROOT", "/mnt/sdd/FYP") + "/runs/today"))
+TOKENS = Path(os.environ.get("FYP_TOKENS", os.environ.get("FYP_ROOT", "/mnt/sdd/FYP") + "/cache/adapter_tokens"))
 
 
 class SoftSaliencyHead(SaliencyAttentionHead):

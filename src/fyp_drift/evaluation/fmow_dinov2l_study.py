@@ -40,9 +40,9 @@ PERIODS = ("historical_2010_13", "adapt_2014_15", "future_2016_17")
 ANCHOR_MODES = tuple(m for m in os.environ.get("FYP_ANCHOR_MODES", "uniform,shuffled,saliency").split(",") if m)
 SALIENT_FRACTION = 0.4
 # v2 run settings come from the environment so every downstream script picks them up unchanged.
-DEFAULT_MANIFEST = Path(os.environ.get("FYP_MANIFEST", "/mnt/sdd/FYP/data/fmow_v1.1/subset_7k_country_matched/manifest_downloaded.csv"))
-DEFAULT_CACHE = Path(os.environ.get("FYP_CACHE", "/mnt/sdd/FYP/cache/fmow21k_u8_224.npy"))
-DEFAULT_METADATA = Path(os.environ.get("FYP_METADATA", "/mnt/sdd/FYP/data/fmow_v1.1/subset_7k_country_matched/acquisition_metadata.csv"))
+DEFAULT_MANIFEST = Path(os.environ.get("FYP_MANIFEST", os.environ.get("FYP_ROOT", "/mnt/sdd/FYP") + "/data/fmow_v1.1/subset_7k_country_matched/manifest_downloaded.csv"))
+DEFAULT_CACHE = Path(os.environ.get("FYP_CACHE", os.environ.get("FYP_ROOT", "/mnt/sdd/FYP") + "/cache/fmow21k_u8_224.npy"))
+DEFAULT_METADATA = Path(os.environ.get("FYP_METADATA", os.environ.get("FYP_ROOT", "/mnt/sdd/FYP") + "/data/fmow_v1.1/subset_7k_country_matched/acquisition_metadata.csv"))
 IMAGE_SIZE = int(os.environ.get("FYP_IMG", "224"))      # input side in pixels (multiple of 14)
 CROP_CONTEXT = float(os.environ.get("FYP_CTX", "0"))     # 0 = whole scene; k = square crop of k x the object box
 

@@ -15,6 +15,7 @@ Arms (differ only in how patch tokens are pooled before the linear head):
 from __future__ import annotations
 
 import argparse
+import os
 import json
 from pathlib import Path
 
@@ -136,9 +137,9 @@ def train_arm(arm, seed, head_state, width, classes, data, args):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--run", type=Path, default=Path("/mnt/sdd/FYP/runs/today/main"))
-    parser.add_argument("--output", type=Path, default=Path("/mnt/sdd/FYP/runs/today/saliency_adapters"))
-    parser.add_argument("--tokens", type=Path, default=Path("/mnt/sdd/FYP/cache/adapter_tokens"))
+    parser.add_argument("--run", type=Path, default=Path(os.environ.get("FYP_ROOT", "/mnt/sdd/FYP")) / "runs/today/main")
+    parser.add_argument("--output", type=Path, default=Path(os.environ.get("FYP_ROOT", "/mnt/sdd/FYP")) / "runs/today/saliency_adapters")
+    parser.add_argument("--tokens", type=Path, default=Path(os.environ.get("FYP_ROOT", "/mnt/sdd/FYP")) / "cache/adapter_tokens")
     parser.add_argument("--backbone", default="facebook/dinov2-large")
     parser.add_argument("--seeds", type=int, nargs="+", default=[42, 43, 44])
     parser.add_argument("--epochs", type=int, default=15)

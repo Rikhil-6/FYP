@@ -13,5 +13,6 @@ __pycache__/
 /.uv-cache
 /output
 /reports
-/results
+/results/*
+!/results/fmow_v2/
 /inputs

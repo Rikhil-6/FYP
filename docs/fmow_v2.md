@@ -15,7 +15,7 @@ source scripts/fmow_v2/env.sh   # paths for data, caches and outputs (edit for y
 
 | Step | Command | Output |
 |---|---|---|
-| 1. Build the 14k-per-period subset | `python -m fyp_drift.evaluation.fmow_v2.expand_subset` | manifest + images |
+| 1. Get the 42k-image subset | `python -m fyp_drift.evaluation.fmow_v2.download_subset` (from the published lists in `data_manifests/`) | manifest + images |
 | 2. Drift, harm gate, cloud calibration, historical head | `python -m fyp_drift.evaluation.fmow_dinov2l_study --output $FYP_RUNS/main --stages gate calib` | `main/` |
 | 3. Token caches (clean, then cloud) and 2x2 pooling | `saliency_adapters` (clean), `fmow_v2.tokens cloud`, `fmow_v2.tokens pool` | `$FYP_TOKENS` |
 | 4. Attention and saliency heads | `saliency_attention_study`, `soft_saliency_heads` | `saliency_attention/`, `saliency_soft/` |
@@ -25,6 +25,10 @@ source scripts/fmow_v2/env.sh   # paths for data, caches and outputs (edit for y
 | 8. Held-out cloud tokens | `fmow_v2.tokens heldout` | `$FYP_TOKENS_EXTRA` |
 | 9. Equal-training LoRA and hybrid | `scripts/fmow_v2/run_equal_training.sh` | `lora_fair/`, `hybrid/` |
 | 10. Analysis and explanations | `fmow_v2.analysis`, `fmow_v2.explain` | `analysis/` |
+| 11. Controls: heads trained on 2010-13 data, class-matched real clouds | `fmow_v2.control_hist` | `control_hist/` |
+| 12. Graded cloud exposure (25/50/75%) | `fmow_v2.graded_cloud` | `control_hist/mix.json` |
+| 13. Three-seed summary of LoRA and hybrids | `fmow_v2.summarise_extra` | printed table |
+| 14. Cloud versions of the example figures | `fmow_v2.cloud_examples`, then `plots/fig_cloud_examples.py` | `analysis/cloud_examples.npz` |
 
 Heads on held-out clouds reuse `saliency_attention_study --tokens DIR`, where `DIR` links the clean training
 caches and the held-out test cache under the expected names.
@@ -42,5 +46,5 @@ caches and the held-out test cache under the expected names.
 
 ## Outputs
 
-- `results/fmow_v2/run_outputs/`: saved output of every run (per-image predictions); `results/fmow_v2/summary_tables.md` has the headline numbers.
+- `results/fmow_v2/run_outputs/`: saved output of every run (per-image predictions). `python -m fyp_drift.evaluation.fmow_v2.aggregate` turns them into `results/fmow_v2/results_table.json` and `summary_tables.md` (the headline numbers, three-seed means); `site_overlap` writes `site_overlap.json`.
 - `figures/fmow_v2/`: every figure, the code that draws it (`plots/`) and its input data (`plots/data/`). Rebuild with `bash figures/fmow_v2/plots/make_all.sh`.

@@ -31,8 +31,8 @@ from fyp_drift.evaluation.saliency_adapters import SPLITS, batches
 from fyp_drift.evaluation.saliency_attention_study import ARMS, box_patch_mask, train
 
 import os
-RUNS = Path(os.environ.get("FYP_RUNS", "/mnt/sdd/FYP/runs/today"))
-TOKENS = Path(os.environ.get("FYP_TOKENS", "/mnt/sdd/FYP/cache/adapter_tokens"))
+RUNS = Path(os.environ.get("FYP_RUNS", os.environ.get("FYP_ROOT", "/mnt/sdd/FYP") + "/runs/today"))
+TOKENS = Path(os.environ.get("FYP_TOKENS", os.environ.get("FYP_ROOT", "/mnt/sdd/FYP") + "/cache/adapter_tokens"))
 SEEDS = (42, 43, 44)
 CONTINENT_TO_REGION = {"NA": "Americas", "SA": "Americas", "EU": "Europe", "AS": "Asia", "AF": "Africa", "OC": "Oceania"}
 GUIDE = {"clean": 0.3, "cloud": 0.1}

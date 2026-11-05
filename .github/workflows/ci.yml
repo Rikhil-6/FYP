@@ -1,0 +1,19 @@
+name: ci
+on:
+  push:
+    branches: [main, main-new]
+  pull_request:
+jobs:
+  fmow-v2-results:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install numpy scikit-learn matplotlib scipy safetensors pytest
+      - name: Compile the fMoW v2 modules
+        run: python -m compileall -q src/fyp_drift/evaluation/fmow_v2 figures/fmow_v2/plots
+      - name: Results pipeline checks (aggregation, published tables, figure inputs, saved models, site audit)
+        run: PYTHONPATH=src pytest tests/test_fmow_v2_results.py -q
+

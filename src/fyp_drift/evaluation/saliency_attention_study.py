@@ -182,9 +182,9 @@ def grounding(weights, rows, cloudy):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--run", type=Path, default=Path("/mnt/sdd/FYP/runs/today/main"))
-    parser.add_argument("--tokens", type=Path, default=Path("/mnt/sdd/FYP/cache/adapter_tokens"))
-    parser.add_argument("--output", type=Path, default=Path("/mnt/sdd/FYP/runs/today/saliency_attention"))
+    parser.add_argument("--run", type=Path, default=Path(os.environ.get("FYP_ROOT", "/mnt/sdd/FYP")) / "runs/today/main")
+    parser.add_argument("--tokens", type=Path, default=Path(os.environ.get("FYP_ROOT", "/mnt/sdd/FYP")) / "cache/adapter_tokens")
+    parser.add_argument("--output", type=Path, default=Path(os.environ.get("FYP_ROOT", "/mnt/sdd/FYP")) / "runs/today/saliency_attention")
     parser.add_argument("--seeds", type=int, nargs="+", default=[42, 43, 44])
     parser.add_argument("--guide-weights", default='{"clean": 0.3, "cloud": 0.1}', help="adapt-val choices from the guidance sweep")
     parser.add_argument("--epochs", type=int, default=15)

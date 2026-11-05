@@ -5,6 +5,7 @@ Example::  python fig_results.py
 
 import matplotlib.pyplot as plt
 import numpy as np
+from results_table import accuracy_rows, efficiency_rows
 from style import CLOUD, LIGHT, letter, load_stats, save
 
 D = load_stats()
@@ -82,18 +83,7 @@ def fig_drift():
     save(fig, "fig_drift")
 
 
-# name, clean, cumulus beside, cumulus over, real clouds, colour, marker (models fine-tuned on clean images;
-# heads and LoRA/hybrid are means of seeds 42-44, LoRA r8 is seed 42)
-M = [
-    ("Frozen baseline", 49.1, 46.8, 42.1, 44.7, "#8C8C8C", "o"),
-    ("Learned attention", 60.1, 58.3, 49.4, 55.2, "#8172B3", "o"),
-    ("Hard saliency gate", 59.8, 57.4, 48.1, 55.7, "#C44E52", "o"),
-    ("Soft saliency gate", 60.3, 58.7, 49.6, 55.6, "#64B5CD", "o"),
-    ("LoRA r1, 2 blocks", 58.1, 56.8, 50.6, 55.2, "#937860", "s"),
-    ("Hybrid: LoRA r1 + soft gate", 59.8, 58.2, 49.8, 54.9, "#DD8452", "D"),
-    ("LoRA r2, 6 blocks", 62.6, 60.5, 53.5, 60.2, "#55A868", "s"),
-    ("LoRA r8, 6 blocks", 62.5, 60.7, 52.5, 59.9, "#2E7D4F", "s"),
-]
+M = accuracy_rows()  # (label, clean, beside, over, real, colour, marker) from results/fmow_v2/results_table.json
 
 
 def fig_accuracy():
@@ -127,15 +117,7 @@ def fig_accuracy():
     save(fig, "fig_accuracy")
 
 
-# name, trainable parameters, backbone weights changed (millions), clean macro-F1, colour, marker
-P = [
-    ("Attention / saliency heads, width 128", 196930, 0, 60.1, "#8172B3", "o"),
-    ("Attention head, width 8", 73807, 0, 60.4, "#B4A7D6", "o"),
-    ("LoRA r1, 2 blocks", 36864, 25.2, 58.1, "#937860", "s"),
-    ("Hybrid: LoRA r1 + soft gate", 47124, 25.2, 59.8, "#DD8452", "D"),
-    ("LoRA r2, 6 blocks", 221184, 75.5, 62.6, "#55A868", "s"),
-    ("LoRA r8, 6 blocks", 884736, 75.5, 62.5, "#2E7D4F", "s"),
-]
+P = efficiency_rows()  # (label, trainable params, backbone weights changed in M, clean macro-F1, colour, marker)
 
 
 def efficiency_plot(column, xlabel, name, log):

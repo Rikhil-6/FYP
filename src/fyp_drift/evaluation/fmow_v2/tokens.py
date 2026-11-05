@@ -21,8 +21,8 @@ from fyp_drift.evaluation.saliency_adapters import SPLITS, token_cache
 def pool():
     """Average 2x2 patch tokens (20x20 -> 10x10) so the head-training caches fit in RAM."""
     src, dst = (
-        Path("/mnt/sdd/FYP/cache/adapter_tokens_v2"),
-        Path("/mnt/sdd/FYP/cache/adapter_tokens_v2p"),
+        Path(os.environ.get("FYP_ROOT", "/mnt/sdd/FYP")) / "cache/adapter_tokens_v2",
+        Path(os.environ.get("FYP_ROOT", "/mnt/sdd/FYP")) / "cache/adapter_tokens_v2p",
     )
     dst.mkdir(exist_ok=True)
     for f in sorted(src.glob("*.npy")):
