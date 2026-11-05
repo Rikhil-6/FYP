@@ -1,6 +1,6 @@
 {
  "schema_version": 2,
- "git_commit": "cfac288",
+ "git_commit": "690c060",
  "test_images": 7077,
  "real_cloud_images": 920,
  "test_images_from_seen_sites": 334,
@@ -331,6 +331,36 @@
    "train_seconds": 2432
   },
   {
+   "key": "gated_lora_r2",
+   "label": "Token-gated LoRA r2 + soft gate (saliency scales the LoRA update)",
+   "kind": "hybrid",
+   "n_seeds": 3,
+   "seeds": [
+    42,
+    43,
+    44
+   ],
+   "clean": 59.686,
+   "acc": 67.821,
+   "bal": 60.872,
+   "real": 56.058,
+   "matched": 57.122,
+   "clean_unseen_sites": 59.517,
+   "beside": 58.304,
+   "over": 50.745,
+   "real_drop": 1.06,
+   "sd_clean": 0.86,
+   "overlay": 50.541,
+   "graded": {
+    "0.25": 57.505,
+    "0.5": 55.255,
+    "0.75": 52.996
+   },
+   "trainable_params": 83988,
+   "backbone_weights_changed_m": 25.2,
+   "train_seconds": 1687
+  },
+  {
    "key": "lora_r2",
    "label": "LoRA r2, 6 blocks",
    "kind": "lora",
@@ -426,6 +456,9 @@
   "hybrid/clean_attention_r2_w8_b2_s42.json": "03f36f35375b364f",
   "hybrid/clean_attention_r2_w8_b2_s43.json": "591ef0c5a872a3ae",
   "hybrid/clean_attention_r2_w8_b2_s44.json": "aab3b4f69e21bc02",
+  "hybrid/clean_gated_lora_r2_w8_b2_s42.json": "c3c1612b7be36663",
+  "hybrid/clean_gated_lora_r2_w8_b2_s43.json": "44509826ab52cbf9",
+  "hybrid/clean_gated_lora_r2_w8_b2_s44.json": "34b3883589c815e0",
   "hybrid/clean_soft_gated_r1_w8_b2_s42.json": "1dbc029290f39360",
   "hybrid/clean_soft_gated_r1_w8_b2_s43.json": "af810ff87ce9c83f",
   "hybrid/clean_soft_gated_r1_w8_b2_s44.json": "1ce0d662974cae34",

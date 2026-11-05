@@ -124,8 +124,9 @@ def maps():
                 maxerr = max(
                     maxerr, float(((w[..., None] * e).sum(1) + bn - full).abs().max())
                 )
-                # plotted contributions are class-relative (predicted-class score minus its mean over classes);
-                # they add up to the predicted logit minus the mean logit over classes (bias excluded), checked here
+                # plotted contributions are class-relative (predicted-class score minus its mean over classes). With the
+                # centred bias term b_p - mean(b) (not drawn) they add up to the predicted logit minus the mean logit over
+                # classes; the check below reconstructs exactly the bias-free centred score that the maps show
                 cen = w * (e[ar, :, p] - e.mean(2))
                 target = (full[ar, p] - bn[p]) - (full - bn).mean(1)
                 cerr = max(cerr, float((cen.sum(1) - target).abs().max()))
