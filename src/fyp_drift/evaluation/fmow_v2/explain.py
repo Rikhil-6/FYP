@@ -110,7 +110,7 @@ def maps():
         Wn = model.classifier.weight.detach()
         bn = model.classifier.bias.detach()
         tok = data["future_test"][0]
-        C, maxerr = ([], 0.0)
+        C, maxerr, cerr = ([], 0.0, 0.0)
         with torch.no_grad():
             for s in range(0, n, 128):
                 h = torch.from_numpy(
@@ -124,12 +124,18 @@ def maps():
                 maxerr = max(
                     maxerr, float(((w[..., None] * e).sum(1) + bn - full).abs().max())
                 )
-                C.append((w * (e[ar, :, p] - e.mean(2))).cpu().numpy())
+                # plotted contributions are class-relative (predicted-class score minus its mean over classes);
+                # they add up to the predicted logit minus the mean logit over classes (bias excluded), checked here
+                cen = w * (e[ar, :, p] - e.mean(2))
+                target = (full[ar, p] - bn[p]) - (full - bn).mean(1)
+                cerr = max(cerr, float((cen.sum(1) - target).abs().max()))
+                C.append(cen.cpu().numpy())
         C = np.concatenate(C)
         i, lift, hf = metrics(C, m10)
         res[f"new_{arm}"] = {
             "test_f1_check": best["val_f1"],
             "completeness_max_err": maxerr,
+            "completeness_centred_max_err": cerr,
             "box_share_of_support": float(i.mean()),
             "lift": float(np.median(lift)),
             "cells_for_half": float(hf.mean()),

@@ -134,3 +134,18 @@ def test_site_overlap_counts_cross_period_sites():
     assert r["test_images_from_shared_sites"] == 2 and r["test_groups_also_earlier"] == 2
     assert site_overlap.seen_site_mask(splits) == [True, False, True]
 
+
+
+def test_class_relative_contributions_add_up_to_the_centred_logit():
+    """The contributions the explanation figures plot (score minus its mean over classes) sum to logit minus mean logit."""
+    rng = np.random.default_rng(0)
+    h, W, b = rng.normal(size=(5, 100, 16)), rng.normal(size=(62, 16)), rng.normal(size=62)
+    w = rng.dirichlet(np.ones(100), size=5)  # attention weights over cells
+    e = h @ W.T  # (image, cell, class)
+    logits = (w[..., None] * e).sum(1) + b
+    p = logits.argmax(1)
+    ar = np.arange(5)
+    contrib = w * (e[ar, :, p] - e.mean(2))
+    assert np.allclose(contrib.sum(1), (logits - b)[ar, p] - (logits - b).mean(1))
+    raw = w * e[ar, :, p]  # unsubtracted contributions plus the bias give the logit exactly
+    assert np.allclose(raw.sum(1) + b[p], logits[ar, p])
