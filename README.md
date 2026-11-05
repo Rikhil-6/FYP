@@ -1,5 +1,7 @@
 # Saliency-guided data drift mitigation on Vision Transformers
+
 \# https://github.com/Rikhil-6/FYP
+
 Final-year project. A frozen DINOv2-L/14 classifier is trained on 2010-13 satellite images (fMoW) and must be
 updated for 2016-17 when its inputs drift (here: cloud cover that is absent before 2016 and present after).
 The project asks whether the old model's own patch-level **saliency** makes that update more accurate, cheaper
