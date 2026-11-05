@@ -1,0 +1,15 @@
+{
+ "test_images": 7077,
+ "test_sites": 7040,
+ "test_sites_shared_with": {
+  "hist_train": 147,
+  "hist_val": 24,
+  "adapt_train": 148,
+  "adapt_val": 15
+ },
+ "test_sites_shared_with_any_earlier_split": 334,
+ "test_images_from_shared_sites": 334,
+ "test_country_utm_groups": 256,
+ "test_groups_also_earlier": 222,
+ "share_of_test_images": 0.0472
+}

@@ -7,6 +7,7 @@ import collections
 import concurrent.futures
 import csv
 import json
+import os
 import random
 import time
 import urllib.request
@@ -14,7 +15,7 @@ from pathlib import Path
 
 
 def main():
-    ROOT = Path("/mnt/sdd/FYP/data/fmow_v1.1")
+    ROOT = Path(os.environ.get("FYP_DATA", "/mnt/sdd/FYP/data/fmow_v1.1"))
     SUB = ROOT / "subset_7k_country_matched"
     OUT = ROOT / "subset_14k_country_matched"
     OUT.mkdir(exist_ok=True)

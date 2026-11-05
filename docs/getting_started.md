@@ -13,17 +13,21 @@ A GPU is needed for training (a 16 GB Tesla T4 was used). Inference with a saved
 
 ## 2. Get the data
 
-The experiments use **fMoW-RGB** (Functional Map of the World), which is public on AWS
-(`s3://spacenet-dataset/Hosted-Datasets/fmow/fmow-rgb/`, no account needed).
+The experiments use **fMoW-RGB** (Functional Map of the World), public on AWS
+(`s3://spacenet-dataset/Hosted-Datasets/fmow/fmow-rgb/`, no account needed). The exact 41,969-image subset is listed in
+`data_manifests/`, so nothing else is required:
 
 ```bash
-source scripts/fmow_v2/env.sh                          # edit the paths at the top for your machine
-python -m fyp_drift.evaluation.fmow_v2.expand_subset   # country-matched subset, ~14k images per period
-python -m fyp_drift.data.fmow_metadata                 # per-image sun angle, cloud cover, off-nadir
+export FYP_ROOT=$HOME/fyp          # any folder with ~40 GB free; every path derives from it (see scripts/fmow_v2/env.sh)
+source scripts/fmow_v2/env.sh
+python -m fyp_drift.evaluation.fmow_v2.download_subset --limit 50   # quick test first, then run without --limit
 ```
 
-`expand_subset` downloads only the images in the subset (about 42k JPEGs) plus their JSON metadata and writes
-`manifest_downloaded.csv`. See [data.md](data.md) for the periods, splits and file layout.
+`download_subset` fetches the listed images over HTTPS, checks each against its published byte size and writes
+`manifest_downloaded.csv` and `acquisition_metadata.csv` (cloud cover, sun angle, off-nadir, object box) under
+`$FYP_DATA/subset_14k_country_matched/`, which is where `FYP_MANIFEST` and `FYP_METADATA` point. The images are identical to
+the ones used in the paper. `fmow_v2.expand_subset` is the original tool that grew the subset from a 7k pilot and is only needed to
+re-draw the subset from the full fMoW metadata. See [data.md](data.md) for the periods, splits and file layout.
 
 ## 3. Run the experiments
 

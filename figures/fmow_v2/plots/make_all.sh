@@ -7,6 +7,7 @@ python fig_results.py        # fig_drift, fig_accuracy, fig_efficiency_*, fig_cl
 python fig_reliance.py       # fig_shift, fig_maps, fig_learning, fig_router
 python method_figures.py     # fig_gate_curves, ../equations/*.png
 python fig_explanations.py   # fig_explain_goodbad, fig_explain_update, ../saliency_examples/*.png
+python fig_cloud_examples.py data/cloud_examples.npz ../figures   # Appendix C.5 cloud versions of Figures 10 and 12
 if command -v pdflatex >/dev/null; then
   for t in overview pipelines; do
     (cd ../tikz && pdflatex -interaction=batchmode $t.tex >/dev/null && pdftoppm -png -r 300 -singlefile $t.pdf ../figures/fig_$t)

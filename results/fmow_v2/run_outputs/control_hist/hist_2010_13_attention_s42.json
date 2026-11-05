@@ -1,0 +1,1 @@
+{"model": "attention", "train": "hist_2010_13", "seed": 42, "val_f1": 0.5396611272441437, "epoch": 12, "clean": 0.5627511863222743, "real": {"cloudy": 0.5514073213364685, "noncloudy": 0.5608498746179055, "noncloudy_classmatched": 0.5414247039583336}, "overlay": 0.4028374425012209, "off_object": 0.5299641459672974, "on_object": 0.4033665219929538}

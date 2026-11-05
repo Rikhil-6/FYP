@@ -1,0 +1,1 @@
+{"model": "gated", "train": "adapt_2014_15", "seed": 44, "val_f1": 0.582411984378147, "epoch": 9, "clean": 0.5968220880543489, "real": {"cloudy": 0.5478778462700294, "noncloudy": 0.599584612144337, "noncloudy_classmatched": 0.5785075217218845}, "overlay": 0.48029042162744584, "off_object": 0.5764854989528747, "on_object": 0.4785747143283723}

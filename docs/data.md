@@ -4,7 +4,7 @@
 `https://spacenet-dataset.s3.amazonaws.com/Hosted-Datasets/fmow/fmow-rgb/`). Each image comes with a JSON file
 holding the object box, timestamp, sun angles, off-nadir angle and cloud cover.
 
-**Subset.** `fmow_v2.expand_subset` picks about 14,000 images for each period with the same per-country quota in
+**Subset.** `fmow_v2.expand_subset` (or `fmow_v2.download_subset`, which reproduces the result from `data_manifests/`) picks about 14,000 images for each period with the same per-country quota in
 every period, so geography does not change between periods. 31 of about 42,000 downloads failed.
 
 | Period | Role | Split (by location) | Images |

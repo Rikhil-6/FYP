@@ -1,0 +1,395 @@
+{
+ "old_evidence_G20": {
+  "box_share_of_support": 0.3230249881744385,
+  "lift": 1.2001673877239227,
+  "cells_for_half": 0.27249964674297017,
+  "lift_correct": 1.301493677828047,
+  "lift_wrong": 1.0955225229263306
+ },
+ "old_contrast_G20": {
+  "box_share_of_support": 0.32233303785324097,
+  "lift": 1.145938209124974,
+  "cells_for_half": 0.1518026706231454,
+  "lift_correct": 1.305190622806549,
+  "lift_wrong": 0.9569717115826076
+ },
+ "old_evidence_G10": {
+  "box_share_of_support": 0.3388640582561493,
+  "lift": 1.1960076292355857,
+  "cells_for_half": 0.3159926522537798,
+  "lift_correct": 1.2866022686163585,
+  "lift_wrong": 1.0961462743580341
+ },
+ "old_contrast_G10": {
+  "box_share_of_support": 0.3445536196231842,
+  "lift": 1.1593518778681755,
+  "cells_for_half": 0.16918326974706796,
+  "lift_correct": 1.3354543472329776,
+  "lift_wrong": 0.9195560589432716
+ },
+ "new_attention": {
+  "test_f1_check": 0.604985525659018,
+  "completeness_max_err": 7.62939453125e-06,
+  "box_share_of_support": 0.7335957884788513,
+  "lift": 3.280958781639735,
+  "cells_for_half": 0.07404267344920164,
+  "lift_correct": 3.274603560566902,
+  "lift_wrong": 3.3023323863744736
+ },
+ "new_gated": {
+  "test_f1_check": 0.5908525741054238,
+  "completeness_max_err": 1.1444091796875e-05,
+  "box_share_of_support": 0.8572726249694824,
+  "lift": 3.9704129099845886,
+  "cells_for_half": 0.028423060618906322,
+  "lift_correct": 3.9588255186875663,
+  "lift_wrong": 3.994035099943479
+ },
+ "new_gated_shuffled": {
+  "test_f1_check": 0.5979105640280074,
+  "completeness_max_err": 7.62939453125e-06,
+  "box_share_of_support": 0.7196414470672607,
+  "lift": 3.2012162109216056,
+  "cells_for_half": 0.07324007347746221,
+  "lift_correct": 3.189010669787725,
+  "lift_wrong": 3.2211511085430784
+ },
+ "per_class": {
+  "storage_tank": {
+   "n": 102,
+   "old_lift": 1.738454947868983,
+   "old_box_share": 0.31054428219795227,
+   "new_gated_lift": 3.805601348479589,
+   "box_area": 0.16931372549019608
+  },
+  "fountain": {
+   "n": 66,
+   "old_lift": 1.7128797868887584,
+   "old_box_share": 0.14832331240177155,
+   "new_gated_lift": 7.408025860786438,
+   "box_area": 0.08878787878787879
+  },
+  "electric_substation": {
+   "n": 89,
+   "old_lift": 1.7079845070838928,
+   "old_box_share": 0.44834548234939575,
+   "new_gated_lift": 4.07903070251147,
+   "box_area": 0.28719101123595503
+  },
+  "recreational_facility": {
+   "n": 296,
+   "old_lift": 1.6942822188138962,
+   "old_box_share": 0.3794153034687042,
+   "new_gated_lift": 3.9444677531719208,
+   "box_area": 0.22576858108108108
+  },
+  "toll_booth": {
+   "n": 65,
+   "old_lift": 1.6828501224517822,
+   "old_box_share": 0.2717026472091675,
+   "new_gated_lift": 3.8031645119190216,
+   "box_area": 0.15692307692307692
+  },
+  "road_bridge": {
+   "n": 35,
+   "old_lift": 1.5996802846590679,
+   "old_box_share": 0.269680917263031,
+   "new_gated_lift": 5.748997131983439,
+   "box_area": 0.16357142857142856
+  },
+  "helipad": {
+   "n": 48,
+   "old_lift": 1.5607253834605217,
+   "old_box_share": 0.18379439413547516,
+   "new_gated_lift": 6.227775476872921,
+   "box_area": 0.119375
+  },
+  "railway_bridge": {
+   "n": 32,
+   "old_lift": 1.533229218588935,
+   "old_box_share": 0.2914201617240906,
+   "new_gated_lift": 4.123988126715025,
+   "box_area": 0.18796875
+  },
+  "fire_station": {
+   "n": 62,
+   "old_lift": 1.520060549179713,
+   "old_box_share": 0.26482093334198,
+   "new_gated_lift": 4.106486092011134,
+   "box_area": 0.1761290322580645
+  },
+  "barn": {
+   "n": 140,
+   "old_lift": 1.5030890703201294,
+   "old_box_share": 0.2657449543476105,
+   "new_gated_lift": 4.044705877701442,
+   "box_area": 0.1717857142857143
+  },
+  "swimming_pool": {
+   "n": 51,
+   "old_lift": 1.4924071729183197,
+   "old_box_share": 0.12715564668178558,
+   "new_gated_lift": 12.187906354665756,
+   "box_area": 0.08274509803921569
+  },
+  "solar_farm": {
+   "n": 226,
+   "old_lift": 1.4898827536539598,
+   "old_box_share": 0.6450985074043274,
+   "new_gated_lift": 2.179899166027705,
+   "box_area": 0.4730641592920354
+  },
+  "burial_site": {
+   "n": 56,
+   "old_lift": 1.4444050565361977,
+   "old_box_share": 0.3690338432788849,
+   "new_gated_lift": 4.130214204390844,
+   "box_area": 0.25638392857142855
+  },
+  "dam": {
+   "n": 59,
+   "old_lift": 1.4089582363764446,
+   "old_box_share": 0.2271111011505127,
+   "new_gated_lift": 4.118380695581436,
+   "box_area": 0.16995762711864407
+  },
+  "airport_hangar": {
+   "n": 73,
+   "old_lift": 1.4080579082171123,
+   "old_box_share": 0.2530420422554016,
+   "new_gated_lift": 3.9365065594514212,
+   "box_area": 0.1823972602739726
+  },
+  "stadium": {
+   "n": 42,
+   "old_lift": 1.3801628351211548,
+   "old_box_share": 0.5517956614494324,
+   "new_gated_lift": 2.5925945904519825,
+   "box_area": 0.4147619047619048
+  },
+  "place_of_worship": {
+   "n": 95,
+   "old_lift": 1.3772250413894653,
+   "old_box_share": 0.20154637098312378,
+   "new_gated_lift": 5.876957376797995,
+   "box_area": 0.14205263157894737
+  },
+  "race_track": {
+   "n": 96,
+   "old_lift": 1.327984723724237,
+   "old_box_share": 0.6707038879394531,
+   "new_gated_lift": 1.8862857973134075,
+   "box_area": 0.5283854166666667
+  },
+  "lake_or_pond": {
+   "n": 19,
+   "old_lift": 1.3273901740709941,
+   "old_box_share": 0.39129361510276794,
+   "new_gated_lift": 4.124427090088527,
+   "box_area": 0.3231578947368421
+  },
+  "single-unit_residential": {
+   "n": 55,
+   "old_lift": 1.314801573753357,
+   "old_box_share": 0.1272013634443283,
+   "new_gated_lift": 6.8020254373550415,
+   "box_area": 0.09463636363636363
+  },
+  "crop_field": {
+   "n": 488,
+   "old_lift": 1.3027983158826828,
+   "old_box_share": 0.5587709546089172,
+   "new_gated_lift": 2.485550343990326,
+   "box_area": 0.4598206967213115
+  },
+  "smokestack": {
+   "n": 40,
+   "old_lift": 1.2673620283603668,
+   "old_box_share": 0.2098662406206131,
+   "new_gated_lift": 4.12894394248724,
+   "box_area": 0.16325
+  },
+  "gas_station": {
+   "n": 42,
+   "old_lift": 1.2550003826618195,
+   "old_box_share": 0.24339239299297333,
+   "new_gated_lift": 4.062865674495697,
+   "box_area": 0.19047619047619047
+  },
+  "parking_lot_or_garage": {
+   "n": 53,
+   "old_lift": 1.244703084230423,
+   "old_box_share": 0.27313458919525146,
+   "new_gated_lift": 4.093398650487265,
+   "box_area": 0.21599056603773584
+  },
+  "shopping_mall": {
+   "n": 50,
+   "old_lift": 1.21137155638589,
+   "old_box_share": 0.536452054977417,
+   "new_gated_lift": 2.1857537683986483,
+   "box_area": 0.45795
+  },
+  "wind_farm": {
+   "n": 199,
+   "old_lift": 1.21115081012249,
+   "old_box_share": 0.2247992604970932,
+   "new_gated_lift": 4.012752821048101,
+   "box_area": 0.18479899497487437
+  },
+  "tower": {
+   "n": 84,
+   "old_lift": 1.2022241055965424,
+   "old_box_share": 0.1842920184135437,
+   "new_gated_lift": 4.687486961483955,
+   "box_area": 0.14577380952380953
+  },
+  "tunnel_opening": {
+   "n": 96,
+   "old_lift": 1.2009789049625397,
+   "old_box_share": 0.13396568596363068,
+   "new_gated_lift": 6.477311626076698,
+   "box_area": 0.11229166666666666
+  },
+  "car_dealership": {
+   "n": 92,
+   "old_lift": 1.1864869793256125,
+   "old_box_share": 0.2640860080718994,
+   "new_gated_lift": 4.010431716839473,
+   "box_area": 0.21668478260869564
+  },
+  "water_treatment_facility": {
+   "n": 150,
+   "old_lift": 1.1814470606589178,
+   "old_box_share": 0.4080061912536621,
+   "new_gated_lift": 3.14081350962321,
+   "box_area": 0.3529333333333333
+  },
+  "lighthouse": {
+   "n": 50,
+   "old_lift": 1.1758108312884967,
+   "old_box_share": 0.1559804081916809,
+   "new_gated_lift": 4.708550125360489,
+   "box_area": 0.1304
+  },
+  "ground_transportation_station": {
+   "n": 73,
+   "old_lift": 1.166968122124672,
+   "old_box_share": 0.20818936824798584,
+   "new_gated_lift": 3.782261908054352,
+   "box_area": 0.1860958904109589
+  },
+  "surface_mine": {
+   "n": 137,
+   "old_lift": 1.1479478532617742,
+   "old_box_share": 0.6201165318489075,
+   "new_gated_lift": 1.7251112394862707,
+   "box_area": 0.5395255474452555
+  },
+  "waste_disposal": {
+   "n": 17,
+   "old_lift": 1.1448433250188828,
+   "old_box_share": 0.2723410725593567,
+   "new_gated_lift": 4.0923210481802625,
+   "box_area": 0.24294117647058824
+  },
+  "zoo": {
+   "n": 23,
+   "old_lift": 1.1202296072786504,
+   "old_box_share": 0.7405951023101807,
+   "new_gated_lift": 1.4061571870531355,
+   "box_area": 0.6707608695652174
+  },
+  "prison": {
+   "n": 26,
+   "old_lift": 1.1067255170721757,
+   "old_box_share": 0.7578737735748291,
+   "new_gated_lift": 1.308509505220822,
+   "box_area": 0.6706730769230769
+  },
+  "interchange": {
+   "n": 39,
+   "old_lift": 1.1009820769814884,
+   "old_box_share": 0.707160234451294,
+   "new_gated_lift": 1.4071387904030936,
+   "box_area": 0.6353846153846154
+  },
+  "factory_or_powerplant": {
+   "n": 34,
+   "old_lift": 1.0980902554152847,
+   "old_box_share": 0.5232672691345215,
+   "new_gated_lift": 1.9075858717163405,
+   "box_area": 0.4650735294117647
+  },
+  "military_facility": {
+   "n": 50,
+   "old_lift": 1.0848491593743816,
+   "old_box_share": 0.43491604924201965,
+   "new_gated_lift": 2.7030196454789905,
+   "box_area": 0.40675
+  },
+  "archaeological_site": {
+   "n": 27,
+   "old_lift": 1.0789809226989746,
+   "old_box_share": 0.2694672644138336,
+   "new_gated_lift": 3.803578019142151,
+   "box_area": 0.24685185185185185
+  },
+  "oil_or_gas_facility": {
+   "n": 40,
+   "old_lift": 1.0614953855318683,
+   "old_box_share": 0.22211742401123047,
+   "new_gated_lift": 3.881605590383212,
+   "box_area": 0.204125
+  },
+  "golf_course": {
+   "n": 49,
+   "old_lift": 1.0556822270154953,
+   "old_box_share": 0.8379811644554138,
+   "new_gated_lift": 1.111001239882575,
+   "box_area": 0.7910204081632654
+  },
+  "runway": {
+   "n": 36,
+   "old_lift": 1.037827990949154,
+   "old_box_share": 0.4066321849822998,
+   "new_gated_lift": 2.71417587581608,
+   "box_area": 0.38243055555555555
+  },
+  "airport_terminal": {
+   "n": 80,
+   "old_lift": 0.9997637495398521,
+   "old_box_share": 0.332628458738327,
+   "new_gated_lift": 2.606812988718351,
+   "box_area": 0.33465625
+  },
+  "port": {
+   "n": 27,
+   "old_lift": 0.991742383866083,
+   "old_box_share": 0.22493445873260498,
+   "new_gated_lift": 2.931557595729828,
+   "box_area": 0.22777777777777777
+  },
+  "educational_institution": {
+   "n": 49,
+   "old_lift": 0.9726601488449994,
+   "old_box_share": 0.45959362387657166,
+   "new_gated_lift": 1.9611279964447021,
+   "box_area": 0.4611734693877551
+  },
+  "amusement_park": {
+   "n": 76,
+   "old_lift": 0.9654796123504639,
+   "old_box_share": 0.3428995609283447,
+   "new_gated_lift": 3.836475685238838,
+   "box_area": 0.3456578947368421
+  },
+  "airport": {
+   "n": 24,
+   "old_lift": 0.7641874502102535,
+   "old_box_share": 0.19722862541675568,
+   "new_gated_lift": 4.086582486828169,
+   "box_area": 0.2559375
+  }
+ }
+}

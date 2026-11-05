@@ -1,0 +1,1 @@
+{"model": "attention", "train": "adapt_2014_15", "seed": 43, "val_f1": 0.6025002993325618, "epoch": 7, "clean": 0.6079284542339772, "real": {"cloudy": 0.5609883591163173, "noncloudy": 0.6091674118073449, "noncloudy_classmatched": 0.5883702291224914}, "overlay": 0.49144045860333785, "off_object": 0.5842038680509364, "on_object": 0.4885132402193908}

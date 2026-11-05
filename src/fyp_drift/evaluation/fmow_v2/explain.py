@@ -59,7 +59,7 @@ def maps():
 
     res, keep = ({}, {})
     for G, path in (
-        (20, Path("/mnt/sdd/FYP/cache/adapter_tokens_v2/clean_future_test.npy")),
+        (20, Path(os.environ.get("FYP_ROOT", "/mnt/sdd/FYP")) / "cache/adapter_tokens_v2/clean_future_test.npy"),
         (10, T / "clean_future_test.npy"),
     ):
         tok = np.load(path, mmap_mode="r")
