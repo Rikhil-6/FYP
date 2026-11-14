@@ -8,6 +8,8 @@ The project asks whether the old model's own patch-level **saliency** makes that
 or easier to audit than learned attention and LoRA. [docs/paper_guide.md](docs/paper_guide.md) maps every section of the accompanying paper to the code and outputs that
 produce it.
 
+**Slides:** [talk deck (PDF)](docs/presentation/Saliency-Guided_Data_Drift_Mitigation_ViT_slides.pdf), with a [reading guide](docs/presentation/README.md).
+
 ![System overview](figures/fmow_v2/figures/fig_overview.png)
 
 ## Headline results
@@ -66,7 +68,7 @@ The earlier CLEAR-100 version of the project (transparent router) is on the `ini
 | [Code map](docs/code_map.md) | What each part of the code does, with an architecture diagram |
 | [Experiment run order](docs/fmow_v2.md) | Every step, its command and output, protocol notes |
 | [Trained models](docs/models.md) | Saved models, inference, re-exporting |
-| [Presentation slides](docs/presentation/README.md) | The talk deck (PDF) with a section map and the main claims |
+| [Presentation slides](docs/presentation/Saliency-Guided_Data_Drift_Mitigation_ViT_slides.pdf) ([guide](docs/presentation/README.md)) | The talk deck (PDF); the guide has a section map and the main claims |
 
 ## Quick start
 
