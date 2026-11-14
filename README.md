@@ -66,6 +66,7 @@ The earlier CLEAR-100 version of the project (transparent router) is on the `ini
 | [Code map](docs/code_map.md) | What each part of the code does, with an architecture diagram |
 | [Experiment run order](docs/fmow_v2.md) | Every step, its command and output, protocol notes |
 | [Trained models](docs/models.md) | Saved models, inference, re-exporting |
+| [Presentation slides](docs/presentation/README.md) | The talk deck (PDF) with a section map and the main claims |
 
 ## Quick start
 
