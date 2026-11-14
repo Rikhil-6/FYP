@@ -8,3 +8,5 @@
 | `examples.npz`, `examples_soft.npz` | `fmow_v2.analysis` / shift-test outputs | `fig_maps` |
 | `explain_examples.npz` | `fmow_v2.explain_maps` | `fig_explanations` |
 | `explain20.npz` | `fmow_v2.explain_patches` | `fig_explanations` |
+| `lora_examples.npz` | `scripts/fmow_v2/lora_examples.py` on `cloud_examples.npz` | per-cell maps for the old model, soft gate, LoRA and hybrid, clean and with cloud |
+| `runway_cloud.npz`, `six_models.npz` | per-image maps for the runway and military-facility examples (server run, 12 Nov); generating script not saved in the repo | overcorrection example figure in the slides |
